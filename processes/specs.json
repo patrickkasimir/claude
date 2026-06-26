@@ -494,7 +494,7 @@
     "name": "PageManager (Klasse)",
     "icon": "🏗️",
     "description": "Generische JS-Klasse die alle CRUD-Seiten antreibt. Eine Instanz pro Entität, konfiguriert über ein Config-Objekt.",
-    "version": "1.0",
+    "version": "1.1",
     "pagemanager": true,
     "state": [
       {
@@ -546,6 +546,11 @@
         "property": "_editId",
         "type": "Number",
         "description": "ID des aktuell geöffneten Eintrags (null = neu)"
+      },
+      {
+        "property": "_bcId / _bcCurId / _saveId / _cancelId / _deleteId",
+        "type": "String",
+        "description": "Intern generierte Element-IDs — gesetzt von _bindDetail(). Format: '{entity}-bc', '{entity}-pm-save' etc."
       }
     ],
     "methods": [
@@ -562,12 +567,12 @@
       {
         "method": "openDetail(id)",
         "access": "public",
-        "description": "Öffnet Detailformular für bestehenden Eintrag. Ruft cfg.renderDetail(), lädt Chatter."
+        "description": "Öffnet Detailformular für bestehenden Eintrag. Zeigt Löschen-Button (cfg._deleteId). Ruft cfg.renderDetail(), lädt Chatter."
       },
       {
         "method": "openNew()",
         "access": "public",
-        "description": "Öffnet leeres Detailformular für neuen Eintrag. Ruft cfg.renderDetail(null)."
+        "description": "Öffnet leeres Detailformular. Versteckt Löschen-Button (cfg._deleteId). Ruft cfg.renderDetail(null)."
       },
       {
         "method": "closeDetail()",
@@ -617,7 +622,7 @@
       {
         "method": "_bindDetail()",
         "access": "private",
-        "description": "Bindet Speichern/Löschen/Abbrechen-Buttons im Detailformular."
+        "description": "Injiziert Breadcrumb-Nav + Speichern/Abbrechen/Löschen-Buttons generisch in cfg.detailFormElId via prepend(). Erzeugt entity-prefixierte IDs (z.B. tasks-pm-save) und speichert sie als cfg._bcId, cfg._bcCurId, cfg._saveId, cfg._cancelId, cfg._deleteId."
       },
       {
         "method": "_buildColVisPopup()",
@@ -782,29 +787,19 @@
         "description": "ID des Detail-Panels (<div> mit .visible-Klasse)."
       },
       {
-        "key": "breadcrumbElId",
+        "key": "detailFormElId",
         "required": true,
-        "description": "ID des Breadcrumb-Divs."
+        "description": "ID des Formular-Containers im Detail-Panel. _bindDetail() prepended hier Breadcrumb + Buttons."
+      },
+      {
+        "key": "backLabel",
+        "required": false,
+        "description": "Label des Breadcrumb-Zurück-Links (Default: entity.toUpperCase()). Z.B. 'TASK MANAGEMENT'."
       },
       {
         "key": "listPageElId",
         "required": true,
         "description": "ID des Listen-/Kanban-Seiten-Containers (wird bei Detail ausgeblendet)."
-      },
-      {
-        "key": "saveBtnId",
-        "required": true,
-        "description": "ID des Speichern-Buttons im Detailformular."
-      },
-      {
-        "key": "deleteBtnId",
-        "required": true,
-        "description": "ID des Löschen-Buttons im Detailformular."
-      },
-      {
-        "key": "cancelBtnId",
-        "required": true,
-        "description": "ID des Abbrechen-Buttons im Detailformular."
       },
       {
         "key": "newBtnId",
@@ -850,13 +845,13 @@
     "subclasses": [
       {
         "name": "UsersPageManager",
-        "overrides": "closeDetail()",
-        "reason": "Users-Detailformular liegt auf einer eigenen Seite (#user-detail statt innerhalb der Listen-Seite). Avatar-Upload-Panel wird zusätzlich angezeigt."
+        "overrides": "_showDetailPanel(), closeDetail()",
+        "reason": "Users-Seite hat eigene Toolbar (#users-toolbar) und Main-Bereich (#users-main) die separat ein-/ausgeblendet werden. Nutzt this.cfg._bcId / _bcCurId für Breadcrumb-Aktualisierung."
       },
       {
         "name": "IncidentsPageManager",
-        "overrides": "closeDetail()",
-        "reason": "Incidents-Detailformular liegt auf einer eigenen Seite (#incident-detail). SLA/Prioritäts-Felder werden beim Öffnen zusätzlich initialisiert."
+        "overrides": "_showDetailPanel(), closeDetail()",
+        "reason": "Incidents-Detail liegt außerhalb von #incidents-page. Klassen-Toggle (.active) statt display-none. Nutzt this.cfg._bcId / _bcCurId für Breadcrumb-Aktualisierung."
       }
     ],
     "instances": [
@@ -974,32 +969,24 @@
     ],
     "detail": [
       {
-        "element": "Breadcrumb",
-        "description": "Zurück-Navigation zur Listenansicht."
+        "element": "Breadcrumb (generiert von _bindDetail)",
+        "description": "_bindDetail() injiziert automatisch eine .pm-breadcrumb Nav mit Zurück-Link und aktuellem Eintragstitel. Kein hardcodiertes HTML nötig. Zurück-Klick ruft closeDetail()."
+      },
+      {
+        "element": "Action-Buttons (generiert von _bindDetail)",
+        "description": "_bindDetail() injiziert Speichern (✓), Abbrechen (✗) und Löschen (🗑) als .btn-icon Buttons. Alle als outline/ghost Stil, Farbe erscheint beim Hover. Löschen startet versteckt — wird bei openDetail() sichtbar, bei openNew() versteckt."
       },
       {
         "element": "2-Spalten-Grid",
-        "description": "Felder in .detail-grid (1fr 1fr), gruppiert in .detail-section Blöcken."
+        "description": "Felder in .detail-grid (1fr 1fr), gruppiert in .detail-section Blöcken mit h3-Überschrift. Auf Mobile automatisch 1-spaltig."
       },
       {
         "element": "Felder",
-        "description": "App-spezifisch: Welche Felder angezeigt werden."
-      },
-      {
-        "element": "Speichern-Button",
-        "description": "POST (neu) oder PUT (bestehend). Validiert Pflichtfelder."
-      },
-      {
-        "element": "Löschen-Button",
-        "description": "Rot, nur bei bestehenden Einträgen. Öffnet Bestätigungs-Modal."
-      },
-      {
-        "element": "Abbrechen-Button",
-        "description": "Schließt Formular ohne Speichern."
+        "description": "App-spezifisch: Welche Felder angezeigt werden, konfiguriert via cfg.renderDetail()."
       },
       {
         "element": "Bestätigungs-Modal",
-        "description": "showConfirm(msg, {title, yesLabel, danger}). Titel, Button-Text und Farbe sind konfigurierbar."
+        "description": "showConfirm(msg, {title, yesLabel, danger}). Gibt Promise<boolean> zurück. Löschen-Button öffnet diesen Dialog automatisch via _deleteDetail()."
       }
     ],
     "chatter": [
@@ -1041,14 +1028,27 @@
         "element": "showConfirm()",
         "description": "Konfigurierbares Modal: title, yesLabel, danger-Flag (roter Button). Gibt Promise<boolean> zurück."
       }
-    ]
+    ],
+    "mobile": {
+      "description": "Alle generischen Features sind mobile-optimiert (@media max-width: 768px).",
+      "behaviors": [
+        "Sidebar: Drawer von links (Hamburger ☰), Overlay-Klick schließt, ESC schließt, Nav-Item-Klick schließt",
+        "Toolbar: wraps auf 2 Zeilen — Neu-Button + View-Toggle oben, Suchfeld in voller Breite darunter",
+        "Suchfeld: 16px font-size verhindert iOS Auto-Zoom beim Fokus",
+        "Touch-Targets: min. 44×44px auf alle Buttons, Nav-Items, Sort/ColVis-Toggles",
+        "Kanban: flex-direction: column — Spalten stapeln vertikal, volle Breite",
+        "Detail-Formular: 1-spaltig, Chatter-Panel darunter (max-height: 400px)",
+        "List-View als Default auf Mobile (window.innerWidth <= 768 → view-list.click())",
+        "Back-Button zur Landing-Page: nur Mobile sichtbar, oben in Sidebar"
+      ]
+    }
   },
   {
     "id": "tasks",
     "name": "Task Management",
     "icon": "📋",
     "description": "Aufgabenverwaltung mit Kanban-Board, Benutzerzuweisung und Statusverfolgung.",
-    "version": "1.0",
+    "version": "1.1",
     "process_description": "Der Task-Management-Prozess beginnt mit der Erfassung einer Aufgabe durch einen Benutzer. Die Aufgabe durchläuft einen definierten Lebenszyklus: Nach der Erstellung liegt sie im Status 'Offen' und kann einem Benutzer zugewiesen werden. Der Bearbeiter nimmt die Aufgabe 'In Bearbeitung', arbeitet sie ab und stellt sie zur Prüfung bereit ('Review'). Nach erfolgreicher Abnahme wird die Aufgabe als 'Erledigt' markiert. Prioritäten werden automatisch aus den Feldern Auswirkung und Dringlichkeit berechnet, um eine objektive Reihenfolge sicherzustellen. Der gesamte Verlauf inkl. Kommentare und Dateianhänge ist im Chatter nachvollziehbar.",
     "bpmn_steps": [
       {
@@ -1238,7 +1238,8 @@
       "Odoo-Suchfeld mit Chips",
       "Chatter mit Datei-Upload",
       "Prioritäts-Matrix (Auswirkung × Dringlichkeit)",
-      "Spalten resize & reorder"
+      "Spalten resize & reorder",
+      "Mobile: Liste als Default, Kanban stapelt vertikal, Touch-Targets 44px"
     ]
   },
   {
@@ -1246,7 +1247,7 @@
     "name": "Incident Management",
     "icon": "🚨",
     "description": "ITIL-konformes Incident Management mit SLA-Tracking, Prioritätsmatrix und Eskalations-Workflow.",
-    "version": "1.0",
+    "version": "1.1",
     "process_description": "Der Incident-Management-Prozess folgt dem ITIL-Standard und beginnt mit der Meldung eines Störfalls durch den Melder. Der Service Desk erfasst, klassifiziert und priorisiert den Incident automatisch anhand der Felder Auswirkung und Dringlichkeit (P1–P4). Bei hoher Priorität (P1/P2) erfolgt sofortige Eskalation zu L2 oder L3. Niedrigere Prioritäten werden zunächst von L1 bearbeitet. Kann L1 den Incident nicht lösen, eskaliert er ebenfalls. Der SLA-Timer läuft ab Erfassung und pausiert bei Status 'Wartend'. Bei Erreichen der Lösung wird der Incident getestet und nach Bestätigung geschlossen. Alle Statuswechsel, Eskalationen und Kommunikation werden im Chatter protokolliert.",
     "bpmn_steps": [
       {
@@ -1644,7 +1645,145 @@
       "Wartegrund-Feld bei Status Wartend",
       "Lösungsbeschreibung Pflicht bei Gelöst",
       "Eskalations-Log im Chatter",
-      "Spalten resize & reorder"
+      "Spalten resize & reorder",
+      "Mobile: Liste als Default, Kanban stapelt vertikal, Touch-Targets 44px"
     ]
+  },
+  {
+    "id": "users",
+    "name": "Benutzerverwaltung",
+    "icon": "👥",
+    "description": "Verwaltung aller Systembenutzer: Stammdaten, Rollen, Avatar, Status. Zentrales Benutzerregister für alle Apps.",
+    "version": "1.0",
+    "process_description": "Admins legen Benutzer an und verwalten Stammdaten. Benutzer können in Tasks und Incidents als Verantwortliche zugewiesen werden. Zukünftig: Login-Credentials, 2FA, App-Berechtigungen (siehe _auth).",
+    "fields": [
+      {
+        "key": "id",
+        "type": "SERIAL",
+        "required": true,
+        "description": "Primärschlüssel"
+      },
+      {
+        "key": "name",
+        "type": "VARCHAR",
+        "required": true,
+        "description": "Vollständiger Name. Pflichtfeld."
+      },
+      {
+        "key": "email",
+        "type": "VARCHAR",
+        "required": false,
+        "description": "E-Mail-Adresse. Eindeutig."
+      },
+      {
+        "key": "role",
+        "type": "VARCHAR",
+        "required": false,
+        "description": "Fachliche Rolle, z.B. 'Entwickler'. Freitext. Kanban-Gruppierung möglich."
+      },
+      {
+        "key": "department",
+        "type": "VARCHAR",
+        "required": false,
+        "description": "Abteilung, z.B. 'Engineering'. Kanban-Gruppierung möglich."
+      },
+      {
+        "key": "phone",
+        "type": "VARCHAR",
+        "required": false,
+        "description": "Telefonnummer."
+      },
+      {
+        "key": "status",
+        "type": "VARCHAR",
+        "required": true,
+        "description": "aktiv | inaktiv. Default: aktiv."
+      },
+      {
+        "key": "avatar",
+        "type": "VARCHAR",
+        "required": false,
+        "description": "Dateiname des Avatar-Bildes. Upload via POST /api/users/:id/avatar."
+      },
+      {
+        "key": "created_at",
+        "type": "TIMESTAMP",
+        "required": false,
+        "description": "Automatisch gesetzt."
+      },
+      {
+        "key": "updated_at",
+        "type": "TIMESTAMP",
+        "required": false,
+        "description": "Automatisch gesetzt."
+      }
+    ],
+    "kanbanGroups": [
+      {
+        "key": "department",
+        "label": "Abteilung",
+        "description": "Gruppierung nach Abteilung. Drag&Drop ändert department-Feld."
+      },
+      {
+        "key": "role",
+        "label": "Rolle",
+        "description": "Gruppierung nach fachlicher Rolle."
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "description": "Aktiv / Inaktiv."
+      }
+    ],
+    "features": [
+      "Avatar-Upload: POST /api/users/:id/avatar (multipart). Vorschau im Formular, Miniaturen in Kanban + Liste.",
+      "Avatar-Fallback: Keine Datei → Initialen-Avatar mit deterministischer Farbe (Palette aus User-ID).",
+      "Mouse-Drag Kanban: custom mousedown/mousemove/mouseup statt HTML5-DragDrop. Ghost-Karte folgt Mauszeiger.",
+      "Zuweisung in anderen Apps: users-Array wird beim App-Start geladen, gecacht, als Select-Options in Tasks + Incidents genutzt.",
+      "Mobile: Liste als Default, Kanban stapelt vertikal, Avatar als Lead-Spalte in Listenansicht."
+    ],
+    "api": [
+      {
+        "method": "GET",
+        "path": "/api/users",
+        "description": "Alle Benutzer"
+      },
+      {
+        "method": "POST",
+        "path": "/api/users",
+        "description": "Neuen Benutzer anlegen"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/users/:id",
+        "description": "Benutzer aktualisieren"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/users/:id",
+        "description": "Benutzer löschen"
+      },
+      {
+        "method": "POST",
+        "path": "/api/users/:id/avatar",
+        "description": "Avatar hochladen (multipart/form-data, Feld: avatar)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/users/:id/notes",
+        "description": "Notizen abrufen"
+      },
+      {
+        "method": "POST",
+        "path": "/api/users/:id/notes",
+        "description": "Notiz erstellen"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/users/:id/notes/:noteId",
+        "description": "Notiz löschen"
+      }
+    ],
+    "future": "Mit Auth-Phasen 1-3: password_hash, global_role, totp_secret, app_permissions. Benutzerverwaltung wird zum zentralen Admin-Tool des Portals."
   }
 ]
