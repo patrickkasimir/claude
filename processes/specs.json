@@ -1,5 +1,495 @@
 [
   {
+    "id": "_auth",
+    "name": "Authentifizierung & Berechtigungen",
+    "icon": "🔐",
+    "description": "Vollständiges Auth-Konzept für das Apppp-Portal: Login, 2FA, Session-Management, Rollenmodell und granulare App-Berechtigungen.",
+    "version": "1.0",
+    "status": "Konzept (noch nicht implementiert)",
+    "overview": {
+      "vision": "Apppp entwickelt sich zum professionellen internen Portal. Jeder Zugriff ist authentifiziert. Berechtigungen sind feingranular pro Rolle und App konfigurierbar. Admins verwalten Benutzer, Rollen und App-Zugriffe zentral.",
+      "principles": [
+        "Kein Zugriff ohne Login — alle Seiten sind protected by default",
+        "Least Privilege — Benutzer erhalten nur was sie brauchen",
+        "2FA optional für normale Benutzer, verpflichtend für Admins",
+        "Session-basiert (kein JWT) für einfacheres serverseitiges Invalidieren",
+        "Audit-Log für sicherheitsrelevante Aktionen"
+      ]
+    },
+    "authentication": {
+      "description": "Mehrstufiger Login-Prozess mit optionalem TOTP-2FA.",
+      "login_flow": [
+        {
+          "step": 1,
+          "name": "Anmeldemaske",
+          "description": "Benutzer gibt E-Mail + Passwort ein. POST /auth/login. Bei falschem Passwort: generische Fehlermeldung ('E-Mail oder Passwort falsch'). Rate-Limiting: max. 5 Fehlversuche / 15 min, danach 30 min Sperre."
+        },
+        {
+          "step": 2,
+          "name": "2FA-Prüfung (falls aktiviert)",
+          "description": "Server prüft ob 2FA aktiv ist. Wenn ja: Weiterleitung auf /auth/2fa. Benutzer gibt 6-stelligen TOTP-Code aus Authenticator-App ein. POST /auth/2fa. Gültigkeitsfenster: ±1 Zeitschritt (30 Sek.)."
+        },
+        {
+          "step": 3,
+          "name": "Session erstellen",
+          "description": "Server erzeugt Session (express-session + connect-pg-simple in PostgreSQL). Cookie: HttpOnly, Secure, SameSite=Strict. Session-TTL: 8h (verlängerbar bei Aktivität). Session-ID wird nie im URL übergeben."
+        },
+        {
+          "step": 4,
+          "name": "Weiterleitung",
+          "description": "Nach erfolgreichem Login: Redirect zur ursprünglich aufgerufenen URL (returnTo-Parameter) oder zur Startseite."
+        }
+      ],
+      "logout": "DELETE /auth/session — Session serverseitig zerstören. Cookie wird gecleart.",
+      "password": {
+        "hashing": "bcrypt, cost factor 12",
+        "min_length": 12,
+        "requirements": "Mindestens 1 Großbuchstabe, 1 Zahl, 1 Sonderzeichen",
+        "reset_flow": "Passwort-Reset via E-Mail-Link (Token, 1h gültig, einmalig verwendbar). Link: /auth/reset-password?token=..."
+      },
+      "totp_2fa": {
+        "library": "otplib (Node.js)",
+        "setup_flow": [
+          "Admin aktiviert 2FA für Benutzer oder Benutzer aktiviert selbst unter /profile",
+          "Server generiert Secret (base32), zeigt QR-Code an",
+          "Benutzer scannt mit Authenticator-App (Google Authenticator, Authy, etc.)",
+          "Bestätigung mit erstem Code — 2FA ist aktiv",
+          "10 Backup-Codes werden generiert (einmalig verwendbar, sicher speichern)"
+        ],
+        "enforcement": "Für Rolle 'Admin' verpflichtend. Für andere Rollen optional, aber empfohlen.",
+        "recovery": "Backup-Code oder Admin setzt 2FA zurück"
+      }
+    },
+    "session_management": {
+      "store": "PostgreSQL (Tabelle: sessions) via connect-pg-simple",
+      "table_schema": "sid VARCHAR PRIMARY KEY, sess JSON NOT NULL, expire TIMESTAMP NOT NULL",
+      "ttl": "8 Stunden, Reset bei jeder Anfrage (rolling session)",
+      "concurrent_sessions": "Erlaubt (z.B. Browser + Mobile). Admin kann alle Sessions eines Benutzers invalidieren.",
+      "security": [
+        "Session-Fixation-Schutz: Session-ID wird nach Login neu generiert",
+        "CSRF-Schutz: SameSite=Strict reicht für gleiche Origin",
+        "Automatischer Logout nach TTL-Ablauf"
+      ]
+    },
+    "role_model": {
+      "description": "4 globale Rollen, zusätzlich per-App-Berechtigungen als Feintuning.",
+      "global_roles": [
+        {
+          "role": "superadmin",
+          "label": "Super-Admin",
+          "description": "Voller Zugriff auf alles. Kann Admins ernennen. Kann Systemeinstellungen ändern. Verpflichtend 2FA. Maximal 2 Personen.",
+          "color": "#f87171"
+        },
+        {
+          "role": "admin",
+          "label": "Administrator",
+          "description": "Verwaltet Benutzer, Rollen, App-Berechtigungen. Vollzugriff auf alle Apps. Kann keine Admins ernennen (nur Superadmin). Verpflichtend 2FA.",
+          "color": "#fb923c"
+        },
+        {
+          "role": "user",
+          "label": "Benutzer",
+          "description": "Standard-Rolle. Zugriff auf zugewiesene Apps gemäß App-Berechtigungen.",
+          "color": "#4ade80"
+        },
+        {
+          "role": "readonly",
+          "label": "Nur-Lese-Zugriff",
+          "description": "Kann alle zugewiesenen Apps sehen, aber nichts erstellen/bearbeiten/löschen.",
+          "color": "#60a5fa"
+        }
+      ]
+    },
+    "permission_model": {
+      "description": "Zwei Ebenen: globale Rolle + app-spezifische Berechtigungen. App-Berechtigungen überschreiben die globale Rolle nach unten, nicht nach oben.",
+      "app_permissions": [
+        {
+          "permission": "view",
+          "description": "App in der Sidebar sehen und öffnen. Kanban/Liste anzeigen."
+        },
+        {
+          "permission": "create",
+          "description": "Neue Einträge erstellen (+ Neu Button). Benötigt view."
+        },
+        {
+          "permission": "edit",
+          "description": "Bestehende Einträge bearbeiten (Detailformular, Inline-Edit, Drag&Drop). Benötigt view."
+        },
+        {
+          "permission": "delete",
+          "description": "Einträge löschen. Benötigt view + edit."
+        },
+        {
+          "permission": "admin",
+          "description": "App-spezifische Konfiguration ändern. Benötigt alle obigen."
+        }
+      ],
+      "permission_matrix": {
+        "description": "Default-Berechtigungen pro globaler Rolle. Können pro App und Benutzer überschrieben werden.",
+        "matrix": [
+          {
+            "role": "superadmin",
+            "view": true,
+            "create": true,
+            "edit": true,
+            "delete": true,
+            "admin": true
+          },
+          {
+            "role": "admin",
+            "view": true,
+            "create": true,
+            "edit": true,
+            "delete": true,
+            "admin": true
+          },
+          {
+            "role": "user",
+            "view": true,
+            "create": true,
+            "edit": true,
+            "delete": false,
+            "admin": false
+          },
+          {
+            "role": "readonly",
+            "view": true,
+            "create": false,
+            "edit": false,
+            "delete": false,
+            "admin": false
+          }
+        ]
+      },
+      "override_examples": [
+        "Benutzer A (role=user) hat für 'incidents' kein delete -> kann sehen/erstellen/bearbeiten, nicht löschen",
+        "Benutzer B (role=readonly) hat für 'tasks' create+edit -> kann Tasks bearbeiten, sonst überall nur lesen",
+        "Benutzer C (role=user) hat kein view auf 'incidents' -> Incidents erscheint nicht in der Sidebar"
+      ]
+    },
+    "database_schema": {
+      "description": "Neue/erweiterte Tabellen für Auth.",
+      "tables": [
+        {
+          "table": "users (erweitert)",
+          "new_columns": [
+            "password_hash VARCHAR NOT NULL",
+            "role VARCHAR NOT NULL DEFAULT 'user'  -- superadmin|admin|user|readonly",
+            "totp_secret VARCHAR  -- NULL = 2FA nicht aktiv",
+            "totp_backup_codes TEXT[]  -- bcrypt-gehasht",
+            "totp_required BOOLEAN DEFAULT false",
+            "last_login TIMESTAMP",
+            "login_attempts INTEGER DEFAULT 0",
+            "locked_until TIMESTAMP",
+            "password_reset_token VARCHAR",
+            "password_reset_expires TIMESTAMP"
+          ]
+        },
+        {
+          "table": "app_permissions",
+          "description": "Pro Benutzer und App explizite Berechtigungs-Overrides. NULL = Wert aus globaler Rolle verwenden.",
+          "columns": [
+            "id SERIAL PRIMARY KEY",
+            "user_id INTEGER REFERENCES users(id) ON DELETE CASCADE",
+            "app_key VARCHAR NOT NULL  -- z.B. 'tasks', 'incidents'",
+            "can_view BOOLEAN  -- NULL = Default aus Rolle",
+            "can_create BOOLEAN",
+            "can_edit BOOLEAN",
+            "can_delete BOOLEAN",
+            "can_admin BOOLEAN",
+            "UNIQUE(user_id, app_key)"
+          ]
+        },
+        {
+          "table": "sessions",
+          "description": "connect-pg-simple Session-Store.",
+          "columns": [
+            "sid VARCHAR PRIMARY KEY",
+            "sess JSON NOT NULL",
+            "expire TIMESTAMP NOT NULL"
+          ]
+        },
+        {
+          "table": "audit_log",
+          "description": "Protokoll aller sicherheitsrelevanten Aktionen.",
+          "columns": [
+            "id SERIAL PRIMARY KEY",
+            "user_id INTEGER REFERENCES users(id)",
+            "action VARCHAR NOT NULL  -- login|logout|login_failed|2fa_success|2fa_failed|password_reset|permission_change|user_created|user_deleted",
+            "target VARCHAR  -- betroffener User/App",
+            "ip_address VARCHAR",
+            "user_agent VARCHAR",
+            "created_at TIMESTAMP DEFAULT NOW()"
+          ]
+        }
+      ]
+    },
+    "api_endpoints": {
+      "auth": [
+        {
+          "method": "GET",
+          "path": "/auth/login",
+          "description": "Login-Seite anzeigen"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "description": "E-Mail + Passwort prüfen. Redirect zu /auth/2fa oder App."
+        },
+        {
+          "method": "GET",
+          "path": "/auth/2fa",
+          "description": "2FA-Eingabeseite anzeigen"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/2fa",
+          "description": "TOTP-Code prüfen. Session aktivieren bei Erfolg."
+        },
+        {
+          "method": "DELETE",
+          "path": "/auth/session",
+          "description": "Logout: Session serverseitig zerstören."
+        },
+        {
+          "method": "POST",
+          "path": "/auth/password-reset-request",
+          "description": "E-Mail mit Reset-Link versenden."
+        },
+        {
+          "method": "POST",
+          "path": "/auth/password-reset",
+          "description": "Neues Passwort setzen via Token."
+        },
+        {
+          "method": "GET",
+          "path": "/auth/setup-2fa",
+          "description": "QR-Code + Backup-Codes anzeigen."
+        },
+        {
+          "method": "POST",
+          "path": "/auth/setup-2fa",
+          "description": "2FA-Aktivierung bestätigen."
+        },
+        {
+          "method": "DELETE",
+          "path": "/auth/2fa",
+          "description": "2FA deaktivieren (nicht für Admins möglich)."
+        }
+      ],
+      "admin": [
+        {
+          "method": "GET",
+          "path": "/api/admin/users",
+          "description": "Alle Benutzer auflisten (nur Admin+)."
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/users",
+          "description": "Benutzer anlegen."
+        },
+        {
+          "method": "PUT",
+          "path": "/api/admin/users/:id",
+          "description": "Benutzer bearbeiten (Rolle, Status, Name, E-Mail)."
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/admin/users/:id",
+          "description": "Benutzer löschen."
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/users/:id/reset-2fa",
+          "description": "2FA eines Benutzers zurücksetzen."
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/permissions/:userId",
+          "description": "App-Berechtigungen eines Benutzers."
+        },
+        {
+          "method": "PUT",
+          "path": "/api/admin/permissions/:userId",
+          "description": "App-Berechtigungen setzen/überschreiben."
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/audit-log",
+          "description": "Audit-Log einsehen (nur Superadmin)."
+        }
+      ],
+      "profile": [
+        {
+          "method": "GET",
+          "path": "/api/profile",
+          "description": "Eigenes Profil (Name, E-Mail, 2FA-Status)."
+        },
+        {
+          "method": "PUT",
+          "path": "/api/profile",
+          "description": "Eigenes Profil bearbeiten."
+        },
+        {
+          "method": "POST",
+          "path": "/api/profile/change-password",
+          "description": "Eigenes Passwort ändern."
+        }
+      ]
+    },
+    "middleware": {
+      "description": "Express-Middleware-Chain für geschützte Routen.",
+      "chain": [
+        {
+          "name": "requireAuth",
+          "description": "Prüft ob Session aktiv ist. Bei nicht eingeloggt: Redirect zu /auth/login?returnTo=... Alle App-Routen und API-Endpunkte (außer /auth/*) verwenden diese Middleware."
+        },
+        {
+          "name": "require2FA",
+          "description": "Prüft ob 2FA abgeschlossen ist (session.twoFactorVerified). Falls nicht: Redirect zu /auth/2fa."
+        },
+        {
+          "name": "requireRole(role)",
+          "description": "Prüft ob Benutzer mindestens die angegebene Rolle hat. Hierarchie: superadmin > admin > user > readonly. Bei Verstoß: 403."
+        },
+        {
+          "name": "requirePermission(app, permission)",
+          "description": "Prüft app_permissions-Tabelle (mit Fallback auf globale Rolle). Bei Verstoß: 403 für API, App in Sidebar ausgeblendet."
+        }
+      ]
+    },
+    "frontend_integration": {
+      "description": "Wie Auth im Frontend integriert wird.",
+      "concepts": [
+        {
+          "concept": "Login-Seite",
+          "description": "Eigene Seite /auth/login (nicht SPA). Dunkles Design wie Apppp. Nach Login Redirect zurück zur ursprünglichen URL."
+        },
+        {
+          "concept": "Session-Check beim Start",
+          "description": "GET /api/session beim App-Start. Gibt {user, permissions} zurück. Bei 401: Redirect zu /auth/login."
+        },
+        {
+          "concept": "Sidebar filtern",
+          "description": "Nav-Items werden basierend auf permissions.view pro App ein-/ausgeblendet."
+        },
+        {
+          "concept": "Buttons deaktivieren",
+          "description": "+Neu, Inline-Edit, Löschen werden ausgeblendet wenn create/edit/delete fehlt. PageManager bekommt permissions-Objekt injiziert."
+        },
+        {
+          "concept": "PageManager-Erweiterung",
+          "description": "cfg.permissions = {view, create, edit, delete} wird an PageManager übergeben. _bindToolbar() blendet Neu-Button aus wenn !create. _bindDetail() blendet Löschen aus wenn !delete."
+        },
+        {
+          "concept": "Admin-Bereich",
+          "description": "Neuer Sidebar-Eintrag 'Administration' (nur für Admin+). Untermenü: Benutzer, Rollen/Berechtigungen, Audit-Log."
+        },
+        {
+          "concept": "Profil-Menü",
+          "description": "Avatar/Name im Sidebar-Footer. Klick öffnet: Profil bearbeiten, 2FA verwalten, Abmelden."
+        }
+      ]
+    },
+    "implementation_phases": [
+      {
+        "phase": 1,
+        "name": "Basis-Auth",
+        "description": "Login/Logout mit Passwort. Session-Management. Alle Routen geschützt.",
+        "tasks": [
+          "DB: users-Tabelle um Auth-Felder erweitern",
+          "DB: sessions-Tabelle anlegen",
+          "Backend: express-session + connect-pg-simple einrichten",
+          "Backend: POST /auth/login mit bcrypt",
+          "Backend: requireAuth-Middleware auf alle Routen",
+          "Frontend: login.html im Apppp-Design bauen",
+          "Frontend: GET /api/session beim App-Start, Redirect bei 401"
+        ]
+      },
+      {
+        "phase": 2,
+        "name": "2FA",
+        "description": "TOTP-2FA optional für alle, verpflichtend für Admins.",
+        "tasks": [
+          "Backend: otplib + qrcode installieren",
+          "Backend: /auth/setup-2fa + /auth/2fa Endpunkte",
+          "Backend: require2FA-Middleware",
+          "Frontend: 2FA-Setup-Flow unter /profile",
+          "Frontend: 2FA-Eingabeseite nach Login"
+        ]
+      },
+      {
+        "phase": 3,
+        "name": "Rollen & Berechtigungen",
+        "description": "Rollenmodell + app_permissions-Tabelle + Admin-UI.",
+        "tasks": [
+          "DB: app_permissions-Tabelle anlegen",
+          "Backend: requireRole + requirePermission Middleware",
+          "Backend: Admin-API-Endpunkte",
+          "Frontend: Admin-Bereich in Sidebar",
+          "Frontend: Benutzer-Verwaltung mit Rollen-Dropdown",
+          "Frontend: Berechtigungs-Matrix pro Benutzer (Tabelle mit Checkboxen)",
+          "Frontend: PageManager permissions-Integration"
+        ]
+      },
+      {
+        "phase": 4,
+        "name": "Audit & Hardening",
+        "description": "Audit-Log, Rate-Limiting, Passwort-Reset per E-Mail, Security-Hardening.",
+        "tasks": [
+          "DB: audit_log-Tabelle",
+          "Backend: Rate-Limiting (express-rate-limit)",
+          "Backend: Passwort-Reset per E-Mail (nodemailer)",
+          "Backend: Audit-Log für alle Auth-Events",
+          "Backend: helmet.js, Content-Security-Policy",
+          "Frontend: Audit-Log-Ansicht für Superadmin"
+        ]
+      }
+    ],
+    "tech_stack": [
+      {
+        "package": "express-session",
+        "purpose": "Session-Middleware"
+      },
+      {
+        "package": "connect-pg-simple",
+        "purpose": "PostgreSQL Session-Store"
+      },
+      {
+        "package": "bcrypt",
+        "purpose": "Passwort-Hashing (cost factor 12)"
+      },
+      {
+        "package": "otplib",
+        "purpose": "TOTP 2FA (RFC 6238)"
+      },
+      {
+        "package": "qrcode",
+        "purpose": "QR-Code für 2FA-Setup"
+      },
+      {
+        "package": "express-rate-limit",
+        "purpose": "Rate-Limiting für Login-Endpunkte"
+      },
+      {
+        "package": "nodemailer",
+        "purpose": "E-Mail für Passwort-Reset"
+      },
+      {
+        "package": "helmet",
+        "purpose": "HTTP-Security-Header"
+      }
+    ],
+    "security_notes": [
+      "Passwort-Hashes niemals in Logs oder API-Responses",
+      "TOTP-Secret nur einmalig beim Setup anzeigen",
+      "E-Mail in Fehlerresponses nicht bestätigen: 'E-Mail oder Passwort falsch'",
+      "Session-Cookie: HttpOnly + Secure + SameSite=Strict",
+      "Alle Admin-Aktionen ins Audit-Log",
+      "Passwort-Reset-Token: crypto.randomBytes, 1h TTL, einmalig verwendbar"
+    ]
+  },
+  {
     "id": "_pagemanager",
     "name": "PageManager (Klasse)",
     "icon": "🏗️",
@@ -7,88 +497,390 @@
     "version": "1.0",
     "pagemanager": true,
     "state": [
-      { "property": "data",          "type": "Array",    "description": "Alle Datensätze der Entität — geladen via GET /[apiPath]" },
-      { "property": "viewMode",      "type": "String",   "description": "'kanban' oder 'list' — steuert welche Ansicht gerendert wird" },
-      { "property": "kanbanGroup",   "type": "String",   "description": "Aktuelles Gruppierungsfeld für Kanban (Default: cfg.defaultGroup)" },
-      { "property": "activeChips",   "type": "Array",    "description": "Aktive Such-Chips [{field, value, label}] — werden auf data gefiltert" },
-      { "property": "selectedIds",   "type": "Set",      "description": "IDs der selektierten Listenzeilen — für Massenbearbeitung" },
-      { "property": "sortCol",       "type": "String",   "description": "Aktuell sortierte Spalte (null = keine Sortierung)" },
-      { "property": "sortDir",       "type": "String",   "description": "'asc' oder 'desc'" },
-      { "property": "colDragSrc",    "type": "String",   "description": "Spalten-Key der gerade gezogenen Header-Spalte (Reorder)" },
-      { "property": "colSettings",   "type": "Object",   "description": "{visible: {key→bool}, widths: {key→px}, order: [keys]} — in localStorage" },
-      { "property": "_editId",       "type": "Number",   "description": "ID des aktuell geöffneten Eintrags (null = neu)" }
+      {
+        "property": "data",
+        "type": "Array",
+        "description": "Alle Datensätze der Entität — geladen via GET /[apiPath]"
+      },
+      {
+        "property": "viewMode",
+        "type": "String",
+        "description": "'kanban' oder 'list' — steuert welche Ansicht gerendert wird"
+      },
+      {
+        "property": "kanbanGroup",
+        "type": "String",
+        "description": "Aktuelles Gruppierungsfeld für Kanban (Default: cfg.defaultGroup)"
+      },
+      {
+        "property": "activeChips",
+        "type": "Array",
+        "description": "Aktive Such-Chips [{field, value, label}] — werden auf data gefiltert"
+      },
+      {
+        "property": "selectedIds",
+        "type": "Set",
+        "description": "IDs der selektierten Listenzeilen — für Massenbearbeitung"
+      },
+      {
+        "property": "sortCol",
+        "type": "String",
+        "description": "Aktuell sortierte Spalte (null = keine Sortierung)"
+      },
+      {
+        "property": "sortDir",
+        "type": "String",
+        "description": "'asc' oder 'desc'"
+      },
+      {
+        "property": "colDragSrc",
+        "type": "String",
+        "description": "Spalten-Key der gerade gezogenen Header-Spalte (Reorder)"
+      },
+      {
+        "property": "colSettings",
+        "type": "Object",
+        "description": "{visible: {key→bool}, widths: {key→px}, order: [keys]} — in localStorage"
+      },
+      {
+        "property": "_editId",
+        "type": "Number",
+        "description": "ID des aktuell geöffneten Eintrags (null = neu)"
+      }
     ],
     "methods": [
-      { "method": "init()",               "access": "public",  "description": "Lädt data, bindet alle Event-Handler, rendert erste Ansicht. Wird einmalig beim App-Start aufgerufen." },
-      { "method": "renderPage()",         "access": "public",  "description": "Rendert Kanban oder Liste je nach viewMode. Wird nach jedem Save/Delete aufgerufen." },
-      { "method": "openDetail(id)",       "access": "public",  "description": "Öffnet Detailformular für bestehenden Eintrag. Ruft cfg.renderDetail(), lädt Chatter." },
-      { "method": "openNew()",            "access": "public",  "description": "Öffnet leeres Detailformular für neuen Eintrag. Ruft cfg.renderDetail(null)." },
-      { "method": "closeDetail()",        "access": "public",  "description": "Schließt Detailformular, zeigt Liste/Kanban wieder. Überschreibbar in Subklassen." },
-      { "method": "_filtered()",          "access": "private", "description": "Gibt data gefiltert nach activeChips zurück. Nutzt cfg.filterItem(item, chip)." },
-      { "method": "_sorted(data)",        "access": "private", "description": "Sortiert Array nach sortCol/sortDir. Nutzt optional cfg.sortValue(item, col)." },
-      { "method": "_renderKanban()",      "access": "private", "description": "Rendert Kanban-Spalten aus groupByOptions. Drag&Drop per mousedown/mousemove/mouseup." },
-      { "method": "_renderListHeaders()", "access": "private", "description": "Rendert th-Elemente: Sort-Click, Resize-Handle, Drag-Reorder, Select-All-Checkbox." },
-      { "method": "_renderListBody()",    "access": "private", "description": "Rendert tr-Elemente: Checkboxen, Inline-Edit-Handler, Row-Click→Detail." },
-      { "method": "_saveField(id,f,v)",   "access": "private", "description": "Speichert ein Feld via PUT. Bei Mehrfachauswahl: Bestätigungs-Modal, dann PUT für alle selectedIds." },
-      { "method": "_bindToolbar()",       "access": "private", "description": "Bindet Kanban/Liste Toggle, ▾ Sichtbarkeit, Sort-Menü, Neu-Button, Spalten-Popup." },
-      { "method": "_bindSearch()",        "access": "private", "description": "Bindet Odoo-Suchfeld: Dropdown, Chip-Erzeugung, Filter-Aktualisierung." },
-      { "method": "_bindDetail()",        "access": "private", "description": "Bindet Speichern/Löschen/Abbrechen-Buttons im Detailformular." },
-      { "method": "_buildColVisPopup()",  "access": "private", "description": "Erzeugt Checkbox-Liste zum Ein-/Ausblenden von Spalten." },
-      { "method": "_saveColSettings()",   "access": "private", "description": "Schreibt colSettings in localStorage (Key: apppp_[entity]_col_settings)." },
-      { "method": "_saveDetail()",        "access": "private", "description": "POST (neu) oder PUT (bestehend) mit cfg.collectForm(). Schließt Panel danach." }
+      {
+        "method": "init()",
+        "access": "public",
+        "description": "Lädt data, bindet alle Event-Handler, rendert erste Ansicht. Wird einmalig beim App-Start aufgerufen."
+      },
+      {
+        "method": "renderPage()",
+        "access": "public",
+        "description": "Rendert Kanban oder Liste je nach viewMode. Wird nach jedem Save/Delete aufgerufen."
+      },
+      {
+        "method": "openDetail(id)",
+        "access": "public",
+        "description": "Öffnet Detailformular für bestehenden Eintrag. Ruft cfg.renderDetail(), lädt Chatter."
+      },
+      {
+        "method": "openNew()",
+        "access": "public",
+        "description": "Öffnet leeres Detailformular für neuen Eintrag. Ruft cfg.renderDetail(null)."
+      },
+      {
+        "method": "closeDetail()",
+        "access": "public",
+        "description": "Schließt Detailformular, zeigt Liste/Kanban wieder. Überschreibbar in Subklassen."
+      },
+      {
+        "method": "_filtered()",
+        "access": "private",
+        "description": "Gibt data gefiltert nach activeChips zurück. Nutzt cfg.filterItem(item, chip)."
+      },
+      {
+        "method": "_sorted(data)",
+        "access": "private",
+        "description": "Sortiert Array nach sortCol/sortDir. Nutzt optional cfg.sortValue(item, col)."
+      },
+      {
+        "method": "_renderKanban()",
+        "access": "private",
+        "description": "Rendert Kanban-Spalten aus groupByOptions. Drag&Drop per mousedown/mousemove/mouseup."
+      },
+      {
+        "method": "_renderListHeaders()",
+        "access": "private",
+        "description": "Rendert th-Elemente: Sort-Click, Resize-Handle, Drag-Reorder, Select-All-Checkbox."
+      },
+      {
+        "method": "_renderListBody()",
+        "access": "private",
+        "description": "Rendert tr-Elemente: Checkboxen, Inline-Edit-Handler, Row-Click→Detail."
+      },
+      {
+        "method": "_saveField(id,f,v)",
+        "access": "private",
+        "description": "Speichert ein Feld via PUT. Bei Mehrfachauswahl: Bestätigungs-Modal, dann PUT für alle selectedIds."
+      },
+      {
+        "method": "_bindToolbar()",
+        "access": "private",
+        "description": "Bindet Kanban/Liste Toggle, ▾ Sichtbarkeit, Sort-Menü, Neu-Button, Spalten-Popup."
+      },
+      {
+        "method": "_bindSearch()",
+        "access": "private",
+        "description": "Bindet Odoo-Suchfeld: Dropdown, Chip-Erzeugung, Filter-Aktualisierung."
+      },
+      {
+        "method": "_bindDetail()",
+        "access": "private",
+        "description": "Bindet Speichern/Löschen/Abbrechen-Buttons im Detailformular."
+      },
+      {
+        "method": "_buildColVisPopup()",
+        "access": "private",
+        "description": "Erzeugt Checkbox-Liste zum Ein-/Ausblenden von Spalten."
+      },
+      {
+        "method": "_saveColSettings()",
+        "access": "private",
+        "description": "Schreibt colSettings in localStorage (Key: apppp_[entity]_col_settings)."
+      },
+      {
+        "method": "_saveDetail()",
+        "access": "private",
+        "description": "POST (neu) oder PUT (bestehend) mit cfg.collectForm(). Schließt Panel danach."
+      }
     ],
     "config": [
-      { "key": "entity",           "required": true,  "description": "Eindeutiger Name (z.B. 'tasks'). Basis für localStorage-Key." },
-      { "key": "apiPath",          "required": true,  "description": "REST-Pfad (z.B. '/incidents'). Basis für GET/POST/PUT/DELETE." },
-      { "key": "columns",          "required": true,  "description": "Array: [{key, label, defaultOn, width}]. Definiert Listenansicht." },
-      { "key": "groupByOptions",   "required": true,  "description": "Array: [{key, label}]. Optionen für Kanban-Gruppierungs-▾." },
-      { "key": "defaultGroup",     "required": false, "description": "Key aus groupByOptions für initialen Kanban-Grouping." },
-      { "key": "searchFields",     "required": true,  "description": "Array: [{key, label, type, values?}]. Felder für Odoo-Suchfeld-Dropdown." },
-      { "key": "editableFields",   "required": false, "description": "Keys der Spalten die inline editierbar sind (Klick→Input/Select)." },
-      { "key": "enumFields",       "required": false, "description": "Objekt: {field: [values]}. Definiert Select-Optionen für Inline-Editing." },
-      { "key": "cellRenderer",     "required": true,  "description": "Funktion(item, col, pm)→String. Gibt den td-Inhalt zurück (ohne <td>-Tag)." },
-      { "key": "renderCard",       "required": true,  "description": "Funktion(item, pm)→HTML. Rendert eine Kanban-Karte." },
-      { "key": "renderDetail",     "required": true,  "description": "Funktion(item|null, pm). Befüllt das Detailformular. item=null bei neuem Eintrag." },
-      { "key": "collectForm",      "required": true,  "description": "Funktion(pm)→Object. Liest Formularfelder aus, gibt Body für POST/PUT zurück." },
-      { "key": "filterItem",       "required": true,  "description": "Funktion(item, chip)→bool. Prüft ob item einen Such-Chip erfüllt." },
-      { "key": "getTitle",         "required": true,  "description": "Funktion(item)→String. Gibt Breadcrumb-Label für einen Eintrag zurück." },
-      { "key": "onAfterSave",      "required": false, "description": "Async Funktion(pm). Hook nach erfolgreichem Save (z.B. Users nachladen)." },
-      { "key": "onAfterDelete",    "required": false, "description": "Async Funktion(pm). Hook nach erfolgreichem Delete." },
-      { "key": "sortValue",        "required": false, "description": "Funktion(item, col)→String. Überschreibt Sort-Wert (Default: item[col])." },
-      { "key": "buildLeadHeaders", "required": false, "description": "Funktion(head, pm). Fügt zusätzliche th vor den Datenspalten ein (z.B. Avatar-Spalte)." },
-      { "key": "extraLeadCells",   "required": false, "description": "Funktion(item, pm)→HTML. Gibt td-Inhalt für extra Spalten vor den Datenspalten zurück." },
-      { "key": "chatter",          "required": false, "description": "Config-Objekt für Chatter-Panel: {entityPath, addNoteBtnId, feedElId, composeElId, inputElId, fileInputId, sendBtnId}." },
-      { "key": "kanbanBtnId",      "required": true,  "description": "ID des Kanban-Toggle-Buttons." },
-      { "key": "listBtnId",        "required": true,  "description": "ID des Listen-Toggle-Buttons." },
-      { "key": "kanbanWrapId",     "required": true,  "description": "ID des Kanban-Wrapper-Divs (bekommt .active-Klasse)." },
-      { "key": "listWrapId",       "required": true,  "description": "ID des Listen-Wrapper-Divs (bekommt .active-Klasse)." },
-      { "key": "kanbanElId",       "required": true,  "description": "ID des Kanban-Containers (<div> mit flex)." },
-      { "key": "listViewElId",     "required": true,  "description": "ID des Listenansicht-Containers." },
-      { "key": "listHeadId",       "required": true,  "description": "ID des <tr> im <thead> der Listenansicht." },
-      { "key": "listBodyId",       "required": true,  "description": "ID des <tbody> der Listenansicht." },
-      { "key": "detailElId",       "required": true,  "description": "ID des Detail-Panels (<div> mit .visible-Klasse)." },
-      { "key": "breadcrumbElId",   "required": true,  "description": "ID des Breadcrumb-Divs." },
-      { "key": "listPageElId",     "required": true,  "description": "ID des Listen-/Kanban-Seiten-Containers (wird bei Detail ausgeblendet)." },
-      { "key": "saveBtnId",        "required": true,  "description": "ID des Speichern-Buttons im Detailformular." },
-      { "key": "deleteBtnId",      "required": true,  "description": "ID des Löschen-Buttons im Detailformular." },
-      { "key": "cancelBtnId",      "required": true,  "description": "ID des Abbrechen-Buttons im Detailformular." },
-      { "key": "newBtnId",         "required": true,  "description": "ID des '+ Neu'-Buttons in der Toolbar." },
-      { "key": "sortToggleId",     "required": true,  "description": "ID des Gruppierungs-▾-Buttons." },
-      { "key": "sortMenuId",       "required": true,  "description": "ID des Gruppierungs-Dropdown-Menüs." },
-      { "key": "colVisToggleId",   "required": true,  "description": "ID des Spalten-▾-Buttons." },
-      { "key": "colVisPopupId",    "required": true,  "description": "ID des Spalten-Sichtbarkeits-Popups." },
-      { "key": "searchWrapId",     "required": true,  "description": "ID des Odoo-Suchfeld-Wrappers." },
-      { "key": "searchInputId",    "required": true,  "description": "ID des Odoo-Sucheingabefeldes." },
-      { "key": "searchDropdownId", "required": true,  "description": "ID des Odoo-Such-Dropdowns." }
+      {
+        "key": "entity",
+        "required": true,
+        "description": "Eindeutiger Name (z.B. 'tasks'). Basis für localStorage-Key."
+      },
+      {
+        "key": "apiPath",
+        "required": true,
+        "description": "REST-Pfad (z.B. '/incidents'). Basis für GET/POST/PUT/DELETE."
+      },
+      {
+        "key": "columns",
+        "required": true,
+        "description": "Array: [{key, label, defaultOn, width}]. Definiert Listenansicht."
+      },
+      {
+        "key": "groupByOptions",
+        "required": true,
+        "description": "Array: [{key, label}]. Optionen für Kanban-Gruppierungs-▾."
+      },
+      {
+        "key": "defaultGroup",
+        "required": false,
+        "description": "Key aus groupByOptions für initialen Kanban-Grouping."
+      },
+      {
+        "key": "searchFields",
+        "required": true,
+        "description": "Array: [{key, label, type, values?}]. Felder für Odoo-Suchfeld-Dropdown."
+      },
+      {
+        "key": "editableFields",
+        "required": false,
+        "description": "Keys der Spalten die inline editierbar sind (Klick→Input/Select)."
+      },
+      {
+        "key": "enumFields",
+        "required": false,
+        "description": "Objekt: {field: [values]}. Definiert Select-Optionen für Inline-Editing."
+      },
+      {
+        "key": "cellRenderer",
+        "required": true,
+        "description": "Funktion(item, col, pm)→String. Gibt den td-Inhalt zurück (ohne <td>-Tag)."
+      },
+      {
+        "key": "renderCard",
+        "required": true,
+        "description": "Funktion(item, pm)→HTML. Rendert eine Kanban-Karte."
+      },
+      {
+        "key": "renderDetail",
+        "required": true,
+        "description": "Funktion(item|null, pm). Befüllt das Detailformular. item=null bei neuem Eintrag."
+      },
+      {
+        "key": "collectForm",
+        "required": true,
+        "description": "Funktion(pm)→Object. Liest Formularfelder aus, gibt Body für POST/PUT zurück."
+      },
+      {
+        "key": "filterItem",
+        "required": true,
+        "description": "Funktion(item, chip)→bool. Prüft ob item einen Such-Chip erfüllt."
+      },
+      {
+        "key": "getTitle",
+        "required": true,
+        "description": "Funktion(item)→String. Gibt Breadcrumb-Label für einen Eintrag zurück."
+      },
+      {
+        "key": "onAfterSave",
+        "required": false,
+        "description": "Async Funktion(pm). Hook nach erfolgreichem Save (z.B. Users nachladen)."
+      },
+      {
+        "key": "onAfterDelete",
+        "required": false,
+        "description": "Async Funktion(pm). Hook nach erfolgreichem Delete."
+      },
+      {
+        "key": "sortValue",
+        "required": false,
+        "description": "Funktion(item, col)→String. Überschreibt Sort-Wert (Default: item[col])."
+      },
+      {
+        "key": "buildLeadHeaders",
+        "required": false,
+        "description": "Funktion(head, pm). Fügt zusätzliche th vor den Datenspalten ein (z.B. Avatar-Spalte)."
+      },
+      {
+        "key": "extraLeadCells",
+        "required": false,
+        "description": "Funktion(item, pm)→HTML. Gibt td-Inhalt für extra Spalten vor den Datenspalten zurück."
+      },
+      {
+        "key": "chatter",
+        "required": false,
+        "description": "Config-Objekt für Chatter-Panel: {entityPath, addNoteBtnId, feedElId, composeElId, inputElId, fileInputId, sendBtnId}."
+      },
+      {
+        "key": "kanbanBtnId",
+        "required": true,
+        "description": "ID des Kanban-Toggle-Buttons."
+      },
+      {
+        "key": "listBtnId",
+        "required": true,
+        "description": "ID des Listen-Toggle-Buttons."
+      },
+      {
+        "key": "kanbanWrapId",
+        "required": true,
+        "description": "ID des Kanban-Wrapper-Divs (bekommt .active-Klasse)."
+      },
+      {
+        "key": "listWrapId",
+        "required": true,
+        "description": "ID des Listen-Wrapper-Divs (bekommt .active-Klasse)."
+      },
+      {
+        "key": "kanbanElId",
+        "required": true,
+        "description": "ID des Kanban-Containers (<div> mit flex)."
+      },
+      {
+        "key": "listViewElId",
+        "required": true,
+        "description": "ID des Listenansicht-Containers."
+      },
+      {
+        "key": "listHeadId",
+        "required": true,
+        "description": "ID des <tr> im <thead> der Listenansicht."
+      },
+      {
+        "key": "listBodyId",
+        "required": true,
+        "description": "ID des <tbody> der Listenansicht."
+      },
+      {
+        "key": "detailElId",
+        "required": true,
+        "description": "ID des Detail-Panels (<div> mit .visible-Klasse)."
+      },
+      {
+        "key": "breadcrumbElId",
+        "required": true,
+        "description": "ID des Breadcrumb-Divs."
+      },
+      {
+        "key": "listPageElId",
+        "required": true,
+        "description": "ID des Listen-/Kanban-Seiten-Containers (wird bei Detail ausgeblendet)."
+      },
+      {
+        "key": "saveBtnId",
+        "required": true,
+        "description": "ID des Speichern-Buttons im Detailformular."
+      },
+      {
+        "key": "deleteBtnId",
+        "required": true,
+        "description": "ID des Löschen-Buttons im Detailformular."
+      },
+      {
+        "key": "cancelBtnId",
+        "required": true,
+        "description": "ID des Abbrechen-Buttons im Detailformular."
+      },
+      {
+        "key": "newBtnId",
+        "required": true,
+        "description": "ID des '+ Neu'-Buttons in der Toolbar."
+      },
+      {
+        "key": "sortToggleId",
+        "required": true,
+        "description": "ID des Gruppierungs-▾-Buttons."
+      },
+      {
+        "key": "sortMenuId",
+        "required": true,
+        "description": "ID des Gruppierungs-Dropdown-Menüs."
+      },
+      {
+        "key": "colVisToggleId",
+        "required": true,
+        "description": "ID des Spalten-▾-Buttons."
+      },
+      {
+        "key": "colVisPopupId",
+        "required": true,
+        "description": "ID des Spalten-Sichtbarkeits-Popups."
+      },
+      {
+        "key": "searchWrapId",
+        "required": true,
+        "description": "ID des Odoo-Suchfeld-Wrappers."
+      },
+      {
+        "key": "searchInputId",
+        "required": true,
+        "description": "ID des Odoo-Sucheingabefeldes."
+      },
+      {
+        "key": "searchDropdownId",
+        "required": true,
+        "description": "ID des Odoo-Such-Dropdowns."
+      }
     ],
     "subclasses": [
-      { "name": "UsersPageManager",     "overrides": "closeDetail()", "reason": "Users-Detailformular liegt auf einer eigenen Seite (#user-detail statt innerhalb der Listen-Seite). Avatar-Upload-Panel wird zusätzlich angezeigt." },
-      { "name": "IncidentsPageManager", "overrides": "closeDetail()", "reason": "Incidents-Detailformular liegt auf einer eigenen Seite (#incident-detail). SLA/Prioritäts-Felder werden beim Öffnen zusätzlich initialisiert." }
+      {
+        "name": "UsersPageManager",
+        "overrides": "closeDetail()",
+        "reason": "Users-Detailformular liegt auf einer eigenen Seite (#user-detail statt innerhalb der Listen-Seite). Avatar-Upload-Panel wird zusätzlich angezeigt."
+      },
+      {
+        "name": "IncidentsPageManager",
+        "overrides": "closeDetail()",
+        "reason": "Incidents-Detailformular liegt auf einer eigenen Seite (#incident-detail). SLA/Prioritäts-Felder werden beim Öffnen zusätzlich initialisiert."
+      }
     ],
     "instances": [
-      { "name": "tasksPM",     "class": "PageManager",          "entity": "tasks",     "apiPath": "/tasks",     "storageKey": "apppp_tasks_col_settings" },
-      { "name": "usersPM",     "class": "UsersPageManager",     "entity": "users",     "apiPath": "/users",     "storageKey": "apppp_users_col_settings" },
-      { "name": "incidentsPM", "class": "IncidentsPageManager", "entity": "incidents", "apiPath": "/incidents", "storageKey": "apppp_incidents_col_settings" }
+      {
+        "name": "tasksPM",
+        "class": "PageManager",
+        "entity": "tasks",
+        "apiPath": "/tasks",
+        "storageKey": "apppp_tasks_col_settings"
+      },
+      {
+        "name": "usersPM",
+        "class": "UsersPageManager",
+        "entity": "users",
+        "apiPath": "/users",
+        "storageKey": "apppp_users_col_settings"
+      },
+      {
+        "name": "incidentsPM",
+        "class": "IncidentsPageManager",
+        "entity": "incidents",
+        "apiPath": "/incidents",
+        "storageKey": "apppp_incidents_col_settings"
+      }
     ]
   },
   {
@@ -99,51 +891,156 @@
     "version": "1.0",
     "generic": true,
     "toolbar": [
-      { "element": "+ Neu Button",          "description": "Öffnet leeres Detailformular. Label konfigurierbar (Default: '+ Neu')." },
-      { "element": "Odoo-Suchfeld",         "description": "Zweistufige Suche: Klick öffnet Feld-Dropdown → Feld auswählen → Wert eingeben → Enter erzeugt Such-Chip. Mehrere Chips kombinieren sich per UND. ✕ entfernt einzelne Chips." },
-      { "element": "Kanban-Toggle (⊞)",     "description": "Wechselt zur Kanban-Ansicht. Button wird links-rund und verbindet visuell mit dem Gruppierungs-▾." },
-      { "element": "Gruppierungs-▾",        "description": "Erscheint nur wenn Kanban aktiv. Dropdown zur Auswahl des Kanban-Gruppierungsfeldes." },
-      { "element": "Listen-Toggle (☰)",     "description": "Wechselt zur Listenansicht. Button wird links-rund und verbindet visuell mit dem Spalten-▾." },
-      { "element": "Spalten-▾",             "description": "Erscheint nur wenn Liste aktiv. Checkbox-Dropdown zum Ein-/Ausblenden von Spalten." }
+      {
+        "element": "+ Neu Button",
+        "description": "Öffnet leeres Detailformular. Label konfigurierbar (Default: '+ Neu')."
+      },
+      {
+        "element": "Odoo-Suchfeld",
+        "description": "Zweistufige Suche: Klick öffnet Feld-Dropdown → Feld auswählen → Wert eingeben → Enter erzeugt Such-Chip. Mehrere Chips kombinieren sich per UND. ✕ entfernt einzelne Chips."
+      },
+      {
+        "element": "Kanban-Toggle (⊞)",
+        "description": "Wechselt zur Kanban-Ansicht. Button wird links-rund und verbindet visuell mit dem Gruppierungs-▾."
+      },
+      {
+        "element": "Gruppierungs-▾",
+        "description": "Erscheint nur wenn Kanban aktiv. Dropdown zur Auswahl des Kanban-Gruppierungsfeldes."
+      },
+      {
+        "element": "Listen-Toggle (☰)",
+        "description": "Wechselt zur Listenansicht. Button wird links-rund und verbindet visuell mit dem Spalten-▾."
+      },
+      {
+        "element": "Spalten-▾",
+        "description": "Erscheint nur wenn Liste aktiv. Checkbox-Dropdown zum Ein-/Ausblenden von Spalten."
+      }
     ],
     "kanban": [
-      { "element": "Dynamische Spalten",    "description": "Spalten werden aus dem konfigurierten Gruppierungsfeld generiert. Spalte 'Ohne [Feld]' für NULL-Werte." },
-      { "element": "Drag & Drop",           "description": "Karten per Maus zwischen Spalten verschieben. Ghost-Karte beim Ziehen, Ziel-Spalte wird hervorgehoben. PUT-Request auf Drop." },
-      { "element": "Klick → Detail",        "description": "Klick auf eine Karte öffnet das Detailformular des Eintrags." },
-      { "element": "Karten-Inhalt",         "description": "App-spezifisch: Welche Felder auf der Karte angezeigt werden, wird pro Prozess konfiguriert." }
+      {
+        "element": "Dynamische Spalten",
+        "description": "Spalten werden aus dem konfigurierten Gruppierungsfeld generiert. Spalte 'Ohne [Feld]' für NULL-Werte."
+      },
+      {
+        "element": "Drag & Drop",
+        "description": "Karten per Maus zwischen Spalten verschieben. Ghost-Karte beim Ziehen, Ziel-Spalte wird hervorgehoben. PUT-Request auf Drop."
+      },
+      {
+        "element": "Klick → Detail",
+        "description": "Klick auf eine Karte öffnet das Detailformular des Eintrags."
+      },
+      {
+        "element": "Karten-Inhalt",
+        "description": "App-spezifisch: Welche Felder auf der Karte angezeigt werden, wird pro Prozess konfiguriert."
+      }
     ],
     "list": [
-      { "element": "Checkbox-Spalte",       "description": "Erste Spalte: Einzel-Checkbox pro Zeile + 'Alle auswählen' im Header." },
-      { "element": "Spalten ein-/ausblenden","description": "Via Spalten-▾. Einstellung wird in localStorage gespeichert (Key: apppp_[entity]_col_settings)." },
-      { "element": "Spaltenbreite Resize",  "description": "Ziehbarer Resizer am rechten Rand jedes Spalten-Headers. table-layout: fixed — ändert nur die gezogene Spalte." },
-      { "element": "Spalten Drag & Drop",   "description": "Header-Spalten per Drag & Drop umsortieren. Reihenfolge in localStorage gespeichert." },
-      { "element": "Sortierung",            "description": "Klick auf Spalten-Label: asc → desc → keine. Aktive Spalte wird grün hervorgehoben + Pfeil." },
-      { "element": "Inline-Editing",        "description": "Klick auf editierbare Zelle → input oder select erscheint inline. Enter/Blur speichert. Escape bricht ab. Editierbare Felder sind app-spezifisch." },
-      { "element": "Massenbearbeitung",     "description": "Bei Mehrfachauswahl: Feld eines selektierten Eintrags ändern → Bestätigungsdialog 'Für alle X übernehmen?'." },
-      { "element": "Zeilen-Highlight",      "description": "Selektierte Zeilen werden mit row-selected CSS-Klasse hervorgehoben." },
-      { "element": "Klick → Detail",        "description": "Klick auf Zeile öffnet Detailformular. Gilt nicht bei Klick auf editierbare Zelle oder Checkbox." }
+      {
+        "element": "Checkbox-Spalte",
+        "description": "Erste Spalte: Einzel-Checkbox pro Zeile + 'Alle auswählen' im Header."
+      },
+      {
+        "element": "Spalten ein-/ausblenden",
+        "description": "Via Spalten-▾. Einstellung wird in localStorage gespeichert (Key: apppp_[entity]_col_settings)."
+      },
+      {
+        "element": "Spaltenbreite Resize",
+        "description": "Ziehbarer Resizer am rechten Rand jedes Spalten-Headers. table-layout: fixed — ändert nur die gezogene Spalte."
+      },
+      {
+        "element": "Spalten Drag & Drop",
+        "description": "Header-Spalten per Drag & Drop umsortieren. Reihenfolge in localStorage gespeichert."
+      },
+      {
+        "element": "Sortierung",
+        "description": "Klick auf Spalten-Label: asc → desc → keine. Aktive Spalte wird grün hervorgehoben + Pfeil."
+      },
+      {
+        "element": "Inline-Editing",
+        "description": "Klick auf editierbare Zelle → input oder select erscheint inline. Enter/Blur speichert. Escape bricht ab. Editierbare Felder sind app-spezifisch."
+      },
+      {
+        "element": "Massenbearbeitung",
+        "description": "Bei Mehrfachauswahl: Feld eines selektierten Eintrags ändern → Bestätigungsdialog 'Für alle X übernehmen?'."
+      },
+      {
+        "element": "Zeilen-Highlight",
+        "description": "Selektierte Zeilen werden mit row-selected CSS-Klasse hervorgehoben."
+      },
+      {
+        "element": "Klick → Detail",
+        "description": "Klick auf Zeile öffnet Detailformular. Gilt nicht bei Klick auf editierbare Zelle oder Checkbox."
+      }
     ],
     "detail": [
-      { "element": "Breadcrumb",            "description": "Zurück-Navigation zur Listenansicht." },
-      { "element": "2-Spalten-Grid",        "description": "Felder in .detail-grid (1fr 1fr), gruppiert in .detail-section Blöcken." },
-      { "element": "Felder",                "description": "App-spezifisch: Welche Felder angezeigt werden." },
-      { "element": "Speichern-Button",      "description": "POST (neu) oder PUT (bestehend). Validiert Pflichtfelder." },
-      { "element": "Löschen-Button",        "description": "Rot, nur bei bestehenden Einträgen. Öffnet Bestätigungs-Modal." },
-      { "element": "Abbrechen-Button",      "description": "Schließt Formular ohne Speichern." },
-      { "element": "Bestätigungs-Modal",    "description": "showConfirm(msg, {title, yesLabel, danger}). Titel, Button-Text und Farbe sind konfigurierbar." }
+      {
+        "element": "Breadcrumb",
+        "description": "Zurück-Navigation zur Listenansicht."
+      },
+      {
+        "element": "2-Spalten-Grid",
+        "description": "Felder in .detail-grid (1fr 1fr), gruppiert in .detail-section Blöcken."
+      },
+      {
+        "element": "Felder",
+        "description": "App-spezifisch: Welche Felder angezeigt werden."
+      },
+      {
+        "element": "Speichern-Button",
+        "description": "POST (neu) oder PUT (bestehend). Validiert Pflichtfelder."
+      },
+      {
+        "element": "Löschen-Button",
+        "description": "Rot, nur bei bestehenden Einträgen. Öffnet Bestätigungs-Modal."
+      },
+      {
+        "element": "Abbrechen-Button",
+        "description": "Schließt Formular ohne Speichern."
+      },
+      {
+        "element": "Bestätigungs-Modal",
+        "description": "showConfirm(msg, {title, yesLabel, danger}). Titel, Button-Text und Farbe sind konfigurierbar."
+      }
     ],
     "chatter": [
-      { "element": "+ Notiz Button",        "description": "Oben rechts im Chatter-Panel. Öffnet Compose-Bereich (standardmäßig verborgen)." },
-      { "element": "Chronologischer Feed",  "description": "Neueste Einträge oben. Timestamp, Text, optionaler Dateilink." },
-      { "element": "Eintrag löschen",       "description": "Hover auf Eintrag zeigt ✕-Button. DELETE-Request an Backend." },
-      { "element": "Datei-Upload",          "description": "Pro Notiz eine Datei anhängbar. multipart/form-data, max. 20 MB. Datei-Link erscheint im Feed." },
-      { "element": "Strg+Enter senden",     "description": "Tastaturkürzel zum Absenden der Notiz." },
-      { "element": "Panel-Breite",          "description": "640px, sticky rechts neben dem Detailformular." },
-      { "element": "Endpoints",             "description": "GET/POST /[entity]/:id/notes, DELETE /[entity]/:id/notes/:noteId" }
+      {
+        "element": "+ Notiz Button",
+        "description": "Oben rechts im Chatter-Panel. Öffnet Compose-Bereich (standardmäßig verborgen)."
+      },
+      {
+        "element": "Chronologischer Feed",
+        "description": "Neueste Einträge oben. Timestamp, Text, optionaler Dateilink."
+      },
+      {
+        "element": "Eintrag löschen",
+        "description": "Hover auf Eintrag zeigt ✕-Button. DELETE-Request an Backend."
+      },
+      {
+        "element": "Datei-Upload",
+        "description": "Pro Notiz eine Datei anhängbar. multipart/form-data, max. 20 MB. Datei-Link erscheint im Feed."
+      },
+      {
+        "element": "Strg+Enter senden",
+        "description": "Tastaturkürzel zum Absenden der Notiz."
+      },
+      {
+        "element": "Panel-Breite",
+        "description": "640px, sticky rechts neben dem Detailformular."
+      },
+      {
+        "element": "Endpoints",
+        "description": "GET/POST /[entity]/:id/notes, DELETE /[entity]/:id/notes/:noteId"
+      }
     ],
     "modals": [
-      { "element": "Toast-Nachrichten",     "description": "Erfolg: grün (#4ade80), Fehler: rot (#f87171). Erscheinen 3 Sekunden, dann fade-out." },
-      { "element": "showConfirm()",         "description": "Konfigurierbares Modal: title, yesLabel, danger-Flag (roter Button). Gibt Promise<boolean> zurück." }
+      {
+        "element": "Toast-Nachrichten",
+        "description": "Erfolg: grün (#4ade80), Fehler: rot (#f87171). Erscheinen 3 Sekunden, dann fade-out."
+      },
+      {
+        "element": "showConfirm()",
+        "description": "Konfigurierbares Modal: title, yesLabel, danger-Flag (roter Button). Gibt Promise<boolean> zurück."
+      }
     ]
   },
   {
@@ -154,39 +1051,184 @@
     "version": "1.0",
     "process_description": "Der Task-Management-Prozess beginnt mit der Erfassung einer Aufgabe durch einen Benutzer. Die Aufgabe durchläuft einen definierten Lebenszyklus: Nach der Erstellung liegt sie im Status 'Offen' und kann einem Benutzer zugewiesen werden. Der Bearbeiter nimmt die Aufgabe 'In Bearbeitung', arbeitet sie ab und stellt sie zur Prüfung bereit ('Review'). Nach erfolgreicher Abnahme wird die Aufgabe als 'Erledigt' markiert. Prioritäten werden automatisch aus den Feldern Auswirkung und Dringlichkeit berechnet, um eine objektive Reihenfolge sicherzustellen. Der gesamte Verlauf inkl. Kommentare und Dateianhänge ist im Chatter nachvollziehbar.",
     "bpmn_steps": [
-      { "id": "start",      "type": "start",    "label": "Start",            "lane": "Auftraggeber" },
-      { "id": "create",     "type": "task",     "label": "Aufgabe erstellen","lane": "Auftraggeber" },
-      { "id": "open",       "type": "task",     "label": "Aufgabe offen",    "lane": "Bearbeiter" },
-      { "id": "assign",     "type": "task",     "label": "Zuweisen",         "lane": "Bearbeiter" },
-      { "id": "inprog",     "type": "task",     "label": "In Bearbeitung",   "lane": "Bearbeiter" },
-      { "id": "gw_review",  "type": "gateway",  "label": "Review?",          "lane": "Bearbeiter" },
-      { "id": "review",     "type": "task",     "label": "Review",           "lane": "Auftraggeber" },
-      { "id": "gw_ok",      "type": "gateway",  "label": "Akzeptiert?",      "lane": "Auftraggeber" },
-      { "id": "done",       "type": "task",     "label": "Erledigt",         "lane": "Bearbeiter" },
-      { "id": "end",        "type": "end",      "label": "Ende",             "lane": "Bearbeiter" }
+      {
+        "id": "start",
+        "type": "start",
+        "label": "Start",
+        "lane": "Auftraggeber"
+      },
+      {
+        "id": "create",
+        "type": "task",
+        "label": "Aufgabe erstellen",
+        "lane": "Auftraggeber"
+      },
+      {
+        "id": "open",
+        "type": "task",
+        "label": "Aufgabe offen",
+        "lane": "Bearbeiter"
+      },
+      {
+        "id": "assign",
+        "type": "task",
+        "label": "Zuweisen",
+        "lane": "Bearbeiter"
+      },
+      {
+        "id": "inprog",
+        "type": "task",
+        "label": "In Bearbeitung",
+        "lane": "Bearbeiter"
+      },
+      {
+        "id": "gw_review",
+        "type": "gateway",
+        "label": "Review?",
+        "lane": "Bearbeiter"
+      },
+      {
+        "id": "review",
+        "type": "task",
+        "label": "Review",
+        "lane": "Auftraggeber"
+      },
+      {
+        "id": "gw_ok",
+        "type": "gateway",
+        "label": "Akzeptiert?",
+        "lane": "Auftraggeber"
+      },
+      {
+        "id": "done",
+        "type": "task",
+        "label": "Erledigt",
+        "lane": "Bearbeiter"
+      },
+      {
+        "id": "end",
+        "type": "end",
+        "label": "Ende",
+        "lane": "Bearbeiter"
+      }
     ],
     "fields": [
-      { "key": "title",         "label": "Titel",            "type": "text",     "required": true,  "auto": false },
-      { "key": "description",   "label": "Beschreibung",     "type": "textarea", "required": false, "auto": false },
-      { "key": "status",        "label": "Status",           "type": "enum",     "required": true,  "auto": false,
-        "values": ["offen","in bearbeitung","review","erledigt"] },
-      { "key": "auswirkung",    "label": "Auswirkung",       "type": "enum",     "required": false, "auto": false,
-        "values": ["niedrig","mittel","hoch"] },
-      { "key": "dringlichkeit", "label": "Dringlichkeit",    "type": "enum",     "required": false, "auto": false,
-        "values": ["niedrig","mittel","hoch"] },
-      { "key": "priority",      "label": "Priorität",        "type": "enum",     "required": false, "auto": true,
+      {
+        "key": "title",
+        "label": "Titel",
+        "type": "text",
+        "required": true,
+        "auto": false
+      },
+      {
+        "key": "description",
+        "label": "Beschreibung",
+        "type": "textarea",
+        "required": false,
+        "auto": false
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "type": "enum",
+        "required": true,
+        "auto": false,
+        "values": [
+          "offen",
+          "in bearbeitung",
+          "review",
+          "erledigt"
+        ]
+      },
+      {
+        "key": "auswirkung",
+        "label": "Auswirkung",
+        "type": "enum",
+        "required": false,
+        "auto": false,
+        "values": [
+          "niedrig",
+          "mittel",
+          "hoch"
+        ]
+      },
+      {
+        "key": "dringlichkeit",
+        "label": "Dringlichkeit",
+        "type": "enum",
+        "required": false,
+        "auto": false,
+        "values": [
+          "niedrig",
+          "mittel",
+          "hoch"
+        ]
+      },
+      {
+        "key": "priority",
+        "label": "Priorität",
+        "type": "enum",
+        "required": false,
+        "auto": true,
         "note": "Berechnet aus Auswirkung × Dringlichkeit",
-        "values": ["niedrig","mittel","hoch"] },
-      { "key": "user_id",       "label": "Zugewiesen an",    "type": "user",     "required": false, "auto": false },
-      { "key": "due_date",      "label": "Fälligkeitsdatum", "type": "date",     "required": false, "auto": false },
-      { "key": "created_at",    "label": "Erstellt am",      "type": "datetime", "required": false, "auto": true },
-      { "key": "updated_at",    "label": "Aktualisiert am",  "type": "datetime", "required": false, "auto": true }
+        "values": [
+          "niedrig",
+          "mittel",
+          "hoch"
+        ]
+      },
+      {
+        "key": "user_id",
+        "label": "Zugewiesen an",
+        "type": "user",
+        "required": false,
+        "auto": false
+      },
+      {
+        "key": "due_date",
+        "label": "Fälligkeitsdatum",
+        "type": "date",
+        "required": false,
+        "auto": false
+      },
+      {
+        "key": "created_at",
+        "label": "Erstellt am",
+        "type": "datetime",
+        "required": false,
+        "auto": true
+      },
+      {
+        "key": "updated_at",
+        "label": "Aktualisiert am",
+        "type": "datetime",
+        "required": false,
+        "auto": true
+      }
     ],
     "kanbanGroups": [
-      { "key": "status",    "label": "Phase" },
-      { "key": "priority",  "label": "Priorität" },
-      { "key": "user",      "label": "Benutzer" },
-      { "key": "due_date",  "label": "Fälligkeitsdatum", "granularity": ["Tag","Woche","Monat","Jahr"] }
+      {
+        "key": "status",
+        "label": "Phase"
+      },
+      {
+        "key": "priority",
+        "label": "Priorität"
+      },
+      {
+        "key": "user",
+        "label": "Benutzer"
+      },
+      {
+        "key": "due_date",
+        "label": "Fälligkeitsdatum",
+        "granularity": [
+          "Tag",
+          "Woche",
+          "Monat",
+          "Jahr"
+        ]
+      }
     ],
     "sla": null,
     "features": [
@@ -207,77 +1249,387 @@
     "version": "1.0",
     "process_description": "Der Incident-Management-Prozess folgt dem ITIL-Standard und beginnt mit der Meldung eines Störfalls durch den Melder. Der Service Desk erfasst, klassifiziert und priorisiert den Incident automatisch anhand der Felder Auswirkung und Dringlichkeit (P1–P4). Bei hoher Priorität (P1/P2) erfolgt sofortige Eskalation zu L2 oder L3. Niedrigere Prioritäten werden zunächst von L1 bearbeitet. Kann L1 den Incident nicht lösen, eskaliert er ebenfalls. Der SLA-Timer läuft ab Erfassung und pausiert bei Status 'Wartend'. Bei Erreichen der Lösung wird der Incident getestet und nach Bestätigung geschlossen. Alle Statuswechsel, Eskalationen und Kommunikation werden im Chatter protokolliert.",
     "bpmn_steps": [
-      { "id": "start",     "type": "start",   "label": "Start",              "lane": "Melder" },
-      { "id": "report",    "type": "task",    "label": "Incident melden",    "lane": "Melder" },
-      { "id": "capture",   "type": "task",    "label": "Erfassen & klassifizieren", "lane": "Service Desk" },
-      { "id": "priority",  "type": "task",    "label": "Priorität bestimmen","lane": "Service Desk" },
-      { "id": "gw_prio",   "type": "gateway", "label": "Priorität?",         "lane": "Service Desk" },
-      { "id": "assign_l1", "type": "task",    "label": "Zuweisen L1",        "lane": "L1 Support" },
-      { "id": "diag_l1",   "type": "task",    "label": "Diagnose L1",        "lane": "L1 Support" },
-      { "id": "gw_l1",     "type": "gateway", "label": "L1 lösbar?",         "lane": "L1 Support" },
-      { "id": "escalate",  "type": "task",    "label": "Eskalieren L2/L3",   "lane": "L2/L3" },
-      { "id": "diag_l2",   "type": "task",    "label": "Diagnose & Lösung L2/L3", "lane": "L2/L3" },
-      { "id": "waiting",   "type": "event",   "label": "Wartend",            "lane": "L2/L3" },
-      { "id": "solve",     "type": "task",    "label": "Lösung anwenden",    "lane": "L1 Support" },
-      { "id": "test",      "type": "task",    "label": "Testen",             "lane": "L1 Support" },
-      { "id": "gw_test",   "type": "gateway", "label": "Test OK?",           "lane": "Service Desk" },
-      { "id": "close",     "type": "task",    "label": "Incident schließen", "lane": "Service Desk" },
-      { "id": "end",       "type": "end",     "label": "Ende",               "lane": "Service Desk" }
+      {
+        "id": "start",
+        "type": "start",
+        "label": "Start",
+        "lane": "Melder"
+      },
+      {
+        "id": "report",
+        "type": "task",
+        "label": "Incident melden",
+        "lane": "Melder"
+      },
+      {
+        "id": "capture",
+        "type": "task",
+        "label": "Erfassen & klassifizieren",
+        "lane": "Service Desk"
+      },
+      {
+        "id": "priority",
+        "type": "task",
+        "label": "Priorität bestimmen",
+        "lane": "Service Desk"
+      },
+      {
+        "id": "gw_prio",
+        "type": "gateway",
+        "label": "Priorität?",
+        "lane": "Service Desk"
+      },
+      {
+        "id": "assign_l1",
+        "type": "task",
+        "label": "Zuweisen L1",
+        "lane": "L1 Support"
+      },
+      {
+        "id": "diag_l1",
+        "type": "task",
+        "label": "Diagnose L1",
+        "lane": "L1 Support"
+      },
+      {
+        "id": "gw_l1",
+        "type": "gateway",
+        "label": "L1 lösbar?",
+        "lane": "L1 Support"
+      },
+      {
+        "id": "escalate",
+        "type": "task",
+        "label": "Eskalieren L2/L3",
+        "lane": "L2/L3"
+      },
+      {
+        "id": "diag_l2",
+        "type": "task",
+        "label": "Diagnose & Lösung L2/L3",
+        "lane": "L2/L3"
+      },
+      {
+        "id": "waiting",
+        "type": "event",
+        "label": "Wartend",
+        "lane": "L2/L3"
+      },
+      {
+        "id": "solve",
+        "type": "task",
+        "label": "Lösung anwenden",
+        "lane": "L1 Support"
+      },
+      {
+        "id": "test",
+        "type": "task",
+        "label": "Testen",
+        "lane": "L1 Support"
+      },
+      {
+        "id": "gw_test",
+        "type": "gateway",
+        "label": "Test OK?",
+        "lane": "Service Desk"
+      },
+      {
+        "id": "close",
+        "type": "task",
+        "label": "Incident schließen",
+        "lane": "Service Desk"
+      },
+      {
+        "id": "end",
+        "type": "end",
+        "label": "Ende",
+        "lane": "Service Desk"
+      }
     ],
     "fields": [
-      { "key": "number",          "label": "Incident-Nr.",      "type": "text",     "required": false, "auto": true },
-      { "key": "title",           "label": "Titel",             "type": "text",     "required": true,  "auto": false },
-      { "key": "description",     "label": "Beschreibung",      "type": "textarea", "required": false, "auto": false },
-      { "key": "source",          "label": "Quelle",            "type": "enum",     "required": false, "auto": false,
-        "values": ["E-Mail","Telefon","Portal","Monitoring","Intern"] },
-      { "key": "reporter",        "label": "Berichterstatter",  "type": "text",     "required": false, "auto": false },
-      { "key": "category",        "label": "Kategorie",         "type": "enum",     "required": false, "auto": false,
-        "values": ["Hardware","Software","Netzwerk","Zugang","Sicherheit","Sonstiges"] },
-      { "key": "subcategory",     "label": "Subkategorie",      "type": "text",     "required": false, "auto": false },
-      { "key": "affected_service","label": "Betroffener Service","type": "text",    "required": false, "auto": false },
-      { "key": "affected_users",  "label": "Betroffene Nutzer", "type": "enum",     "required": false, "auto": false,
-        "values": ["1 Nutzer","Wenige (<10)","Viele (10–100)","Alle"] },
-      { "key": "auswirkung",      "label": "Auswirkung",        "type": "enum",     "required": false, "auto": false,
-        "values": ["niedrig","mittel","hoch","kritisch"] },
-      { "key": "dringlichkeit",   "label": "Dringlichkeit",     "type": "enum",     "required": false, "auto": false,
-        "values": ["niedrig","mittel","hoch","kritisch"] },
-      { "key": "priority",        "label": "Priorität",         "type": "enum",     "required": false, "auto": true,
+      {
+        "key": "number",
+        "label": "Incident-Nr.",
+        "type": "text",
+        "required": false,
+        "auto": true
+      },
+      {
+        "key": "title",
+        "label": "Titel",
+        "type": "text",
+        "required": true,
+        "auto": false
+      },
+      {
+        "key": "description",
+        "label": "Beschreibung",
+        "type": "textarea",
+        "required": false,
+        "auto": false
+      },
+      {
+        "key": "source",
+        "label": "Quelle",
+        "type": "enum",
+        "required": false,
+        "auto": false,
+        "values": [
+          "E-Mail",
+          "Telefon",
+          "Portal",
+          "Monitoring",
+          "Intern"
+        ]
+      },
+      {
+        "key": "reporter",
+        "label": "Berichterstatter",
+        "type": "text",
+        "required": false,
+        "auto": false
+      },
+      {
+        "key": "category",
+        "label": "Kategorie",
+        "type": "enum",
+        "required": false,
+        "auto": false,
+        "values": [
+          "Hardware",
+          "Software",
+          "Netzwerk",
+          "Zugang",
+          "Sicherheit",
+          "Sonstiges"
+        ]
+      },
+      {
+        "key": "subcategory",
+        "label": "Subkategorie",
+        "type": "text",
+        "required": false,
+        "auto": false
+      },
+      {
+        "key": "affected_service",
+        "label": "Betroffener Service",
+        "type": "text",
+        "required": false,
+        "auto": false
+      },
+      {
+        "key": "affected_users",
+        "label": "Betroffene Nutzer",
+        "type": "enum",
+        "required": false,
+        "auto": false,
+        "values": [
+          "1 Nutzer",
+          "Wenige (<10)",
+          "Viele (10–100)",
+          "Alle"
+        ]
+      },
+      {
+        "key": "auswirkung",
+        "label": "Auswirkung",
+        "type": "enum",
+        "required": false,
+        "auto": false,
+        "values": [
+          "niedrig",
+          "mittel",
+          "hoch",
+          "kritisch"
+        ]
+      },
+      {
+        "key": "dringlichkeit",
+        "label": "Dringlichkeit",
+        "type": "enum",
+        "required": false,
+        "auto": false,
+        "values": [
+          "niedrig",
+          "mittel",
+          "hoch",
+          "kritisch"
+        ]
+      },
+      {
+        "key": "priority",
+        "label": "Priorität",
+        "type": "enum",
+        "required": false,
+        "auto": true,
         "note": "P1 Kritisch / P2 Hoch / P3 Mittel / P4 Niedrig — aus Auswirkung × Dringlichkeit",
-        "values": ["P1 Kritisch","P2 Hoch","P3 Mittel","P4 Niedrig"] },
-      { "key": "status",          "label": "Status",            "type": "enum",     "required": true,  "auto": false,
-        "values": ["Neu","Zugewiesen","In Bearbeitung","Wartend","Gelöst","Geschlossen"] },
-      { "key": "wait_reason",     "label": "Wartegrund",        "type": "enum",     "required": false, "auto": false,
+        "values": [
+          "P1 Kritisch",
+          "P2 Hoch",
+          "P3 Mittel",
+          "P4 Niedrig"
+        ]
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "type": "enum",
+        "required": true,
+        "auto": false,
+        "values": [
+          "Neu",
+          "Zugewiesen",
+          "In Bearbeitung",
+          "Wartend",
+          "Gelöst",
+          "Geschlossen"
+        ]
+      },
+      {
+        "key": "wait_reason",
+        "label": "Wartegrund",
+        "type": "enum",
+        "required": false,
+        "auto": false,
         "note": "Erscheint nur wenn Status = Wartend",
-        "values": ["Benutzer","Vendor","Freigabe","Sonstiges"] },
-      { "key": "escalation",      "label": "Eskalationsstufe",  "type": "enum",     "required": false, "auto": false,
-        "values": ["L1","L2","L3"] },
-      { "key": "user_id",         "label": "Zugewiesen an",     "type": "user",     "required": false, "auto": false },
-      { "key": "team",            "label": "Team / Gruppe",     "type": "text",     "required": false, "auto": false },
-      { "key": "escalated_to",    "label": "Eskaliert an",      "type": "text",     "required": false, "auto": false },
-      { "key": "workaround",      "label": "Workaround",        "type": "enum",     "required": false, "auto": false,
-        "values": ["Ja","Nein"] },
-      { "key": "resolution",      "label": "Lösungsbeschreibung","type": "textarea","required": false, "auto": false,
-        "note": "Pflichtfeld wenn Status = Gelöst" },
-      { "key": "sla_due",         "label": "SLA-Fälligkeit",    "type": "datetime", "required": false, "auto": true,
-        "note": "Berechnet aus Priorität + Erstelldatum (P1:4h P2:8h P3:24h P4:72h)" },
-      { "key": "resolved_at",     "label": "Gelöst am",         "type": "datetime", "required": false, "auto": true },
-      { "key": "closed_at",       "label": "Geschlossen am",    "type": "datetime", "required": false, "auto": true },
-      { "key": "created_at",      "label": "Erstellt am",       "type": "datetime", "required": false, "auto": true },
-      { "key": "updated_at",      "label": "Aktualisiert am",   "type": "datetime", "required": false, "auto": true }
+        "values": [
+          "Benutzer",
+          "Vendor",
+          "Freigabe",
+          "Sonstiges"
+        ]
+      },
+      {
+        "key": "escalation",
+        "label": "Eskalationsstufe",
+        "type": "enum",
+        "required": false,
+        "auto": false,
+        "values": [
+          "L1",
+          "L2",
+          "L3"
+        ]
+      },
+      {
+        "key": "user_id",
+        "label": "Zugewiesen an",
+        "type": "user",
+        "required": false,
+        "auto": false
+      },
+      {
+        "key": "team",
+        "label": "Team / Gruppe",
+        "type": "text",
+        "required": false,
+        "auto": false
+      },
+      {
+        "key": "escalated_to",
+        "label": "Eskaliert an",
+        "type": "text",
+        "required": false,
+        "auto": false
+      },
+      {
+        "key": "workaround",
+        "label": "Workaround",
+        "type": "enum",
+        "required": false,
+        "auto": false,
+        "values": [
+          "Ja",
+          "Nein"
+        ]
+      },
+      {
+        "key": "resolution",
+        "label": "Lösungsbeschreibung",
+        "type": "textarea",
+        "required": false,
+        "auto": false,
+        "note": "Pflichtfeld wenn Status = Gelöst"
+      },
+      {
+        "key": "sla_due",
+        "label": "SLA-Fälligkeit",
+        "type": "datetime",
+        "required": false,
+        "auto": true,
+        "note": "Berechnet aus Priorität + Erstelldatum (P1:4h P2:8h P3:24h P4:72h)"
+      },
+      {
+        "key": "resolved_at",
+        "label": "Gelöst am",
+        "type": "datetime",
+        "required": false,
+        "auto": true
+      },
+      {
+        "key": "closed_at",
+        "label": "Geschlossen am",
+        "type": "datetime",
+        "required": false,
+        "auto": true
+      },
+      {
+        "key": "created_at",
+        "label": "Erstellt am",
+        "type": "datetime",
+        "required": false,
+        "auto": true
+      },
+      {
+        "key": "updated_at",
+        "label": "Aktualisiert am",
+        "type": "datetime",
+        "required": false,
+        "auto": true
+      }
     ],
     "kanbanGroups": [
-      { "key": "status",    "label": "Status" },
-      { "key": "priority",  "label": "Priorität" },
-      { "key": "escalation","label": "Eskalationsstufe" },
-      { "key": "user",      "label": "Zugewiesen an" }
+      {
+        "key": "status",
+        "label": "Status"
+      },
+      {
+        "key": "priority",
+        "label": "Priorität"
+      },
+      {
+        "key": "escalation",
+        "label": "Eskalationsstufe"
+      },
+      {
+        "key": "user",
+        "label": "Zugewiesen an"
+      }
     ],
     "sla": {
       "note": "Pausiert wenn Status = Wartend",
       "levels": [
-        { "priority": "P1 Kritisch", "response": "15 min", "resolution": "4h" },
-        { "priority": "P2 Hoch",     "response": "30 min", "resolution": "8h" },
-        { "priority": "P3 Mittel",   "response": "2h",     "resolution": "24h" },
-        { "priority": "P4 Niedrig",  "response": "4h",     "resolution": "72h" }
+        {
+          "priority": "P1 Kritisch",
+          "response": "15 min",
+          "resolution": "4h"
+        },
+        {
+          "priority": "P2 Hoch",
+          "response": "30 min",
+          "resolution": "8h"
+        },
+        {
+          "priority": "P3 Mittel",
+          "response": "2h",
+          "resolution": "24h"
+        },
+        {
+          "priority": "P4 Niedrig",
+          "response": "4h",
+          "resolution": "72h"
+        }
       ]
     },
     "features": [
