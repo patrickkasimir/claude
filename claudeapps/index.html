@@ -37,12 +37,35 @@
       letter-spacing: 2px;
     }
 
+    #app-sections {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 48px;
+      width: 100%;
+      max-width: 900px;
+      align-items: flex-start;
+    }
+
+    .section {
+      flex: 1 1 300px;
+      min-width: 260px;
+      margin-bottom: 0;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      letter-spacing: 4px;
+      color: #444;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #ffffff0a;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 24px;
-      width: 100%;
-      max-width: 900px;
     }
 
     .card {
@@ -97,17 +120,27 @@
   <p>Wähle eine App</p>
 </header>
 
-<div class="grid" id="app-grid"></div>
+<div id="app-sections"></div>
 
 <script type="module">
-  import { APPS } from '/claudeapps/shared/apps.js';
-  const grid = document.getElementById('app-grid');
-  grid.innerHTML = APPS.map(app => `
-    <a class="card" href="${app.path}">
-      <span class="icon">${app.icon}</span>
-      <h2>${app.title}</h2>
-      <p>${app.description}</p>
-    </a>
+  import { APPS } from '/claudeapps/shared/apps.js?v=2';
+
+  const categories = [...new Set(APPS.map(a => a.category))];
+  const container = document.getElementById('app-sections');
+
+  container.innerHTML = categories.map(cat => `
+    <div class="section">
+      <div class="section-label">${cat}</div>
+      <div class="grid">
+        ${APPS.filter(a => a.category === cat).map(app => `
+          <a class="card" href="${app.path}">
+            <span class="icon">${app.icon}</span>
+            <h2>${app.title}</h2>
+            <p>${app.description}</p>
+          </a>
+        `).join('')}
+      </div>
+    </div>
   `).join('');
 </script>
 

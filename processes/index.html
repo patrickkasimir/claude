@@ -58,11 +58,12 @@
   #sidebar-header a:hover { color: var(--accent); }
 
   #sidebar-header h2 {
-    font-size: 13px;
+    font-size: 1rem;
     font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .08em;
+    color: var(--accent);
+    text-shadow: 0 0 12px #4ade8044;
+    letter-spacing: 3px;
+    white-space: nowrap;
   }
 
   #nav-list {
@@ -377,7 +378,7 @@
 <nav id="sidebar">
   <div id="sidebar-header">
     <script src="/claudeapps/shared/back-button.js"></script>
-    <h2>Prozesse</h2>
+    <h2><span style="margin-right:8px">📖</span>PROZESSE</h2>
   </div>
   <ul id="nav-list"></ul>
 </nav>

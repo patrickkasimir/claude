@@ -5,6 +5,7 @@ export const APPS = [
     icon: "🐍",
     path: "/claudeapps/snake/",
     description: "Klassisches Snake-Spiel mit drei Schwierigkeitsstufen",
+    category: "Spiele",
   },
   {
     id: "memory",
@@ -12,13 +13,7 @@ export const APPS = [
     icon: "🧠",
     path: "/claudeapps/memory/",
     description: "Finde alle Kartenpaare in möglichst wenigen Zügen",
-  },
-  {
-    id: "taskmanager",
-    title: "TASKS",
-    icon: "📋",
-    path: "/claudeapps/taskmanager/",
-    description: "Aufgaben verwalten mit Kanban-Board, Benutzerzuweisung und Statusplan",
+    category: "Spiele",
   },
   {
     id: "poker",
@@ -26,6 +21,15 @@ export const APPS = [
     icon: "🃏",
     path: "/claudeapps/poker/",
     description: "Texas Hold'em gegen 3 KI-Gegner – Fold, Call, Raise oder All-In",
+    category: "Spiele",
+  },
+  {
+    id: "taskmanager",
+    title: "TASKS",
+    icon: "📋",
+    path: "/claudeapps/taskmanager/",
+    description: "Aufgaben verwalten mit Kanban-Board, Benutzerzuweisung und Statusplan",
+    category: "Tools",
   },
   {
     id: "apppp",
@@ -33,6 +37,7 @@ export const APPS = [
     icon: "📋",
     path: "/claudeapps/apppp/",
     description: "Task Management – separate Instanz mit eigener Datenbank",
+    category: "Tools",
   },
   {
     id: "processes",
@@ -40,5 +45,6 @@ export const APPS = [
     icon: "📖",
     path: "/claudeapps/processes/",
     description: "Spezifikationen aller Prozesse – Felder, SLA, Features, Kanban-Gruppen",
+    category: "Tools",
   },
 ];
