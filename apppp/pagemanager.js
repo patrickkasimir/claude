@@ -179,6 +179,7 @@ export function initChatter(entityPath, getEditId, {
   return { load, renderFeed };
 }
 
+
 export class PageManager {
   constructor(cfg) {
     this.cfg = cfg;
@@ -393,7 +394,6 @@ export class PageManager {
       const th = document.createElement('th');
       th.dataset.col = col.key;
       th.style.width = (this.colSettings.widths[col.key] || 150) + 'px';
-      th.style.position = 'relative';
       th.draggable = true;
       if (this.sortCol === col.key) th.classList.add(this.sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
       th.innerHTML = `<span class="th-label">${col.label.toUpperCase()}</span><div class="col-resizer"></div>`;
