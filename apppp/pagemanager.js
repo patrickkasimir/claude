@@ -46,6 +46,56 @@ export function showConfirm(msg, {title='BESTÄTIGEN', yesLabel='OK', danger=fal
   });
 }
 
+// Liefert Odoo-typische Zeitraum-Optionen für Datumsfelder im Suchfeld.
+// Nutzung in getSearchValues: return dateSearchValues(q);
+// Nutzung in filterItem:      return matchesDateChip(item.due_date, chip);
+export function dateSearchValues(q, fieldKey='date') {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+
+  const startOf = (date) => { const d = new Date(date); d.setHours(0,0,0,0); return d; };
+  const endOf   = (date) => { const d = new Date(date); d.setHours(23,59,59,999); return d; };
+
+  const options = [
+    { label: 'Heute',          value: 'today',        from: startOf(now),                                    to: endOf(now) },
+    { label: 'Gestern',        value: 'yesterday',    from: startOf(new Date(y,m,d-1)),                     to: endOf(new Date(y,m,d-1)) },
+    { label: 'Diese Woche',    value: 'this_week',    from: startOf(new Date(y,m,d - now.getDay())),        to: endOf(new Date(y,m,d - now.getDay() + 6)) },
+    { label: 'Letzte Woche',   value: 'last_week',    from: startOf(new Date(y,m,d - now.getDay() - 7)),   to: endOf(new Date(y,m,d - now.getDay() - 1)) },
+    { label: 'Dieser Monat',   value: 'this_month',   from: startOf(new Date(y,m,1)),                       to: endOf(new Date(y,m+1,0)) },
+    { label: 'Letzter Monat',  value: 'last_month',   from: startOf(new Date(y,m-1,1)),                     to: endOf(new Date(y,m,0)) },
+    { label: 'Dieses Quartal', value: 'this_quarter', from: startOf(new Date(y, Math.floor(m/3)*3, 1)),     to: endOf(new Date(y, Math.floor(m/3)*3+3, 0)) },
+    { label: 'Dieses Jahr',    value: 'this_year',    from: startOf(new Date(y,0,1)),                       to: endOf(new Date(y,11,31)) },
+    { label: 'Letztes Jahr',   value: 'last_year',    from: startOf(new Date(y-1,0,1)),                     to: endOf(new Date(y-1,11,31)) },
+  ];
+
+  const ql = (q||'').toLowerCase();
+  const results = options
+    .filter(o => !ql || o.label.toLowerCase().includes(ql))
+    .map(o => ({
+      type:  'date_range',
+      field: fieldKey,
+      label: o.label,
+      value: o.value,
+      from:  o.from.toISOString(),
+      to:    o.to.toISOString(),
+    }));
+
+  if (!ql || 'benutzerdefiniert'.includes(ql)) {
+    results.push({ type: 'date_range_custom', field: fieldKey, label: 'Benutzerdefiniert…', value: 'custom' });
+  }
+
+  return results;
+}
+
+// Prüft ob ein ISO-Datums-String (z.B. item.due_date) in den Zeitraum eines date_range-Chips fällt.
+export function matchesDateChip(dateStr, chip) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  return d >= new Date(chip.from) && d <= new Date(chip.to);
+}
+
 export function highlight(text, q) {
   if (!q) return esc(text);
   const idx = text.toLowerCase().indexOf(q.toLowerCase());
@@ -662,7 +712,9 @@ export class PageManager {
           this._selectedField = f.key;
           const q = input.value.trim();
           if (q && cfg.resolveChip) { const c = cfg.resolveChip(f.key, q, this); if (c) { addChip(c); return; } }
-          updatePlaceholder(); closeDropdown(); input.focus();
+          updatePlaceholder(); closeDropdown();
+          // setTimeout verhindert dass der nachfolgende click-Event das Dropdown sofort wieder schließt
+          setTimeout(() => { input.focus(); buildValueDropdown(input.value); }, 0);
         });
         sec.appendChild(row);
         ddEl._items.push({ el: row, isField: true, fieldKey: f.key });
@@ -687,10 +739,52 @@ export class PageManager {
         empty.innerHTML = '<span class="sd-cat">Keine Treffer</span>'; sec.appendChild(empty);
       }
       items.forEach(item => {
-        const row = document.createElement('div'); row.className = 'sd-item';
-        row.innerHTML = `<span class="sd-val">${item.display || esc(item.label)}</span>`;
-        row.addEventListener('mousedown', e => { e.preventDefault(); addChip(item); });
-        sec.appendChild(row); ddEl._items.push({ el: row, chip: item });
+        if (item.type === 'date_range_custom') {
+          // Benutzerdefiniert — zeigt Von/Bis Eingabefelder
+          const row = document.createElement('div');
+          row.className = 'sd-item';
+          row.innerHTML = `<span class="sd-val" style="opacity:0.7">${esc(item.label)}</span>`;
+          row.addEventListener('mousedown', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            row.innerHTML = `
+              <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0;width:220px">
+                <label style="font-size:0.75rem;color:var(--muted)">Von</label>
+                <input type="date" id="pm-date-from" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 8px;font-size:0.85rem;width:200px">
+                <label style="font-size:0.75rem;color:var(--muted)">Bis</label>
+                <input type="date" id="pm-date-to" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 8px;font-size:0.85rem;width:200px">
+                <button id="pm-date-apply" style="margin-top:4px;background:var(--accent);color:#1a1a2e;border:none;border-radius:4px;padding:6px;font-size:0.8rem;font-weight:700;cursor:pointer;letter-spacing:1px">ÜBERNEHMEN</button>
+              </div>`;
+            setTimeout(() => {
+              const fromEl = document.getElementById('pm-date-from');
+              const toEl   = document.getElementById('pm-date-to');
+              const applyEl = document.getElementById('pm-date-apply');
+              fromEl?.focus();
+              fromEl?.addEventListener('change', () => { if (toEl && fromEl.value) toEl.min = fromEl.value; });
+              toEl?.addEventListener('change',   () => { if (fromEl && toEl.value) fromEl.max = toEl.value; });
+              ddEl._customActive = true;
+              [fromEl, toEl, applyEl].forEach(el => el?.addEventListener('mousedown', e => e.stopPropagation()));
+              applyEl?.addEventListener('mousedown', e => {
+                e.preventDefault();
+                const from = fromEl?.value;
+                const to   = toEl?.value;
+                if (!from && !to) return;
+                const fromDate = from ? new Date(from + 'T00:00:00') : new Date(0);
+                const toDate   = to   ? new Date(to   + 'T23:59:59') : new Date('9999-12-31');
+                const label = (from || '…') + ' – ' + (to || '…');
+                ddEl._customActive = false;
+                addChip({ type: 'date_range', field: item.field, label, value: 'custom', from: fromDate.toISOString(), to: toDate.toISOString() });
+              });
+            }, 0);
+          });
+          sec.appendChild(row);
+          ddEl._items.push({ el: row, chip: item });
+        } else {
+          const row = document.createElement('div'); row.className = 'sd-item';
+          row.innerHTML = `<span class="sd-val">${item.display || esc(item.label)}</span>`;
+          row.addEventListener('mousedown', e => { e.preventDefault(); addChip(item); });
+          sec.appendChild(row); ddEl._items.push({ el: row, chip: item });
+        }
       });
       ddEl.appendChild(sec); this._ddActiveIdx = -1; ddEl.classList.add('open');
     };
@@ -700,6 +794,7 @@ export class PageManager {
       else buildFieldDropdown();
     });
     input.addEventListener('focus', () => {
+      if (ddEl._customActive) return;
       if (this._selectedField) buildValueDropdown(input.value);
       else buildFieldDropdown();
     });
@@ -729,9 +824,9 @@ export class PageManager {
         else if (this.activeChips.length > 0) { this.activeChips.splice(-1, 1); renderChips(); this.renderPage(); }
       }
     });
-    wrapEl.addEventListener('click', () => input.focus());
+    wrapEl.addEventListener('click', () => { if (!ddEl._customActive) input.focus(); });
     document.addEventListener('click', e => {
-      if (!wrapEl.contains(e.target)) { closeDropdown(); this._selectedField = null; updatePlaceholder(); }
+      if (!wrapEl.contains(e.target) && !ddEl._customActive) { closeDropdown(); this._selectedField = null; updatePlaceholder(); }
     });
   }
 

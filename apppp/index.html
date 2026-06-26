@@ -2183,7 +2183,7 @@
 </div>
 
 <script type="module">
-  import { get, post, put, del, esc, fmtDate, toast, showConfirm, highlight, initChatter, PageManager } from '/claudeapps/apppp/pagemanager.js';
+  import { get, post, put, del, esc, fmtDate, toast, showConfirm, highlight, initChatter, PageManager, dateSearchValues, matchesDateChip } from '/claudeapps/apppp/pagemanager.js';
 
   const API_BASE = '/claudeapps/apppp/api';
 
@@ -2383,7 +2383,8 @@
       if (chip.type === 'status')        return item.status === chip.value;
       if (chip.type === 'auswirkung')    return item.auswirkung === chip.value;
       if (chip.type === 'dringlichkeit') return item.dringlichkeit === chip.value;
-      if (chip.type === 'due_date')      return (item.due_date||'').includes(chip.value);
+      if (chip.type === 'date_range' && chip.field === 'due_date') return matchesDateChip(item.due_date, chip);
+      if (chip.type === 'due_date') return matchesDateChip(item.due_date, chip);
       return true;
     },
     resolveChip(fieldKey, q) {
@@ -2400,7 +2401,7 @@
         const m = Object.entries(opts).find(([k,v])=>v.toLowerCase().includes(ql)||k.includes(ql));
         return m ? {type:'status',label:m[1],value:m[0]} : null;
       }
-      if (fieldKey === 'due_date') return {type:'due_date',label:q,value:q};
+      if (fieldKey === 'due_date') { const opts = dateSearchValues(q, 'due_date'); return opts[0] || null; }
       return null;
     },
     getSearchValues(fieldKey, q, pm) {
@@ -2415,7 +2416,7 @@
         const opts = {offen:'Offen',inarbeit:'In Arbeit',review:'Review',erledigt:'Erledigt'};
         return Object.entries(opts).filter(([k,v])=>!ql||v.toLowerCase().includes(ql)).map(([k,v])=>({type:'status',label:v,value:k,display:highlight(v,ql)}));
       }
-      if (fieldKey === 'due_date') return q ? [{type:'due_date',label:q,value:q,display:`"<em>${esc(q)}</em>"`}] : [];
+      if (fieldKey === 'due_date') return dateSearchValues(q, 'due_date');
       return [];
     },
     sortValue(item, col) {
