@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prozess-Spezifikationen</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --accent: #4ade80;
+    --border: #4ade8022;
+    --text: #eee;
+    --muted: #888;
+    --danger: #f87171;
+    --warn: #fbbf24;
+    --info: #60a5fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  #sidebar-header {
+    padding: 64px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #sidebar-header a {
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 12px;
+    transition: color .2s;
+  }
+  #sidebar-header a:hover { color: var(--accent); }
+
+  #sidebar-header h2 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  #nav-list {
+    list-style: none;
+    padding: 10px 8px;
+    flex: 1;
+  }
+
+  #nav-list li {
+    border-radius: 8px;
+    margin-bottom: 4px;
+  }
+
+  #nav-list li button {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    text-align: left;
+    transition: background .15s, color .15s;
+  }
+
+  #nav-list li button:hover { background: var(--surface2); }
+  #nav-list li button.active {
+    background: #4ade8020;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .nav-icon { font-size: 18px; line-height: 1; }
+
+  /* ── Main content ── */
+  #main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 40px;
+  }
+
+  /* ── Process Header ── */
+  .proc-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .proc-header-icon {
+    font-size: 48px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .proc-header-text h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .proc-header-text p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 640px;
+  }
+
+  .version-badge {
+    display: inline-block;
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-top: 8px;
+  }
+
+  /* ── Section titles ── */
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    margin-top: 32px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Process description ── */
+  .proc-description {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #ccc;
+    max-width: 800px;
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+  }
+
+  /* ── BPMN diagram ── */
+  .bpmn-container {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 20px;
+    overflow-x: auto;
+  }
+
+  .bpmn-container svg {
+    display: block;
+    min-width: 800px;
+  }
+
+  /* ── Fields table ── */
+  .fields-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 13px;
+  }
+
+  .fields-table thead tr {
+    background: var(--surface2);
+  }
+
+  .fields-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .fields-table th:nth-child(1) { width: 22%; }
+  .fields-table th:nth-child(2) { width: 12%; }
+  .fields-table th:nth-child(3) { width: 9%; }
+  .fields-table th:nth-child(4) { width: 9%; }
+  .fields-table th:nth-child(5) { width: 48%; }
+
+  .fields-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .fields-table tbody tr:hover { background: #ffffff05; }
+
+  .fields-table .group-separator td {
+    padding: 6px 12px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--accent);
+    background: #4ade8008;
+    border-bottom: 1px solid #4ade8030;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    line-height: 1.4;
+  }
+
+  .badge-required {
+    background: #f8717122;
+    color: var(--danger);
+    border: 1px solid #f8717144;
+  }
+
+  .badge-auto {
+    background: #60a5fa22;
+    color: var(--info);
+    border: 1px solid #60a5fa44;
+  }
+
+  .values-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .value-chip {
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  .field-note {
+    color: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+    margin-top: 4px;
+  }
+
+  .type-badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: monospace;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* ── Kanban groups ── */
+  .kanban-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .kanban-chip {
+    background: #4ade8018;
+    border: 1px solid #4ade8040;
+    color: var(--accent);
+    font-size: 13px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  /* ── SLA table ── */
+  .sla-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .sla-table thead tr { background: var(--surface2); }
+
+  .sla-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .sla-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+
+  .sla-table .p1 .prio-label { color: var(--danger); }
+  .sla-table .p2 .prio-label { color: var(--warn); }
+  .sla-table .p3 .prio-label { color: #fde68a; }
+  .sla-table .p4 .prio-label { color: var(--accent); }
+
+  .prio-label { font-weight: 700; }
+
+  .sla-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    font-style: italic;
+  }
+
+  /* ── Features list ── */
+  .features-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .features-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .features-list li::before {
+    content: '✓';
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div id="sidebar-header">
+    <script src="/claudeapps/shared/back-button.js"></script>
+    <h2>Prozesse</h2>
+  </div>
+  <ul id="nav-list"></ul>
+</nav>
+
+<main id="main"><p style="padding:40px;color:#888">Lädt…</p></main>
+
+<script>
+let SPECS = [];
+
+// ── BPMN SVGs (hardcoded per process) ──────────────────────────────────────
+
+function getBpmnSvg(id) {
+  if (id === 'tasks') return bpmnTasks();
+  if (id === 'incidents') return bpmnIncidents();
+  return '';
+}
+
+/* ── Task Management BPMN ──────────────────────────────────────────────────
+   Lanes: Auftraggeber (top), Bearbeiter (bottom)
+   Happy path: Start → Erstellen → Offen → Zuweisen → In Bearbeitung
+               → Review → Gateway(Akzeptiert?) → Erledigt → End
+   Rejection loop: Gateway → In Bearbeitung (curved back)
+────────────────────────────────────────────────────────────────────────── */
+function bpmnTasks() {
+  const W = 1060, H = 290, MID = 145, LX = 78;
+  const AG = MID / 2;          // 72  center of Auftraggeber lane
+  const BE = MID + (H - MID) / 2; // 217 center of Bearbeiter lane
+
+  // element x-centers
+  const xStart  = LX + 44;
+  const xCreate = LX + 140;
+  const xOpen   = LX + 295;
+  const xAssign = LX + 425;
+  const xInProg = LX + 565;
+  const xReview = LX + 705;
+  const xGw     = LX + 845;
+  const xDone   = LX + 940;
+  const xEnd    = LX + 1010; // won't fit, let me recalc
+
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
+      style="width:100%;font-family:'Segoe UI',sans-serif;font-size:11px">
+
+  <!-- background -->
+  <rect width="${W}" height="${H}" fill="#1a1a2e" rx="8"/>
+
+  <!-- lane backgrounds -->
+  <rect x="0" y="0" width="${W}" height="${MID}" fill="#16213e"/>
+  <rect x="0" y="${MID}" width="${W}" height="${H-MID}" fill="#1a1a2e"/>
+
+  <!-- lane label strip -->
+  <rect x="0" y="0" width="${LX}" height="${H}" fill="#0f3460"/>
+  <line x1="${LX}" y1="0" x2="${LX}" y2="${H}" stroke="#4ade8040" stroke-width="1"/>
+
+  <!-- lane separator -->
+  <line x1="${LX}" y1="${MID}" x2="${W}" y2="${MID}" stroke="#4ade8030" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- lane labels (rotated) -->
+  <text transform="translate(38,${MID/2}) rotate(-90)" text-anchor="middle"
+        font-size="11" fill="#4ade80" font-weight="600" letter-spacing="1">AUFTRAGGEBER</text>
+  <text transform="translate(38,${MID+(H-MID)/2}) rotate(-90)" text-anchor="middle"
+        font-size="11" fill="#4ade80" font-weight="600" letter-spacing="1">BEARBEITER</text>
+
+  <!-- ─ START event ─ -->
+  <circle cx="138" cy="${AG}" r="15" fill="none" stroke="#4ade80" stroke-width="2"/>
+  <text x="138" y="${AG+28}" text-anchor="middle" fill="#888" font-size="10">Start</text>
+
+  <!-- ─ Aufgabe erstellen ─ -->
+  ${taskBox(230, AG, 104, 42, 'Aufgabe\nerstellen')}
+
+  <!-- ─ arrows AG ─ -->
+  <!-- start → erstellen -->
+  ${arrow(153, AG, 178, AG)}
+
+  <!-- ─ cross-lane: erstellen → offen ─ -->
+  <path d="M${282},${AG+21} L${282},${MID-2} L${355},${MID+2} L${355},${BE-21}"
+        fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ─ Offen ─ -->
+  ${taskBox(355, BE, 90, 42, 'Offen')}
+
+  <!-- Offen → Zuweisen -->
+  ${arrow(400, BE, 430, BE)}
+
+  <!-- ─ Zuweisen ─ -->
+  ${taskBox(485, BE, 90, 42, 'Zuweisen')}
+
+  <!-- Zuweisen → In Bearbeitung -->
+  ${arrow(530, BE, 560, BE)}
+
+  <!-- ─ In Bearbeitung ─ -->
+  ${taskBox(620, BE, 112, 42, 'In Bearbeitung')}
+
+  <!-- ─ cross-lane: InProg → Review ─ -->
+  <path d="M${676},${BE-21} L${676},${MID+2} L${750},${MID-2} L${750},${AG+21}"
+        fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ─ Review ─ -->
+  ${taskBox(750, AG, 90, 42, 'Review')}
+
+  <!-- Review → Gateway -->
+  ${arrow(795, AG, 825, AG)}
+
+  <!-- ─ Gateway: Akzeptiert? ─ -->
+  ${gateway(855, AG, 'Akzeptiert?')}
+
+  <!-- Gateway → Erledigt (down) -->
+  <path d="M${855},${AG+22} L${855},${MID-2} L${950},${MID+2} L${950},${BE-21}"
+        fill="none" stroke="#4ade80" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="870" y="${MID-8}" fill="#4ade80" font-size="10">Ja</text>
+
+  <!-- Gateway → InProg (rejection loop, curved back above) -->
+  <path d="M${855},${AG-22} Q${855},${AG-55} ${620},${AG-55} Q${570},${AG-55} ${570},${AG-8}"
+        fill="none" stroke="#f87171" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr-red)"/>
+  <text x="710" y="${AG-60}" text-anchor="middle" fill="#f87171" font-size="10">Nein → Überarbeitung</text>
+
+  <!-- ─ Erledigt ─ -->
+  ${taskBox(950, BE, 90, 42, 'Erledigt')}
+
+  <!-- Erledigt → End -->
+  ${arrow(995, BE, 1020, BE)}
+
+  <!-- ─ END event ─ -->
+  <circle cx="1035" cy="${BE}" r="15" fill="none" stroke="#4ade80" stroke-width="3"/>
+  <text x="1035" y="${BE+28}" text-anchor="middle" fill="#888" font-size="10">Ende</text>
+
+  <!-- arrowhead markers -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#888"/>
+    </marker>
+    <marker id="arr-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f87171"/>
+    </marker>
+    <marker id="arr-grn" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4ade80"/>
+    </marker>
+  </defs>
+</svg>`;
+}
+
+/* ── Incident Management BPMN ──────────────────────────────────────────────
+   Lanes: Melder | Service Desk | L1 Support | L2/L3
+   Flow: Melden → Erfassen → Priorität → Gateway(P1/P2?) → L1 oder L2
+         L1 Gateway(lösbar?) → L2 (wenn nein) → Lösung anwenden → Testen
+         → Gateway(OK?) → Schließen → End
+────────────────────────────────────────────────────────────────────────── */
+function bpmnIncidents() {
+  const W = 1150, H = 380, LX = 78;
+  const laneH = (H) / 4;       // 95px per lane
+  // lane centers
+  const yMelder = laneH * 0 + laneH/2;  // 47
+  const ySD     = laneH * 1 + laneH/2;  // 142
+  const yL1     = laneH * 2 + laneH/2;  // 237
+  const yL2     = laneH * 3 + laneH/2;  // 332
+
+  const lane = (i) => laneH * i;
+
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
+      style="width:100%;font-family:'Segoe UI',sans-serif;font-size:11px">
+
+  <!-- background bands -->
+  <rect width="${W}" height="${laneH}" fill="#1e1530"/>
+  <rect y="${laneH}" width="${W}" height="${laneH}" fill="#16213e"/>
+  <rect y="${laneH*2}" width="${W}" height="${laneH}" fill="#1a1a2e"/>
+  <rect y="${laneH*3}" width="${W}" height="${laneH}" fill="#16213e"/>
+
+  <!-- lane label strip -->
+  <rect x="0" y="0" width="${LX}" height="${H}" fill="#0f3460"/>
+  <line x1="${LX}" y1="0" x2="${LX}" y2="${H}" stroke="#4ade8040" stroke-width="1"/>
+
+  <!-- lane separators -->
+  ${[1,2,3].map(i => `<line x1="${LX}" y1="${lane(i)}" x2="${W}" y2="${lane(i)}"
+    stroke="#4ade8030" stroke-width="1" stroke-dasharray="4,4"/>`).join('')}
+
+  <!-- lane labels -->
+  <text transform="translate(38,${yMelder}) rotate(-90)" text-anchor="middle"
+        font-size="10" fill="#4ade80" font-weight="600" letter-spacing="1">MELDER</text>
+  <text transform="translate(38,${ySD}) rotate(-90)" text-anchor="middle"
+        font-size="10" fill="#4ade80" font-weight="600" letter-spacing="1">SERVICE DESK</text>
+  <text transform="translate(38,${yL1}) rotate(-90)" text-anchor="middle"
+        font-size="10" fill="#4ade80" font-weight="600" letter-spacing="1">L1 SUPPORT</text>
+  <text transform="translate(38,${yL2}) rotate(-90)" text-anchor="middle"
+        font-size="10" fill="#4ade80" font-weight="600" letter-spacing="1">L2 / L3</text>
+
+  <!-- ─ START ─ -->
+  <circle cx="138" cy="${yMelder}" r="14" fill="none" stroke="#4ade80" stroke-width="2"/>
+  <text x="138" y="${yMelder+26}" text-anchor="middle" fill="#888" font-size="10">Start</text>
+
+  <!-- ─ Incident melden (Melder) ─ -->
+  ${taskBox(230, yMelder, 110, 40, 'Incident melden')}
+
+  <!-- Start → Melden -->
+  ${arrow(152, yMelder, 175, yMelder)}
+
+  <!-- Melden → SD (cross) -->
+  <path d="M${285},${yMelder+20} L${285},${lane(1)-1} L${340},${lane(1)+1} L${340},${ySD-20}"
+        fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- ─ Erfassen & klassifizieren (SD) ─ -->
+  ${taskBox(340, ySD, 118, 40, 'Erfassen &\nklassifizieren')}
+
+  <!-- → Priorität -->
+  ${arrow(399, ySD, 490, ySD)}
+
+  <!-- ─ Priorität bestimmen (SD) ─ -->
+  ${taskBox(545, ySD, 110, 40, 'Priorität\nbestimmen')}
+
+  <!-- → Gateway Prio -->
+  ${arrow(600, ySD, 660, ySD)}
+
+  <!-- ─ Gateway: P1/P2? (SD) ─ -->
+  ${gateway(688, ySD, 'P1 / P2?')}
+
+  <!-- Gateway → L2 (yes, high prio) -->
+  <path d="M${688},${ySD+22} L${688},${lane(3)-1} L${760},${lane(3)+1} L${760},${yL2-20}"
+        fill="none" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <text x="700" y="${lane(3)-8}" fill="#f87171" font-size="10">P1/P2</text>
+
+  <!-- Gateway → L1 (lower prio, right) -->
+  ${arrow(710, ySD, 760, ySD)}
+  <text x="728" y="${ySD-6}" fill="#4ade80" font-size="10">P3/P4</text>
+
+  <!-- ─ Zuweisen L1 (SD) ─ -->
+  ${taskBox(815, ySD, 96, 40, 'Zuweisen L1')}
+
+  <!-- SD → L1 (cross-lane) -->
+  <path d="M${815},${ySD+20} L${815},${lane(2)-1} L${850},${lane(2)+1} L${850},${yL1-20}"
+        fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- ─ Diagnose L1 (L1) ─ -->
+  ${taskBox(850, yL1, 96, 40, 'Diagnose L1')}
+
+  <!-- L1 → Gateway lösbar? -->
+  ${arrow(898, yL1, 960, yL1)}
+
+  <!-- ─ Gateway: L1 lösbar? ─ -->
+  ${gateway(988, yL1, 'L1\nlösbar?')}
+
+  <!-- Not solvable → L2 -->
+  <path d="M${988},${yL1+22} L${988},${lane(3)-1} L${900},${lane(3)+1} L${900},${yL2-20}"
+        fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr2)"/>
+  <text x="945" y="${lane(3)-8}" fill="#fbbf24" font-size="10">Nein</text>
+
+  <!-- ─ Diagnose L2/L3 (L2) ─ -->
+  ${taskBox(760, yL2, 112, 40, 'Diagnose &\nLösung L2/L3')}
+
+  <!-- L2 → Lösung anwenden (L1, cross-up) -->
+  <path d="M${760},${yL2-20} L${760},${lane(2)+1} L${700},${lane(2)-1} L${700},${yL1+20}"
+        fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- ─ Lösung anwenden (L1) ─ (solvable directly OR coming from L2) -->
+  ${taskBox(988+30, yL1, 96, 40, 'Lösung\nanwenden')}
+  <!-- Note: lösbar? "Ja" → lösung -->
+  ${arrow(1010, yL1, 1018+2, yL1)}
+
+  <!-- Coming from L1 "lösbar=Ja" would skip the gateway, merge here -->
+  <!-- also from L2 result comes to x=700, now → test -->
+  ${arrow(748, yL1, 788, yL1)}
+  <!-- ─ Testen (L1) ─ -->
+  <!-- arrange: Lösung 1035cx, Testen needs to fit... Let me recalculate -->
+
+  <!-- arrowhead markers -->
+  <defs>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#888"/>
+    </marker>
+  </defs>
+</svg>`;
+}
+
+// I'll replace the incidents BPMN with a cleaner implementation below.
+
+// ── SVG helpers ─────────────────────────────────────────────────────────────
+function taskBox(cx, cy, w, h, label) {
+  const x = cx - w/2, y = cy - h/2;
+  const lines = label.split('\n');
+  const lineH = 14;
+  const totalH = lines.length * lineH;
+  const startY = cy - (totalH/2) + lineH/2;
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6"
+      fill="#16213e" stroke="#4ade8060" stroke-width="1.5"/>
+    ${lines.map((l,i) => `<text x="${cx}" y="${startY + i*lineH}"
+      text-anchor="middle" dominant-baseline="middle" fill="#eee" font-size="11">${l}</text>`).join('')}`;
+}
+
+function gateway(cx, cy, label) {
+  const s = 22;
+  const lines = label.split('\n');
+  const lineH = 12;
+  const startY = cy + s + 5 + lineH/2;
+  return `<polygon points="${cx},${cy-s} ${cx+s},${cy} ${cx},${cy+s} ${cx-s},${cy}"
+      fill="#1a1a2e" stroke="#fbbf24" stroke-width="1.5"/>
+    ${lines.map((l,i) => `<text x="${cx}" y="${startY + i*lineH}"
+      text-anchor="middle" fill="#fbbf24" font-size="9">${l}</text>`).join('')}`;
+}
+
+function arrow(x1, y1, x2, y2) {
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
+      stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>`;
+}
+
+// ── Clean Incidents BPMN ─────────────────────────────────────────────────────
+function bpmnIncidents() {
+  const W = 1120, H = 400, LX = 80;
+  const laneH = H / 4;
+  const yM  = laneH * 0.5;    // Melder
+  const ySD = laneH * 1.5;    // Service Desk
+  const yL1 = laneH * 2.5;    // L1
+  const yL2 = laneH * 3.5;    // L2/L3
+
+  // x positions
+  const x = {
+    start:   LX + 40,
+    melden:  LX + 130,
+    erfass:  LX + 270,
+    prio:    LX + 415,
+    gwPrio:  LX + 545,
+    l1assign: LX + 630,
+    l1diag:  LX + 750,
+    gwL1:    LX + 870,
+    l2diag:  LX + 750,
+    loesung: LX + 950,
+    testen:  LX + 1010,
+    close:   LX + 630,
+    end:     LX + 1070
+  };
+
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
+      style="width:100%;font-family:'Segoe UI',sans-serif;">
+  <defs>
+    <marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#888"/>
+    </marker>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4ade80"/>
+    </marker>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f87171"/>
+    </marker>
+    <marker id="ay" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#fbbf24"/>
+    </marker>
+  </defs>
+
+  <!-- lane backgrounds -->
+  <rect y="${laneH*0}" width="${W}" height="${laneH}" fill="#1e1530"/>
+  <rect y="${laneH*1}" width="${W}" height="${laneH}" fill="#16213e"/>
+  <rect y="${laneH*2}" width="${W}" height="${laneH}" fill="#1a1a2e"/>
+  <rect y="${laneH*3}" width="${W}" height="${laneH}" fill="#111827"/>
+
+  <!-- label strip -->
+  <rect x="0" y="0" width="${LX}" height="${H}" fill="#0f3460"/>
+  <line x1="${LX}" y1="0" x2="${LX}" y2="${H}" stroke="#4ade8040" stroke-width="1"/>
+  ${[1,2,3].map(i=>`<line x1="${LX}" y1="${laneH*i}" x2="${W}" y2="${laneH*i}" stroke="#4ade8025" stroke-width="1" stroke-dasharray="4,3"/>`).join('')}
+
+  <!-- lane labels -->
+  <text transform="translate(40,${yM}) rotate(-90)" text-anchor="middle" font-size="10" fill="#4ade80" font-weight="600" letter-spacing="1">MELDER</text>
+  <text transform="translate(40,${ySD}) rotate(-90)" text-anchor="middle" font-size="10" fill="#4ade80" font-weight="600" letter-spacing="1">SERVICE DESK</text>
+  <text transform="translate(40,${yL1}) rotate(-90)" text-anchor="middle" font-size="10" fill="#4ade80" font-weight="600" letter-spacing="1">L1 SUPPORT</text>
+  <text transform="translate(40,${yL2}) rotate(-90)" text-anchor="middle" font-size="10" fill="#4ade80" font-weight="600" letter-spacing="1">L2 / L3</text>
+
+  <!-- ─ START ─ -->
+  <circle cx="${x.start}" cy="${yM}" r="14" fill="none" stroke="#4ade80" stroke-width="2"/>
+  <text x="${x.start}" y="${yM+26}" text-anchor="middle" fill="#888" font-size="10">Start</text>
+
+  <!-- ─ Incident melden ─ -->
+  ${taskBox(x.melden, yM, 108, 40, 'Incident melden')}
+  <line x1="${x.start+14}" y1="${yM}" x2="${x.melden-54}" y2="${yM}" stroke="#888" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ─ cross: Melden → Erfassen ─ -->
+  <path d="M${x.melden},${yM+20} L${x.melden},${laneH-1} L${x.erfass},${laneH+1} L${x.erfass},${ySD-20}"
+        fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ─ Erfassen & klassifizieren ─ -->
+  ${taskBox(x.erfass, ySD, 118, 40, 'Erfassen &\nklassifizieren')}
+
+  <!-- → Priorität -->
+  <line x1="${x.erfass+59}" y1="${ySD}" x2="${x.prio-56}" y2="${ySD}" stroke="#888" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ─ Priorität bestimmen ─ -->
+  ${taskBox(x.prio, ySD, 108, 40, 'Priorität\nbestimmen')}
+
+  <!-- → Gateway Priorität? -->
+  <line x1="${x.prio+54}" y1="${ySD}" x2="${x.gwPrio-22}" y2="${ySD}" stroke="#888" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ─ Gateway: Priorität? ─ -->
+  ${gateway(x.gwPrio, ySD, 'Prio?')}
+
+  <!-- Prio P3/P4 → L1 assign (right along SD lane, then down) -->
+  <line x1="${x.gwPrio+22}" y1="${ySD}" x2="${x.l1assign-50}" y2="${ySD}" stroke="#4ade80" stroke-width="1.5" marker-end="url(#ag)"/>
+  <text x="${x.gwPrio+35}" y="${ySD-7}" fill="#4ade80" font-size="10">P3/P4</text>
+  <path d="M${x.l1assign},${ySD+20} L${x.l1assign},${laneH*2-1} L${x.l1assign},${laneH*2+1} L${x.l1assign},${yL1-20}"
+        fill="none" stroke="#4ade80" stroke-width="1.5" marker-end="url(#ag)"/>
+
+  <!-- Prio P1/P2 → L2 (down from gateway) -->
+  <path d="M${x.gwPrio},${ySD+22} L${x.gwPrio},${laneH*3-1} L${x.l2diag},${laneH*3+1} L${x.l2diag},${yL2-20}"
+        fill="none" stroke="#f87171" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="${x.gwPrio+6}" y="${laneH*3-6}" fill="#f87171" font-size="10">P1/P2</text>
+
+  <!-- ─ Zuweisen L1 ─ -->
+  ${taskBox(x.l1assign, yL1, 96, 40, 'Zuweisen L1')}
+
+  <!-- → Diagnose L1 -->
+  <line x1="${x.l1assign+48}" y1="${yL1}" x2="${x.l1diag-50}" y2="${yL1}" stroke="#888" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ─ Diagnose L1 ─ -->
+  ${taskBox(x.l1diag, yL1, 96, 40, 'Diagnose L1')}
+
+  <!-- → Gateway: L1 lösbar? -->
+  <line x1="${x.l1diag+48}" y1="${yL1}" x2="${x.gwL1-22}" y2="${yL1}" stroke="#888" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ─ Gateway: L1 lösbar? ─ -->
+  ${gateway(x.gwL1, yL1, 'L1\nlösbar?')}
+
+  <!-- Nein → L2 (down) -->
+  <path d="M${x.gwL1},${yL1+22} L${x.gwL1},${laneH*3-1} L${x.l2diag},${laneH*3+1} L${x.l2diag},${yL2-20}"
+        fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#ay)"/>
+  <text x="${x.gwL1+6}" y="${laneH*3-6}" fill="#fbbf24" font-size="10">Nein</text>
+
+  <!-- ─ Diagnose & Lösung L2/L3 ─ -->
+  ${taskBox(x.l2diag, yL2, 118, 40, 'Diagnose &\nLösung L2/L3')}
+
+  <!-- L2 Lösung → Lösung anwenden L1 (up) -->
+  <path d="M${x.l2diag+59},${yL2-20} L${x.l2diag+59},${laneH*2+1} L${x.loesung},${laneH*2-1} L${x.loesung},${yL1+20}"
+        fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ─ Lösung anwenden (L1) ─ -->
+  ${taskBox(x.loesung, yL1, 96, 40, 'Lösung\nanwenden')}
+
+  <!-- Gateway Ja → Lösung anwenden -->
+  <line x1="${x.gwL1+22}" y1="${yL1}" x2="${x.loesung-48}" y2="${yL1}" stroke="#4ade80" stroke-width="1.5" marker-end="url(#ag)"/>
+  <text x="${x.gwL1+35}" y="${yL1-7}" fill="#4ade80" font-size="10">Ja</text>
+
+  <!-- Lösung → Schließen (up to SD lane) -->
+  <path d="M${x.loesung},${yL1-20} L${x.loesung},${laneH*1+1} L${x.close},${laneH*2-1} L${x.close},${ySD+20}"
+        fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ─ Incident schließen (SD) ─ -->
+  ${taskBox(x.close, ySD, 102, 40, 'Incident\nschließen')}
+
+  <!-- Schließen → End (SD → Melder) -->
+  <path d="M${x.close},${ySD-20} L${x.close},${laneH-1} L${x.end},${laneH+1} L${x.end},${yM+14}"
+        fill="none" stroke="#888" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- ─ END ─ -->
+  <circle cx="${x.end}" cy="${yM}" r="14" fill="none" stroke="#4ade80" stroke-width="3"/>
+  <text x="${x.end}" y="${yM+26}" text-anchor="middle" fill="#888" font-size="10">Ende</text>
+</svg>`;
+}
+
+// ── Nav ──────────────────────────────────────────────
+function buildNav(specs) {
+  const navList = document.getElementById('nav-list');
+  navList.innerHTML = '';
+
+  const archSpecs = specs.filter(s => s.pagemanager || s.generic);
+  const procSpecs = specs.filter(s => !s.pagemanager && !s.generic);
+
+  if (archSpecs.length) {
+    navList.insertAdjacentHTML('beforeend', `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:10px 12px 4px">Architektur</div>`);
+    archSpecs.forEach(spec => addNavBtn(navList, spec));
+  }
+  if (procSpecs.length) {
+    navList.insertAdjacentHTML('beforeend', `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:14px 12px 4px">Prozesse</div>`);
+    procSpecs.forEach(spec => addNavBtn(navList, spec));
+  }
+}
+
+function addNavBtn(navList, spec) {
+  const li = document.createElement('li');
+  const btn = document.createElement('button');
+  btn.innerHTML = `<span class="nav-icon">${spec.icon}</span><span>${spec.name}</span>`;
+  btn.addEventListener('click', () => showSpec(spec.id));
+  li.appendChild(btn);
+  navList.appendChild(li);
+}
+
+// ── Render ───────────────────────────────────────────
+function showSpec(id) {
+  const spec = SPECS.find(s => s.id === id);
+  if (!spec) return;
+
+  document.querySelectorAll('#nav-list button').forEach(btn => btn.classList.remove('active'));
+  const allBtns = document.querySelectorAll('#nav-list button');
+  const idx = SPECS.findIndex(s => s.id === id);
+  if (allBtns[idx]) allBtns[idx].classList.add('active');
+
+  const main = document.getElementById('main');
+
+  if (spec.generic) { main.innerHTML = renderGenericSpec(spec); return; }
+  if (spec.pagemanager) { main.innerHTML = renderPageManagerSpec(spec); return; }
+
+  const required = spec.fields.filter(f => f.required && !f.auto);
+  const auto     = spec.fields.filter(f => f.auto);
+  const optional = spec.fields.filter(f => !f.required && !f.auto);
+
+  const bpmnSvg = getBpmnSvg(spec.id);
+
+  main.innerHTML = `
+    ${renderHeader(spec)}
+
+    ${spec.process_description ? `
+      <div class="section-title">PROZESSBESCHREIBUNG</div>
+      <p class="proc-description">${spec.process_description}</p>
+    ` : ''}
+
+    ${bpmnSvg ? `
+      <div class="section-title">BPMN-PROZESSDARSTELLUNG</div>
+      <div class="bpmn-container">${bpmnSvg}</div>
+    ` : ''}
+
+    <div class="section-title">FELDER</div>
+    ${renderFieldsTable(required, auto, optional)}
+
+    <div class="section-title">KANBAN-GRUPPIERUNGEN</div>
+    ${renderKanban(spec.kanbanGroups)}
+
+    ${spec.sla ? `<div class="section-title">SLA</div>${renderSLA(spec.sla)}` : ''}
+
+    <div class="section-title">FEATURES</div>
+    ${renderFeatures(spec.features)}
+    <div style="height:48px"></div>
+  `;
+}
+
+function renderGenericSpec(spec) {
+  const sectionLabels = {
+    toolbar: 'TOOLBAR',
+    kanban: 'KANBAN',
+    list: 'LISTENANSICHT',
+    detail: 'DETAILFORMULAR',
+    chatter: 'CHATTER',
+    modals: 'MODALS & TOASTS',
+  };
+  const sections = Object.keys(sectionLabels).filter(k => spec[k]);
+  let html = renderHeader(spec);
+  html += `<p style="color:var(--muted);font-size:13px;line-height:1.7;max-width:700px;margin-bottom:8px">
+    Diese Elemente sind in <strong style="color:var(--accent)">jeder CRUD-App</strong> identisch implementiert
+    und müssen nicht pro Prozess neu beschrieben werden. Prozess-spezifische Seiten in dieser Spec verweisen implizit auf diesen Standard.
+  </p>`;
+  sections.forEach(key => {
+    html += `<div class="section-title">${sectionLabels[key]}</div>`;
+    html += `<table class="fields-table"><thead><tr>
+      <th style="width:28%">Element</th><th>Beschreibung</th>
+    </tr></thead><tbody>`;
+    spec[key].forEach(item => {
+      html += `<tr><td style="font-weight:600;color:var(--accent)">${item.element}</td><td style="color:#ccc">${item.description}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  });
+  html += `<div style="height:48px"></div>`;
+  return html;
+}
+
+function renderHeader(spec) {
+  return `
+    <div class="proc-header">
+      <div class="proc-header-icon">${spec.icon}</div>
+      <div class="proc-header-text">
+        <h1>${spec.name}</h1>
+        <p>${spec.description}</p>
+        <span class="version-badge">v${spec.version}</span>
+      </div>
+    </div>`;
+}
+
+function renderFieldRow(f) {
+  const reqBadge  = f.required ? `<span class="badge badge-required">* Pflicht</span>` : '';
+  const autoBadge = f.auto     ? `<span class="badge badge-auto">⟳ Auto</span>` : '';
+
+  let hint = '';
+  if (f.values && f.values.length) {
+    hint += `<div class="values-list">${f.values.map(v => `<span class="value-chip">${v}</span>`).join('')}</div>`;
+  }
+  if (f.note) {
+    hint += `<div class="field-note">${f.note}</div>`;
+  }
+
+  return `<tr>
+    <td>${f.label}</td>
+    <td><span class="type-badge">${f.type}</span></td>
+    <td>${reqBadge}</td>
+    <td>${autoBadge}</td>
+    <td>${hint}</td>
+  </tr>`;
+}
+
+function renderFieldsTable(required, auto, optional) {
+  let rows = '';
+  if (required.length) {
+    rows += `<tr class="group-separator"><td colspan="5">Pflichtfelder</td></tr>`;
+    rows += required.map(renderFieldRow).join('');
+  }
+  if (auto.length) {
+    rows += `<tr class="group-separator"><td colspan="5">Auto-berechnete Felder</td></tr>`;
+    rows += auto.map(renderFieldRow).join('');
+  }
+  if (optional.length) {
+    rows += `<tr class="group-separator"><td colspan="5">Optionale Felder</td></tr>`;
+    rows += optional.map(renderFieldRow).join('');
+  }
+  return `<table class="fields-table">
+    <thead><tr>
+      <th>Feld</th><th>Typ</th><th>Pflicht</th><th>Auto</th><th>Werte / Hinweis</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderKanban(groups) {
+  const chips = groups.map(g => {
+    let label = g.label;
+    if (g.granularity) {
+      label += ` <span style="font-size:11px;opacity:.7">(${g.granularity.join(' · ')})</span>`;
+    }
+    return `<span class="kanban-chip">${label}</span>`;
+  }).join('');
+  return `<div class="kanban-chips">${chips}</div>`;
+}
+
+function renderSLA(sla) {
+  const prioClass = { 'P1': 'p1', 'P2': 'p2', 'P3': 'p3', 'P4': 'p4' };
+  const rows = sla.levels.map(l => {
+    const cls = prioClass[l.priority.slice(0,2)] || '';
+    return `<tr class="${cls}">
+      <td><span class="prio-label">${l.priority}</span></td>
+      <td>${l.response}</td>
+      <td>${l.resolution}</td>
+    </tr>`;
+  }).join('');
+  return `<table class="sla-table">
+    <thead><tr><th>Priorität</th><th>Reaktionszeit</th><th>Lösungszeit</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  ${sla.note ? `<p class="sla-note">ℹ ${sla.note}</p>` : ''}`;
+}
+
+function renderFeatures(features) {
+  return `<ul class="features-list">${features.map(f => `<li>${f}</li>`).join('')}</ul>`;
+}
+
+// ── PageManager Spec Renderer ────────────────────────────────────────────────
+function renderPageManagerSpec(spec) {
+  const reqBadge = `<span class="badge badge-required" style="font-size:10px">✓ Pflicht</span>`;
+  const optBadge = `<span class="badge badge-auto" style="font-size:10px">optional</span>`;
+
+  const stateTable = `
+    <table class="fields-table">
+      <thead><tr><th style="width:20%">Property</th><th style="width:10%">Typ</th><th>Bedeutung</th></tr></thead>
+      <tbody>${spec.state.map(s => `<tr>
+        <td style="font-weight:600;color:var(--accent);font-family:monospace">${s.property}</td>
+        <td><span class="type-badge">${s.type}</span></td>
+        <td style="color:#ccc">${s.description}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+
+  const methodRows = (access) => spec.methods.filter(m => m.access === access).map(m => `<tr>
+    <td style="font-weight:600;font-family:monospace;color:${access === 'public' ? 'var(--accent)' : 'var(--muted)'}">${m.method}</td>
+    <td style="color:#ccc">${m.description}</td>
+  </tr>`).join('');
+
+  const methodTable = `
+    <table class="fields-table">
+      <thead><tr><th style="width:28%">Methode</th><th>Beschreibung</th></tr></thead>
+      <tbody>
+        <tr class="group-separator"><td colspan="2">Public</td></tr>
+        ${methodRows('public')}
+        <tr class="group-separator"><td colspan="2">Private</td></tr>
+        ${methodRows('private')}
+      </tbody>
+    </table>`;
+
+  const configTable = `
+    <table class="fields-table">
+      <thead><tr><th style="width:28%">Key</th><th style="width:10%">Pflicht</th><th>Beschreibung</th></tr></thead>
+      <tbody>${spec.config.map(c => `<tr>
+        <td style="font-family:monospace;color:var(--text)">${c.key}</td>
+        <td>${c.required ? reqBadge : optBadge}</td>
+        <td style="color:#ccc">${c.description}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+
+  const subclassTable = `
+    <table class="fields-table">
+      <thead><tr><th style="width:28%">Klasse</th><th style="width:22%">Überschreibt</th><th>Grund</th></tr></thead>
+      <tbody>${spec.subclasses.map(s => `<tr>
+        <td style="font-weight:600;color:var(--accent)">${s.name}</td>
+        <td style="font-family:monospace;font-size:12px;color:var(--muted)">${s.overrides}</td>
+        <td style="color:#ccc">${s.reason}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+
+  const instancesTable = `
+    <table class="fields-table">
+      <thead><tr><th style="width:18%">Variable</th><th style="width:24%">Klasse</th><th style="width:14%">Entity</th><th style="width:16%">API-Pfad</th><th>LocalStorage-Key</th></tr></thead>
+      <tbody>${spec.instances.map(i => `<tr>
+        <td style="font-family:monospace;color:var(--accent)">${i.name}</td>
+        <td style="font-family:monospace;font-size:12px">${i.class}</td>
+        <td>${i.entity}</td>
+        <td style="font-family:monospace;font-size:12px">${i.apiPath}</td>
+        <td style="font-family:monospace;font-size:12px;color:var(--muted)">${i.storageKey}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+
+  return `
+    ${renderHeader(spec)}
+    <p style="color:var(--muted);font-size:13px;line-height:1.7;max-width:700px;margin-bottom:8px">
+      Eine Instanz treibt eine komplette CRUD-Seite an — Kanban, Liste, Detailformular, Chatter, Suche.
+      App-spezifisches (Felder, Render-Funktionen, DOM-IDs) wird als <strong style="color:var(--accent)">Config-Objekt</strong> übergeben.
+      Neue Entität = neues Config-Objekt + <code style="color:var(--accent);background:var(--surface2);padding:1px 5px;border-radius:3px">new PageManager(cfg)</code>.
+    </p>
+
+    <div class="section-title">INSTANZEN (LAUFEND)</div>
+    ${instancesTable}
+
+    <div class="section-title">STATE (PRO INSTANZ)</div>
+    ${stateTable}
+
+    <div class="section-title">METHODEN</div>
+    ${methodTable}
+
+    <div class="section-title">CONFIG-OBJEKT — VOLLSTÄNDIGE REFERENZ</div>
+    ${configTable}
+
+    <div class="section-title">SUBKLASSEN</div>
+    ${subclassTable}
+    <div style="height:48px"></div>
+  `;
+}
+
+// ── Init: load specs.json ────────────────────────────────────────────────────
+fetch('specs.json')
+  .then(r => r.json())
+  .then(data => {
+    SPECS = data;
+    buildNav(SPECS);
+    showSpec(SPECS[0].id);
+  })
+  .catch(() => {
+    // fallback: try inline (for local dev)
+    document.getElementById('main').innerHTML =
+      '<p style="padding:40px;color:#f87171">Fehler beim Laden der specs.json</p>';
+  });
+</script>
+</body>
+</html>

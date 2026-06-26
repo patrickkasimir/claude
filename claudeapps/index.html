@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Apps</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1a2e;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    header h1 {
+      font-size: 3rem;
+      letter-spacing: 6px;
+      color: #4ade80;
+      text-shadow: 0 0 30px #4ade8066;
+    }
+
+    header p {
+      margin-top: 10px;
+      color: #666;
+      font-size: 0.95rem;
+      letter-spacing: 2px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 24px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .card {
+      background: #16213e;
+      border: 1px solid #4ade8022;
+      border-radius: 12px;
+      padding: 36px 24px;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: #4ade8088;
+      box-shadow: 0 8px 40px #4ade8022;
+    }
+
+    .card .icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .card h2 {
+      font-size: 1.2rem;
+      color: #4ade80;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+    }
+
+    .card p {
+      font-size: 0.85rem;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    footer {
+      margin-top: 80px;
+      color: #333;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>CLAUDE APPS</h1>
+  <p>Wähle eine App</p>
+</header>
+
+<div class="grid" id="app-grid"></div>
+
+<script type="module">
+  import { APPS } from '/claudeapps/shared/apps.js';
+  const grid = document.getElementById('app-grid');
+  grid.innerHTML = APPS.map(app => `
+    <a class="card" href="${app.path}">
+      <span class="icon">${app.icon}</span>
+      <h2>${app.title}</h2>
+      <p>${app.description}</p>
+    </a>
+  `).join('');
+</script>
+
+<footer>Erstellt mit Claude Code</footer>
+
+</body>
+</html>
