@@ -16,6 +16,14 @@ export const APPS = [
     category: "Spiele",
   },
   {
+    id: "fifteen",
+    title: "15er PUZZLE",
+    icon: "🔢",
+    path: "/claudeapps/fifteen/",
+    description: "Schiebepuzzle – sortiere die Zahlen 1–15, mit persistenter Ergebnis-Historie",
+    category: "Spiele",
+  },
+  {
     id: "poker",
     title: "POKER",
     icon: "🃏",

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>15er Puzzle</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 48px 16px;
+      font-family: 'Segoe UI', sans-serif;
+      color: #eee;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      letter-spacing: 4px;
+      margin-bottom: 16px;
+      color: #a78bfa;
+      text-shadow: 0 0 20px #a78bfa88;
+    }
+
+    #scoreboard {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 16px;
+      font-size: 1rem;
+      color: #aaa;
+    }
+
+    #scoreboard span { color: #a78bfa; font-weight: bold; font-size: 1.2rem; }
+
+    #board-wrapper { position: relative; }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(4, 80px);
+      grid-template-rows: repeat(4, 80px);
+      gap: 6px;
+      padding: 6px;
+      background: #0f0f1a;
+      border: 2px solid #a78bfa66;
+      border-radius: 8px;
+      box-shadow: 0 0 40px #a78bfa33;
+    }
+
+    .tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      font-weight: bold;
+      border-radius: 6px;
+      background: #a78bfa;
+      color: #1a1a2e;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.08s, background 0.15s;
+    }
+
+    .tile:hover { background: #c4b5fd; }
+    .tile:active { transform: scale(0.94); }
+
+    .tile.empty {
+      background: transparent;
+      cursor: default;
+    }
+
+    .tile.correct { background: #8b5cf6; }
+    .tile.correct:hover { background: #a78bfa; }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2eee;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    #overlay h2 { font-size: 1.8rem; color: #a78bfa; margin-bottom: 8px; }
+    #overlay p  { color: #aaa; margin-bottom: 24px; font-size: 0.95rem; line-height: 1.5; }
+
+    .btn {
+      background: #a78bfa;
+      color: #1a1a2e;
+      border: none;
+      padding: 12px 32px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: background 0.2s;
+    }
+
+    .btn:hover { background: #8b5cf6; }
+
+    #controls { margin-top: 20px; }
+
+    #hint {
+      margin-top: 16px;
+      color: #555;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+    }
+
+    /* Ergebnis-Historie */
+    #log {
+      margin-top: 36px;
+      width: 100%;
+      max-width: 420px;
+      background: #16213e;
+      border: 1px solid #a78bfa22;
+      border-radius: 12px;
+      padding: 20px 22px;
+    }
+
+    #log h3 {
+      font-size: 0.8rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #a78bfa;
+      margin-bottom: 16px;
+    }
+
+    #best {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .best-item {
+      flex: 1 1 120px;
+      background: #0f0f1a;
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+
+    .best-item .label { font-size: 0.7rem; color: #666; letter-spacing: 1px; text-transform: uppercase; }
+    .best-item .value { font-size: 1.3rem; color: #a78bfa; font-weight: bold; margin-top: 4px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 7px 6px; }
+    th { color: #555; font-weight: normal; font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid #ffffff0a; }
+    td { color: #bbb; border-bottom: 1px solid #ffffff06; }
+    td.num { color: #a78bfa; font-weight: bold; }
+
+    #empty-log { color: #555; font-size: 0.85rem; }
+
+    #clear-log {
+      margin-top: 14px;
+      background: transparent;
+      border: 1px solid #a78bfa33;
+      color: #888;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+    #clear-log:hover { border-color: #f8717188; color: #f87171; }
+  </style>
+</head>
+<body>
+
+<script src="/claudeapps/shared/back-button.js"></script>
+
+<h1>15er PUZZLE</h1>
+
+<div id="scoreboard">
+  Züge: <span id="moves">0</span>
+  &nbsp;&nbsp;Zeit: <span id="time">0:00</span>
+</div>
+
+<div id="board-wrapper">
+  <div id="board"></div>
+  <div id="overlay">
+    <h2>🔢 15er Puzzle</h2>
+    <p>Bringe die Zahlen 1–15<br>der Reihe nach in Ordnung.</p>
+    <button class="btn" id="start-btn">SPIELEN</button>
+  </div>
+</div>
+
+<div id="controls">
+  <button class="btn" id="shuffle-btn" style="display:none">NEU MISCHEN</button>
+</div>
+
+<div id="hint">Stein anklicken oder Pfeiltasten benutzen</div>
+
+<div id="log">
+  <h3>Ergebnisse</h3>
+  <div id="best">
+    <div class="best-item">
+      <div class="label">Wenigste Züge</div>
+      <div class="value" id="best-moves">–</div>
+    </div>
+    <div class="best-item">
+      <div class="label">Bestzeit</div>
+      <div class="value" id="best-time">–</div>
+    </div>
+    <div class="best-item">
+      <div class="label">Gelöst</div>
+      <div class="value" id="solved-count">0</div>
+    </div>
+  </div>
+  <div id="log-body"></div>
+  <button id="clear-log">Verlauf löschen</button>
+</div>
+
+<script>
+  const SIZE = 4;
+  const CELLS = SIZE * SIZE;          // 16
+  const SOLVED = [...Array(CELLS - 1)].map((_, i) => i + 1).concat(0); // [1..15, 0]
+  const STORAGE_KEY = 'fifteen_results';
+
+  const boardEl  = document.getElementById('board');
+  const overlay  = document.getElementById('overlay');
+  const movesEl  = document.getElementById('moves');
+  const timeEl   = document.getElementById('time');
+  const shuffleBtn = document.getElementById('shuffle-btn');
+
+  let board = SOLVED.slice();
+  let moves = 0;
+  let running = false;
+  let startTime = null;
+  let timerId = null;
+
+  // ---------- Persistenz / Ergebnis-Log ----------
+  function loadResults() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.warn('15er Puzzle: Ergebnisse nicht lesbar', e);
+      return [];
+    }
+  }
+
+  function saveResult(result) {
+    const results = loadResults();
+    results.unshift(result);                 // neueste zuerst
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
+    console.log('15er Puzzle – Ergebnis gespeichert:', result);
+    renderLog();
+  }
+
+  function fmtTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function renderLog() {
+    const results = loadResults();
+    const body = document.getElementById('log-body');
+
+    document.getElementById('solved-count').textContent = results.length;
+
+    if (results.length === 0) {
+      body.innerHTML = '<div id="empty-log">Noch keine gelösten Spiele.</div>';
+      document.getElementById('best-moves').textContent = '–';
+      document.getElementById('best-time').textContent  = '–';
+      return;
+    }
+
+    const bestMoves = Math.min(...results.map(r => r.moves));
+    const bestTime  = Math.min(...results.map(r => r.seconds));
+    document.getElementById('best-moves').textContent = bestMoves;
+    document.getElementById('best-time').textContent  = fmtTime(bestTime);
+
+    const rows = results.slice(0, 10).map((r, i) => `
+      <tr>
+        <td>${r.date}</td>
+        <td class="num">${r.moves}</td>
+        <td>${fmtTime(r.seconds)}</td>
+      </tr>
+    `).join('');
+
+    body.innerHTML = `
+      <table>
+        <thead><tr><th>Datum</th><th>Züge</th><th>Zeit</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  document.getElementById('clear-log').addEventListener('click', () => {
+    if (confirm('Gesamten Ergebnis-Verlauf löschen?')) {
+      localStorage.removeItem(STORAGE_KEY);
+      renderLog();
+    }
+  });
+
+  // ---------- Spiel-Logik ----------
+  function render() {
+    boardEl.innerHTML = '';
+    board.forEach((val, idx) => {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      if (val === 0) {
+        tile.classList.add('empty');
+      } else {
+        tile.textContent = val;
+        if (val === idx + 1) tile.classList.add('correct'); // an richtiger Position
+        tile.addEventListener('click', () => tryMove(idx));
+      }
+      boardEl.appendChild(tile);
+    });
+  }
+
+  function emptyIndex() { return board.indexOf(0); }
+
+  function isAdjacent(a, b) {
+    const ra = Math.floor(a / SIZE), ca = a % SIZE;
+    const rb = Math.floor(b / SIZE), cb = b % SIZE;
+    return (ra === rb && Math.abs(ca - cb) === 1) ||
+           (ca === cb && Math.abs(ra - rb) === 1);
+  }
+
+  function tryMove(idx) {
+    if (!running) return;
+    const empty = emptyIndex();
+    if (!isAdjacent(idx, empty)) return;
+    [board[idx], board[empty]] = [board[empty], board[idx]];
+    moves++;
+    movesEl.textContent = moves;
+    render();
+    if (isSolved()) finish();
+  }
+
+  // Pfeiltasten: Stein in Richtung der Taste ins Leerfeld schieben
+  function moveByKey(key) {
+    if (!running) return;
+    const empty = emptyIndex();
+    const row = Math.floor(empty / SIZE), col = empty % SIZE;
+    let target = -1;
+    if (key === 'ArrowUp'    && row < SIZE - 1) target = empty + SIZE; // Stein unten rückt hoch
+    if (key === 'ArrowDown'  && row > 0)        target = empty - SIZE; // Stein oben rückt runter
+    if (key === 'ArrowLeft'  && col < SIZE - 1) target = empty + 1;    // Stein rechts rückt links
+    if (key === 'ArrowRight' && col > 0)        target = empty - 1;    // Stein links rückt rechts
+    if (target >= 0) tryMove(target);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+      moveByKey(e.key);
+    }
+  });
+
+  function isSolved() {
+    return board.every((v, i) => v === SOLVED[i]);
+  }
+
+  // Mischen über zufällige legale Züge ab gelöstem Zustand → immer lösbar
+  function shuffle() {
+    board = SOLVED.slice();
+    let prev = -1;
+    for (let i = 0; i < 300; i++) {
+      const empty = emptyIndex();
+      const neighbours = [];
+      for (let j = 0; j < CELLS; j++) {
+        if (j !== prev && isAdjacent(j, empty)) neighbours.push(j);
+      }
+      const pick = neighbours[Math.floor(Math.random() * neighbours.length)];
+      [board[pick], board[empty]] = [board[empty], board[pick]];
+      prev = empty;
+    }
+    if (isSolved()) return shuffle(); // extrem selten – sicherheitshalber neu
+  }
+
+  function startTimer() {
+    startTime = Date.now();
+    timerId = setInterval(() => {
+      const sec = Math.floor((Date.now() - startTime) / 1000);
+      timeEl.textContent = fmtTime(sec);
+    }, 1000);
+  }
+
+  function startGame() {
+    shuffle();
+    moves = 0;
+    movesEl.textContent = 0;
+    timeEl.textContent = '0:00';
+    running = true;
+    overlay.style.display = 'none';
+    shuffleBtn.style.display = 'inline-block';
+    clearInterval(timerId);
+    startTimer();
+    render();
+  }
+
+  function finish() {
+    running = false;
+    clearInterval(timerId);
+    const seconds = Math.floor((Date.now() - startTime) / 1000);
+    const now = new Date();
+    const date = now.toLocaleDateString('de-DE') + ' ' +
+                 now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
+    saveResult({ ts: now.getTime(), date, moves, seconds });
+
+    overlay.innerHTML = `
+      <h2>🎉 Gelöst!</h2>
+      <p>${moves} Züge &nbsp;|&nbsp; ${fmtTime(seconds)}</p>
+      <button class="btn" id="restart-btn">NOCHMAL</button>
+    `;
+    overlay.style.display = 'flex';
+    document.getElementById('restart-btn').addEventListener('click', startGame);
+  }
+
+  document.getElementById('start-btn').addEventListener('click', startGame);
+  shuffleBtn.addEventListener('click', startGame);
+
+  // Initiale Anzeige
+  render();
+  renderLog();
+</script>
+</body>
+</html>
