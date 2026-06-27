@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Share Handling — Aktienregister</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --accent: #4ade80;
+    --accent-dim: #4ade8022;
+    --border: #4ade8022;
+    --text: #eee;
+    --muted: #888;
+    --danger: #f87171;
+    --warn: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 264px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  #sidebar-header {
+    padding: 64px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  #sidebar-header h1 {
+    font-size: 1.05rem;
+    letter-spacing: 2px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  #sidebar-header p { color: var(--muted); font-size: 0.72rem; letter-spacing: 1px; margin-top: 2px; }
+  #company-list { flex: 1; overflow-y: auto; padding: 12px 10px; }
+  .co-label { font-size: 0.66rem; letter-spacing: 2px; color: #556; text-transform: uppercase; padding: 6px 10px; }
+  .co-item {
+    padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-bottom: 4px;
+    border: 1px solid transparent; transition: background .15s, border-color .15s;
+  }
+  .co-item:hover { background: var(--surface2); }
+  .co-item.active { background: var(--surface2); border-color: var(--accent-dim); }
+  .co-item .co-name { font-weight: 600; }
+  .co-item .co-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  #sidebar-footer { padding: 12px; border-top: 1px solid var(--border); }
+
+  /* ── Main ── */
+  #main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  #topbar {
+    padding: 18px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  }
+  #topbar h2 { font-size: 1.3rem; }
+  #topbar .legal { color: var(--muted); font-size: 0.8rem; }
+  .stat-row { display: flex; gap: 22px; margin-left: auto; flex-wrap: wrap; }
+  .stat { text-align: right; }
+  .stat .v { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+  .stat .k { font-size: 0.66rem; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+  .stat.warn .v { color: var(--warn); }
+
+  #tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .tab {
+    padding: 12px 16px; cursor: pointer; color: var(--muted); font-size: 0.86rem;
+    border-bottom: 2px solid transparent; user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  #content { flex: 1; overflow-y: auto; padding: 24px 28px 80px; }
+
+  /* ── Buttons ── */
+  .btn {
+    background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.84rem;
+    transition: background .15s, border-color .15s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn-primary { background: var(--accent); color: #06281a; border-color: var(--accent); font-weight: 600; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-ghost { background: transparent; }
+  .btn-danger { color: var(--danger); border-color: #f8717144; }
+  .btn-danger:hover { background: #f8717118; border-color: var(--danger); }
+  .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .toolbar .spacer { flex: 1; }
+  input.search {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 12px; border-radius: 8px; min-width: 220px; font-size: 0.84rem;
+  }
+  input.search:focus { outline: none; border-color: var(--accent); }
+
+  /* ── Cards / sections ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .section-title { font-size: 0.72rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 14px; }
+
+  /* ── Tables ── */
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.72rem; letter-spacing: 1px; text-transform: uppercase; }
+  tbody tr { transition: background .12s; }
+  tbody tr.clickable { cursor: pointer; }
+  tbody tr.clickable:hover { background: var(--surface2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem;
+    background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+  }
+  .badge.person { color: #93c5fd; border-color: #93c5fd33; }
+  .badge.company { color: var(--accent); border-color: var(--accent-dim); }
+  .badge.issue { color: var(--accent); }
+  .badge.sale { color: var(--warn); }
+
+  .bar { height: 7px; border-radius: 4px; background: var(--surface2); overflow: hidden; min-width: 80px; }
+  .bar > span { display: block; height: 100%; background: var(--accent); }
+
+  .empty { color: var(--muted); text-align: center; padding: 60px 20px; }
+  .empty .big { font-size: 2.4rem; margin-bottom: 10px; }
+
+  /* ── Forms / Modal ── */
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(3px);
+    display: none; align-items: flex-start; justify-content: center; z-index: 1000; padding: 40px 16px; overflow-y: auto;
+  }
+  #overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 640px; }
+  .modal.wide { max-width: 820px; }
+  .modal-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; }
+  .modal-head h3 { font-size: 1.05rem; }
+  .modal-head .x { margin-left: auto; cursor: pointer; color: var(--muted); font-size: 1.3rem; line-height: 1; }
+  .modal-head .x:hover { color: var(--text); }
+  .modal-body { padding: 22px; }
+  .modal-foot { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px 16px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.col-span-2 { grid-column: 1 / -1; }
+  .field label { font-size: 0.72rem; letter-spacing: .5px; color: var(--muted); }
+  .field input, .field select, .field textarea {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 9px 11px; border-radius: 8px; font-size: 0.86rem; font-family: inherit;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .form-section-title { font-size: 0.7rem; letter-spacing: 1.5px; color: var(--accent); text-transform: uppercase; margin: 20px 0 4px; grid-column: 1/-1; }
+  .form-section-title:first-child { margin-top: 0; }
+
+  /* ── Donut / analytics ── */
+  .donut-wrap { display: flex; gap: 36px; align-items: center; flex-wrap: wrap; }
+  .legend { display: flex; flex-direction: column; gap: 8px; min-width: 260px; }
+  .legend-row { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .legend-row .lname { flex: 1; }
+  .legend-row .lpct { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 12px 20px; border-radius: 10px; opacity: 0; pointer-events: none; transition: all .25s; z-index: 2000;
+    max-width: 90vw;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.error { border-color: var(--danger); color: #fecaca; }
+
+  .hint { font-size: 0.78rem; color: var(--muted); }
+  .inline-new { border: 1px dashed var(--border); border-radius: 10px; padding: 14px; margin-top: 6px; }
+
+  /* ── Print / PDF ── */
+  #print-area { display: none; }
+  @media print {
+    @page { size: A4; margin: 18mm 16mm; }
+    body { overflow: visible; display: block; background: #fff; color: #000; }
+    #sidebar, #main, #overlay, #toast, #claudeapps-back { display: none !important; }
+    #print-area { display: block !important; color: #000; font-family: 'Times New Roman', Georgia, serif; }
+  }
+  /* On-screen styling of print area when previewed (kept hidden normally) */
+  #print-area .ph-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 8px; }
+  #print-area h1 { font-size: 20pt; margin: 22px 0 2px; }
+  #print-area .ph-sub { font-size: 11pt; color: #333; margin-bottom: 18px; }
+  #print-area table { width: 100%; border-collapse: collapse; }
+  #print-area th, #print-area td { border: 1px solid #444; padding: 6px 8px; font-size: 10.5pt; text-align: left; }
+  #print-area th { background: #eee; }
+  #print-area td.num, #print-area th.num { text-align: right; }
+  #print-area tfoot td { font-weight: bold; background: #f4f4f4; }
+  #print-area .sig-block { margin-top: 56px; display: flex; gap: 60px; }
+  #print-area .sig { flex: 1; }
+  #print-area .sig .line { border-top: 1px solid #000; margin-top: 46px; padding-top: 4px; font-size: 9.5pt; }
+  #print-area .ph-meta { font-size: 10pt; color: #222; }
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div id="sidebar-header">
+    <h1>SHARE HANDLING</h1>
+    <p>Aktienregister-Verwaltung</p>
+  </div>
+  <div id="company-list"></div>
+  <div id="sidebar-footer">
+    <button class="btn btn-primary" style="width:100%; justify-content:center" onclick="openCompanyModal()">+ Unternehmen</button>
+  </div>
+</aside>
+
+<div id="main">
+  <div id="topbar"><h2>—</h2></div>
+  <div id="tabs"></div>
+  <div id="content"></div>
+</div>
+
+<div id="overlay"><div class="modal" id="modal"></div></div>
+<div id="toast"></div>
+<div id="print-area"></div>
+
+<script src="/claudeapps/shared/back-button.js"></script>
+<script>
+const API = '/claudeapps/sharehandling/api';
+const TABS = [
+  { id: 'register', label: 'Register' },
+  { id: 'shareholders', label: 'Aktionäre' },
+  { id: 'transactions', label: 'Transaktionen' },
+  { id: 'analytics', label: 'Auswertung' },
+  { id: 'snapshots', label: 'Snapshots' },
+  { id: 'company', label: 'Stammdaten' },
+];
+const PALETTE = ['#4ade80','#60a5fa','#fbbf24','#f87171','#a78bfa','#34d399','#fb923c','#f472b6','#22d3ee','#facc15','#818cf8','#2dd4bf'];
+
+const state = {
+  companies: [],
+  currentId: null,
+  tab: 'register',
+  register: null,      // {company, holders, issued_shares, total_shares, free_shares, base_shares, holder_count}
+  shareholders: [],
+  transactions: [],
+  snapshots: [],
+  search: '',
+};
+
+// ── API helper ──
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  let data = null;
+  try { data = await res.json(); } catch {}
+  if (!res.ok) throw new Error((data && data.error) || ('Fehler ' + res.status));
+  return data;
+}
+
+// ── Formatting ──
+const nfInt = new Intl.NumberFormat('de-DE');
+const fmtInt = n => nfInt.format(n || 0);
+const fmtPct = n => (n || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %';
+function fmtMoney(n, cur) {
+  if (n == null || n === '') return '–';
+  return n.toLocaleString('de-DE', { style: 'currency', currency: cur || 'EUR' });
+}
+function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function toast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (isError ? ' error' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.className = '', 3200);
+}
+
+// ── Modal ──
+function openModal(html, wide) {
+  const m = document.getElementById('modal');
+  m.className = 'modal' + (wide ? ' wide' : '');
+  m.innerHTML = html;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+document.getElementById('overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── Boot ──
+async function boot() {
+  await loadCompanies();
+  if (state.companies.length) {
+    const saved = Number(localStorage.getItem('sh_current'));
+    selectCompany(state.companies.find(c => c.id === saved) ? saved : state.companies[0].id);
+  } else {
+    renderSidebar();
+    renderEmptyApp();
+  }
+}
+
+async function loadCompanies() {
+  state.companies = await api('/companies');
+  renderSidebar();
+}
+
+function renderSidebar() {
+  const el = document.getElementById('company-list');
+  if (!state.companies.length) {
+    el.innerHTML = '<div class="co-label">Unternehmen</div><div class="hint" style="padding:10px 12px">Noch keine Gesellschaft angelegt.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="co-label">Unternehmen</div>' + state.companies.map(c => `
+    <div class="co-item ${c.id === state.currentId ? 'active' : ''}" onclick="selectCompany(${c.id})">
+      <div class="co-name">${esc(c.name)}</div>
+      <div class="co-meta">${esc(c.legal_form || '')} · ${fmtInt(c.issued_shares)} Aktien · ${c.holder_count} Aktionäre</div>
+    </div>`).join('');
+}
+
+function renderEmptyApp() {
+  document.getElementById('topbar').innerHTML = '<h2>Willkommen</h2>';
+  document.getElementById('tabs').innerHTML = '';
+  document.getElementById('content').innerHTML = `
+    <div class="empty">
+      <div class="big">📈</div>
+      <p>Lege dein erstes Unternehmen an, um das Aktienregister zu führen.</p>
+      <br><button class="btn btn-primary" onclick="openCompanyModal()">+ Unternehmen anlegen</button>
+    </div>`;
+}
+
+async function selectCompany(id) {
+  state.currentId = id;
+  state.search = '';
+  localStorage.setItem('sh_current', id);
+  renderSidebar();
+  await refreshCompany();
+  renderTabs();
+  renderTab();
+}
+
+async function refreshCompany() {
+  const [reg, shs, txs, snaps] = await Promise.all([
+    api('/companies/' + state.currentId),
+    api('/companies/' + state.currentId + '/shareholders'),
+    api('/companies/' + state.currentId + '/transactions'),
+    api('/companies/' + state.currentId + '/snapshots'),
+  ]);
+  state.register = reg; state.shareholders = shs; state.transactions = txs; state.snapshots = snaps;
+  renderTopbar();
+  // keep sidebar counts fresh
+  await loadCompanies();
+}
+
+function renderTopbar() {
+  const r = state.register; const c = r.company;
+  const free = c.total_shares ? r.free_shares : null;
+  document.getElementById('topbar').innerHTML = `
+    <div>
+      <h2>${esc(c.name)}</h2>
+      <div class="legal">${esc(c.legal_form || '')}${c.seat ? ' · Sitz ' + esc(c.seat) : ''}</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="v">${fmtInt(r.total_shares || r.issued_shares)}</div><div class="k">Gesamt</div></div>
+      <div class="stat"><div class="v">${fmtInt(r.issued_shares)}</div><div class="k">Ausgegeben</div></div>
+      ${free != null ? `<div class="stat ${free > 0 ? 'warn' : ''}"><div class="v">${fmtInt(free)}</div><div class="k">Frei</div></div>` : ''}
+      <div class="stat"><div class="v">${r.holder_count}</div><div class="k">Aktionäre</div></div>
+    </div>`;
+}
+
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = TABS.map(t =>
+    `<div class="tab ${t.id === state.tab ? 'active' : ''}" onclick="switchTab('${t.id}')">${t.label}</div>`).join('');
+}
+function switchTab(id) { state.tab = id; state.search = ''; renderTabs(); renderTab(); }
+
+function renderTab() {
+  const fn = { register: renderRegister, shareholders: renderShareholders, transactions: renderTransactions,
+    analytics: renderAnalytics, snapshots: renderSnapshots, company: renderCompanyTab }[state.tab];
+  fn();
+}
+
+// ════════ REGISTER TAB ════════
+function renderRegister() {
+  const r = state.register;
+  const c = r.company;
+  const hasNominal = c.nominal_value != null && c.nominal_value !== '';
+  const rows = r.holders.length ? r.holders.map((h, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><strong>${esc(h.name)}</strong> <span class="badge ${h.type}">${h.type === 'company' ? 'Firma' : 'Person'}</span></td>
+      <td>${esc(h.city || '')}</td>
+      <td class="num">${fmtInt(h.shares)}</td>
+      ${hasNominal ? `<td class="num">${fmtMoney(h.shares * c.nominal_value, c.currency)}</td>` : ''}
+      <td class="num">${fmtPct(h.percent)}</td>
+      <td style="width:140px"><div class="bar"><span style="width:${Math.min(100, h.percent)}%"></span></div></td>
+    </tr>`).join('') : `<tr><td colspan="${hasNominal ? 7 : 6}" class="empty" style="padding:40px">Noch keine Aktien zugeteilt. Lege Aktionäre an und nutze „Aktien ausgeben“ unter Transaktionen.</td></tr>`;
+
+  document.getElementById('content').innerHTML = `
+    <div class="toolbar">
+      <div class="section-title" style="margin:0">Aktienregister — aktueller Stand</div>
+      <div class="spacer"></div>
+      <button class="btn" onclick="printRegister()">🖨 Als PDF</button>
+      <button class="btn btn-primary" onclick="openSnapshotModal()">🔒 Festschreiben</button>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr>
+          <th style="width:40px">Nr.</th><th>Aktionär</th><th>Ort</th>
+          <th class="num">Aktien</th>${hasNominal ? '<th class="num">Nennbetrag</th>' : ''}
+          <th class="num">Anteil</th><th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="font-weight:700">
+          <td></td><td>Summe (${r.holder_count} Aktionäre)</td><td></td>
+          <td class="num">${fmtInt(r.issued_shares)}</td>
+          ${hasNominal ? `<td class="num">${fmtMoney(r.issued_shares * c.nominal_value, c.currency)}</td>` : ''}
+          <td class="num">${fmtPct(r.base_shares ? r.issued_shares / r.base_shares * 100 : 0)}</td><td></td>
+        </tr></tfoot>
+      </table>
+      ${c.total_shares && r.free_shares > 0 ? `<p class="hint" style="margin-top:14px">⚠ ${fmtInt(r.free_shares)} von ${fmtInt(c.total_shares)} Aktien sind noch nicht ausgegeben.</p>` : ''}
+    </div>`;
+}
+
+// ════════ SHAREHOLDERS TAB ════════
+function shFilter(s) {
+  if (!state.search) return true;
+  const q = state.search.toLowerCase();
+  return [s.display_name, s.email, s.city, s.shareholder_no, s.phone, s.mobile]
+    .some(v => (v || '').toLowerCase().includes(q));
+}
+function renderShareholders() {
+  const list = state.shareholders.filter(shFilter);
+  const rows = list.length ? list.map(s => `
+    <tr class="clickable" onclick="openShareholderModal(${s.id})">
+      <td><strong>${esc(s.display_name)}</strong></td>
+      <td><span class="badge ${s.type}">${s.type === 'company' ? 'Firma' : 'Person'}</span></td>
+      <td>${esc(s.shareholder_no || '')}</td>
+      <td>${esc(s.email || '')}</td>
+      <td>${esc(s.phone || s.mobile || '')}</td>
+      <td>${esc([s.zip, s.city].filter(Boolean).join(' '))}</td>
+      <td class="num">${fmtInt(s.shares)}</td>
+    </tr>`).join('') : `<tr><td colspan="7" class="empty" style="padding:40px">${state.search ? 'Keine Treffer.' : 'Noch keine Aktionäre erfasst.'}</td></tr>`;
+
+  document.getElementById('content').innerHTML = `
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="openShareholderModal()">+ Neuer Aktionär</button>
+      <input class="search" placeholder="Suchen (Name, E-Mail, Ort, Nr.)…" value="${esc(state.search)}" oninput="state.search=this.value; renderShareholders()" />
+      <div class="spacer"></div>
+      <div class="hint">${list.length} von ${state.shareholders.length}</div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Typ</th><th>Aktionärs-Nr.</th><th>E-Mail</th><th>Telefon</th><th>Ort</th><th class="num">Aktien</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function shareholderForm(s) {
+  s = s || {};
+  const isCompany = s.type === 'company';
+  return `
+    <div class="grid2">
+      <div class="field col-span-2">
+        <label>Typ</label>
+        <select id="f-type" onchange="toggleShType(this.value)">
+          <option value="person" ${!isCompany ? 'selected' : ''}>Natürliche Person</option>
+          <option value="company" ${isCompany ? 'selected' : ''}>Juristische Person / Firma</option>
+        </select>
+      </div>
+      <div id="person-fields" style="display:${isCompany ? 'none' : 'contents'}">
+        <div class="field"><label>Anrede</label>
+          <select id="f-salutation">
+            <option value="">—</option>
+            ${['Herr', 'Frau', 'Divers'].map(o => `<option ${s.salutation === o ? 'selected' : ''}>${o}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Aktionärs-Nr.</label><input id="f-shareholder_no" value="${esc(s.shareholder_no)}" placeholder="optional" /></div>
+        <div class="field"><label>Vorname</label><input id="f-first_name" value="${esc(s.first_name)}" /></div>
+        <div class="field"><label>Nachname</label><input id="f-last_name" value="${esc(s.last_name)}" /></div>
+        <div class="field"><label>Geburtsdatum</label><input id="f-birthdate" type="date" value="${esc(s.birthdate)}" /></div>
+      </div>
+      <div id="company-fields" style="display:${isCompany ? 'contents' : 'none'}">
+        <div class="field col-span-2"><label>Firmenname</label><input id="f-company_name" value="${esc(s.company_name)}" /></div>
+        <div class="field"><label>Aktionärs-Nr.</label><input id="f-shareholder_no_c" value="${esc(s.shareholder_no)}" placeholder="optional" /></div>
+      </div>
+
+      <div class="form-section-title">Erreichbarkeit</div>
+      <div class="field"><label>E-Mail</label><input id="f-email" type="email" value="${esc(s.email)}" /></div>
+      <div class="field"><label>Telefon</label><input id="f-phone" value="${esc(s.phone)}" /></div>
+      <div class="field"><label>Mobil</label><input id="f-mobile" value="${esc(s.mobile)}" /></div>
+
+      <div class="form-section-title">Adresse</div>
+      <div class="field col-span-2"><label>Straße & Nr.</label><input id="f-street" value="${esc(s.street)}" /></div>
+      <div class="field"><label>PLZ</label><input id="f-zip" value="${esc(s.zip)}" /></div>
+      <div class="field"><label>Ort</label><input id="f-city" value="${esc(s.city)}" /></div>
+      <div class="field col-span-2"><label>Land</label><input id="f-country" value="${esc(s.country)}" /></div>
+
+      <div class="field col-span-2"><label>Notizen</label><textarea id="f-notes">${esc(s.notes)}</textarea></div>
+    </div>`;
+}
+function toggleShType(v) {
+  document.getElementById('person-fields').style.display = v === 'company' ? 'none' : 'contents';
+  document.getElementById('company-fields').style.display = v === 'company' ? 'contents' : 'none';
+}
+function collectShareholder() {
+  const type = document.getElementById('f-type').value;
+  const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  return {
+    type,
+    salutation: g('f-salutation'),
+    shareholder_no: type === 'company' ? g('f-shareholder_no_c') : g('f-shareholder_no'),
+    first_name: g('f-first_name'),
+    last_name: g('f-last_name'),
+    company_name: g('f-company_name'),
+    birthdate: g('f-birthdate'),
+    email: g('f-email'), phone: g('f-phone'), mobile: g('f-mobile'),
+    street: g('f-street'), zip: g('f-zip'), city: g('f-city'), country: g('f-country'),
+    notes: g('f-notes'),
+  };
+}
+function openShareholderModal(id) {
+  const s = id ? state.shareholders.find(x => x.id === id) : null;
+  openModal(`
+    <div class="modal-head"><h3>${s ? 'Aktionär bearbeiten' : 'Neuer Aktionär'}</h3><span class="x" onclick="closeModal()">&times;</span></div>
+    <div class="modal-body">${shareholderForm(s)}</div>
+    <div class="modal-foot">
+      ${s ? `<button class="btn btn-danger" style="margin-right:auto" onclick="deleteShareholder(${s.id})">Löschen</button>` : ''}
+      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveShareholder(${s ? s.id : 'null'})">Speichern</button>
+    </div>`, true);
+}
+async function saveShareholder(id) {
+  const data = collectShareholder();
+  const name = data.type === 'company' ? data.company_name : (data.last_name || data.first_name);
+  if (!name) return toast('Bitte Name bzw. Firma angeben.', true);
+  try {
+    if (id) await api('/shareholders/' + id, { method: 'PUT', body: data });
+    else await api('/companies/' + state.currentId + '/shareholders', { method: 'POST', body: data });
+    closeModal(); await refreshCompany(); renderTab();
+    toast('Aktionär gespeichert.');
+  } catch (e) { toast(e.message, true); }
+}
+async function deleteShareholder(id) {
+  if (!confirm('Diesen Aktionär wirklich löschen?')) return;
+  try {
+    await api('/shareholders/' + id, { method: 'DELETE' });
+    closeModal(); await refreshCompany(); renderTab();
+    toast('Aktionär gelöscht.');
+  } catch (e) { toast(e.message, true); }
+}
+
+// ════════ TRANSACTIONS TAB ════════
+function renderTransactions() {
+  const c = state.register.company;
+  const txs = state.transactions;
+  const rows = txs.length ? txs.map(t => `
+    <tr>
+      <td>${esc(t.trade_date || t.created_at.slice(0,10))}</td>
+      <td><span class="badge ${t.type}">${t.type === 'issue' ? 'Ausgabe' : 'Verkauf'}</span></td>
+      <td>${t.from_name ? esc(t.from_name) : '<span class="hint">— (Neuausgabe)</span>'}</td>
+      <td>${esc(t.to_name)}</td>
+      <td class="num">${fmtInt(t.shares)}</td>
+      <td class="num">${t.price_per_share != null ? fmtMoney(t.price_per_share, c.currency) : '–'}</td>
+      <td class="num">${t.total_price != null ? fmtMoney(t.total_price, c.currency) : '–'}</td>
+      <td>${esc(t.note || '')}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteTransaction(${t.id})" title="Stornieren">↺</button></td>
+    </tr>`).join('') : `<tr><td colspan="9" class="empty" style="padding:40px">Noch keine Transaktionen.</td></tr>`;
+
+  document.getElementById('content').innerHTML = `
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="openIssueModal()">+ Aktien ausgeben</button>
+      <button class="btn" onclick="openSaleModal()">⇄ Verkauf erfassen</button>
+      <div class="spacer"></div>
+      <div class="hint">${txs.length} Transaktionen</div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Datum</th><th>Typ</th><th>Von</th><th>An</th><th class="num">Aktien</th><th class="num">Kurs</th><th class="num">Summe</th><th>Notiz</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function shareholderOptions(selectedId, withShares) {
+  return state.shareholders.map(s =>
+    `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${esc(s.display_name)}${withShares ? ` (${fmtInt(s.shares)} Akt.)` : ''}</option>`).join('');
+}
+
+function openIssueModal() {
+  if (!state.shareholders.length) return toast('Bitte zuerst mindestens einen Aktionär anlegen.', true);
+  const r = state.register; const c = r.company;
+  const free = c.total_shares ? r.free_shares : null;
+  openModal(`
+    <div class="modal-head"><h3>Aktien ausgeben</h3><span class="x" onclick="closeModal()">&times;</span></div>
+    <div class="modal-body">
+      <p class="hint" style="margin-bottom:16px">Erstzuteilung / Neuausgabe an einen Aktionär.${free != null ? ` Verfügbar: <strong>${fmtInt(free)}</strong> freie Aktien.` : ''}</p>
+      <div class="grid2">
+        <div class="field col-span-2"><label>Empfänger (Aktionär)</label><select id="t-to">${shareholderOptions(null, true)}</select></div>
+        <div class="field"><label>Anzahl Aktien</label><input id="t-shares" type="number" min="1" step="1" /></div>
+        <div class="field"><label>Datum</label><input id="t-date" type="date" value="${new Date().toISOString().slice(0,10)}" /></div>
+        <div class="field col-span-2"><label>Notiz</label><input id="t-note" placeholder="optional" /></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="submitIssue()">Ausgeben</button>
+    </div>`);
+}
+async function submitIssue() {
+  const body = {
+    type: 'issue',
+    to_shareholder_id: Number(document.getElementById('t-to').value),
+    shares: Number(document.getElementById('t-shares').value),
+    trade_date: document.getElementById('t-date').value,
+    note: document.getElementById('t-note').value.trim(),
+  };
+  if (!body.shares || body.shares <= 0) return toast('Bitte Anzahl > 0 angeben.', true);
+  try {
+    await api('/companies/' + state.currentId + '/transactions', { method: 'POST', body });
+    closeModal(); await refreshCompany(); renderTab();
+    toast('Aktien ausgegeben.');
+  } catch (e) { toast(e.message, true); }
+}
+
+function openSaleModal() {
+  const holders = state.shareholders.filter(s => s.shares > 0);
+  if (!holders.length) return toast('Es hält noch kein Aktionär Aktien. Erst „Aktien ausgeben“.', true);
+  const c = state.register.company;
+  openModal(`
+    <div class="modal-head"><h3>Verkauf erfassen</h3><span class="x" onclick="closeModal()">&times;</span></div>
+    <div class="modal-body">
+      <p class="hint" style="margin-bottom:16px">Übertragung von einem Aktionär an einen bestehenden oder neuen Aktionär.</p>
+      <div class="grid2">
+        <div class="field col-span-2"><label>Verkäufer</label>
+          <select id="s-from">${holders.map(s => `<option value="${s.id}">${esc(s.display_name)} (${fmtInt(s.shares)} Akt.)</option>`).join('')}</select>
+        </div>
+        <div class="field col-span-2"><label>Käufer</label>
+          <select id="s-to" onchange="toggleNewBuyer(this.value)">
+            ${shareholderOptions(null, true)}
+            <option value="__new__">➕ Neuer Aktionär…</option>
+          </select>
+        </div>
+        <div id="new-buyer" class="field col-span-2 inline-new" style="display:none">
+          <div class="grid2">
+            <div class="field col-span-2"><label>Typ</label>
+              <select id="nb-type" onchange="document.getElementById('nb-person').style.display=this.value==='company'?'none':'contents';document.getElementById('nb-company').style.display=this.value==='company'?'contents':'none'">
+                <option value="person">Natürliche Person</option><option value="company">Firma</option>
+              </select>
+            </div>
+            <span id="nb-person" style="display:contents">
+              <div class="field"><label>Vorname</label><input id="nb-first" /></div>
+              <div class="field"><label>Nachname</label><input id="nb-last" /></div>
+            </span>
+            <span id="nb-company" style="display:none">
+              <div class="field col-span-2"><label>Firmenname</label><input id="nb-companyname" /></div>
+            </span>
+            <div class="field"><label>E-Mail</label><input id="nb-email" /></div>
+            <div class="field"><label>Ort</label><input id="nb-city" /></div>
+          </div>
+        </div>
+        <div class="field"><label>Anzahl Aktien</label><input id="s-shares" type="number" min="1" step="1" /></div>
+        <div class="field"><label>Kurs je Aktie (${esc(c.currency || 'EUR')})</label><input id="s-price" type="number" min="0" step="0.01" placeholder="optional" /></div>
+        <div class="field"><label>Datum</label><input id="s-date" type="date" value="${new Date().toISOString().slice(0,10)}" /></div>
+        <div class="field"><label>Notiz</label><input id="s-note" placeholder="optional" /></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="submitSale()">Verkauf buchen</button>
+    </div>`);
+}
+function toggleNewBuyer(v) { document.getElementById('new-buyer').style.display = v === '__new__' ? 'block' : 'none'; }
+async function submitSale() {
+  const from = Number(document.getElementById('s-from').value);
+  let to = document.getElementById('s-to').value;
+  const shares = Number(document.getElementById('s-shares').value);
+  if (!shares || shares <= 0) return toast('Bitte Anzahl > 0 angeben.', true);
+  try {
+    if (to === '__new__') {
+      const type = document.getElementById('nb-type').value;
+      const nb = {
+        type,
+        first_name: type === 'person' ? document.getElementById('nb-first').value.trim() : '',
+        last_name: type === 'person' ? document.getElementById('nb-last').value.trim() : '',
+        company_name: type === 'company' ? document.getElementById('nb-companyname').value.trim() : '',
+        email: document.getElementById('nb-email').value.trim(),
+        city: document.getElementById('nb-city').value.trim(),
+      };
+      const name = type === 'company' ? nb.company_name : (nb.last_name || nb.first_name);
+      if (!name) return toast('Bitte Name/Firma des neuen Käufers angeben.', true);
+      const created = await api('/companies/' + state.currentId + '/shareholders', { method: 'POST', body: nb });
+      to = created.id;
+    }
+    const price = document.getElementById('s-price').value;
+    const body = {
+      type: 'sale', from_shareholder_id: from, to_shareholder_id: Number(to), shares,
+      price_per_share: price === '' ? null : Number(price),
+      trade_date: document.getElementById('s-date').value,
+      note: document.getElementById('s-note').value.trim(),
+    };
+    await api('/companies/' + state.currentId + '/transactions', { method: 'POST', body });
+    closeModal(); await refreshCompany(); renderTab();
+    toast('Verkauf gebucht.');
+  } catch (e) { toast(e.message, true); }
+}
+async function deleteTransaction(id) {
+  if (!confirm('Diese Transaktion stornieren? Der Bestand wird zurückgesetzt.')) return;
+  try {
+    await api('/transactions/' + id, { method: 'DELETE' });
+    await refreshCompany(); renderTab();
+    toast('Transaktion storniert.');
+  } catch (e) { toast(e.message, true); }
+}
+
+// ════════ ANALYTICS TAB ════════
+function renderAnalytics() {
+  const r = state.register;
+  if (!r.holders.length) {
+    document.getElementById('content').innerHTML = `<div class="empty"><div class="big">📊</div><p>Noch keine Beteiligungen vorhanden.</p></div>`;
+    return;
+  }
+  const holders = r.holders;
+  const donut = buildDonut(holders);
+  const legend = holders.map((h, i) => `
+    <div class="legend-row">
+      <span class="legend-dot" style="background:${PALETTE[i % PALETTE.length]}"></span>
+      <span class="lname">${esc(h.name)}</span>
+      <span class="hint">${fmtInt(h.shares)}</span>
+      <span class="lpct">${fmtPct(h.percent)}</span>
+    </div>`).join('');
+
+  const top = holders[0];
+  const c = r.company;
+  document.getElementById('content').innerHTML = `
+    <div class="toolbar"><div class="section-title" style="margin:0">Prozentuale Auswertung der Beteiligungen</div></div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; align-items:start">
+      <div class="card">
+        <div class="section-title">Verteilung</div>
+        <div class="donut-wrap">
+          <svg viewBox="0 0 200 200" width="200" height="200">${donut}
+            <circle cx="100" cy="100" r="56" fill="var(--surface)"></circle>
+            <text x="100" y="94" text-anchor="middle" fill="var(--text)" font-size="22" font-weight="700">${r.holder_count}</text>
+            <text x="100" y="114" text-anchor="middle" fill="var(--muted)" font-size="10">Aktionäre</text>
+          </svg>
+          <div class="legend">${legend}</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">Kennzahlen</div>
+        <table>
+          <tbody>
+            <tr><td>Größter Aktionär</td><td class="num"><strong>${esc(top.name)}</strong> · ${fmtPct(top.percent)}</td></tr>
+            <tr><td>Ausgegebene Aktien</td><td class="num">${fmtInt(r.issued_shares)}</td></tr>
+            <tr><td>Gesamtaktien (Soll)</td><td class="num">${fmtInt(r.total_shares || r.issued_shares)}</td></tr>
+            ${c.total_shares ? `<tr><td>Freie (nicht ausgegebene) Aktien</td><td class="num">${fmtInt(r.free_shares)} · ${fmtPct(r.free_shares / r.total_shares * 100)}</td></tr>` : ''}
+            <tr><td>Mehrheit (&gt; 50 %)?</td><td class="num">${top.percent > 50 ? '✅ ' + esc(top.name) : '— keine'}</td></tr>
+            <tr><td>Sperrminorität (≥ 25 %)</td><td class="num">${holders.filter(h => h.percent >= 25).length} Aktionär(e)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+function buildDonut(holders) {
+  const total = holders.reduce((a, h) => a + h.shares, 0) || 1;
+  let acc = 0; const R = 80, C = 2 * Math.PI * R;
+  return holders.map((h, i) => {
+    const frac = h.shares / total;
+    const dash = frac * C;
+    const seg = `<circle cx="100" cy="100" r="${R}" fill="none"
+      stroke="${PALETTE[i % PALETTE.length]}" stroke-width="32"
+      stroke-dasharray="${dash} ${C - dash}" stroke-dashoffset="${-acc * C}"
+      transform="rotate(-90 100 100)"></circle>`;
+    acc += frac;
+    return seg;
+  }).join('');
+}
+
+// ════════ SNAPSHOTS TAB ════════
+function renderSnapshots() {
+  const snaps = state.snapshots;
+  const rows = snaps.length ? snaps.map(s => `
+    <tr>
+      <td><strong>v${s.version}</strong></td>
+      <td>${esc(s.label || '')}</td>
+      <td>${esc(s.as_of_date || '')}</td>
+      <td class="num">${fmtInt(s.issued_shares)} / ${fmtInt(s.total_shares || s.issued_shares)}</td>
+      <td class="num">${s.holder_count}</td>
+      <td>${esc(s.created_at)}</td>
+      <td style="text-align:right">
+        <button class="btn btn-sm" onclick="printSnapshot(${s.id})">🖨 PDF</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteSnapshot(${s.id})">Löschen</button>
+      </td>
+    </tr>`).join('') : `<tr><td colspan="7" class="empty" style="padding:40px">Noch keine festgeschriebenen Stände.</td></tr>`;
+  document.getElementById('content').innerHTML = `
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="openSnapshotModal()">🔒 Stand festschreiben</button>
+      <div class="spacer"></div>
+      <div class="hint">Versionierte, unveränderliche Festschreibungen</div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Version</th><th>Bezeichnung</th><th>Stichtag</th><th class="num">Ausgeg./Gesamt</th><th class="num">Aktionäre</th><th>Erstellt</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+function openSnapshotModal() {
+  openModal(`
+    <div class="modal-head"><h3>Stand festschreiben</h3><span class="x" onclick="closeModal()">&times;</span></div>
+    <div class="modal-body">
+      <p class="hint" style="margin-bottom:16px">Erstellt eine unveränderliche, versionierte Kopie des aktuellen Registerstands. Spätere Verkäufe ändern diesen Snapshot nicht.</p>
+      <div class="grid2">
+        <div class="field col-span-2"><label>Bezeichnung / Anlass</label><input id="snap-label" placeholder="z.B. Hauptversammlung 2026" /></div>
+        <div class="field"><label>Stichtag</label><input id="snap-date" type="date" value="${new Date().toISOString().slice(0,10)}" /></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="submitSnapshot()">Festschreiben</button>
+    </div>`);
+}
+async function submitSnapshot() {
+  try {
+    await api('/companies/' + state.currentId + '/snapshots', { method: 'POST', body: {
+      label: document.getElementById('snap-label').value.trim(),
+      as_of_date: document.getElementById('snap-date').value,
+    }});
+    closeModal();
+    state.snapshots = await api('/companies/' + state.currentId + '/snapshots');
+    if (state.tab === 'snapshots') renderTab(); else switchTab('snapshots');
+    toast('Stand festgeschrieben.');
+  } catch (e) { toast(e.message, true); }
+}
+async function deleteSnapshot(id) {
+  if (!confirm('Diesen festgeschriebenen Stand löschen?')) return;
+  try {
+    await api('/snapshots/' + id, { method: 'DELETE' });
+    state.snapshots = await api('/companies/' + state.currentId + '/snapshots');
+    renderTab(); toast('Snapshot gelöscht.');
+  } catch (e) { toast(e.message, true); }
+}
+
+// ════════ COMPANY (STAMMDATEN) TAB ════════
+function renderCompanyTab() {
+  const c = state.register.company;
+  document.getElementById('content').innerHTML = `
+    <div class="toolbar"><div class="section-title" style="margin:0">Stammdaten der Gesellschaft</div></div>
+    <div class="card" style="max-width:880px">
+      <div class="grid2">${companyFormFields(c)}</div>
+      <div style="display:flex; gap:10px; margin-top:22px">
+        <button class="btn btn-primary" onclick="saveCompany(${c.id})">Speichern</button>
+        <button class="btn btn-danger" style="margin-left:auto" onclick="deleteCompany(${c.id})">Unternehmen löschen</button>
+      </div>
+    </div>`;
+}
+function companyFormFields(c) {
+  c = c || {};
+  return `
+    <div class="form-section-title">Gesellschaft</div>
+    <div class="field"><label>Name *</label><input id="c-name" value="${esc(c.name)}" /></div>
+    <div class="field"><label>Rechtsform</label><input id="c-legal_form" value="${esc(c.legal_form)}" placeholder="AG, SE, GmbH …" /></div>
+    <div class="field"><label>Handelsregister-Nr.</label><input id="c-register_number" value="${esc(c.register_number)}" /></div>
+    <div class="field"><label>Sitz</label><input id="c-seat" value="${esc(c.seat)}" /></div>
+
+    <div class="form-section-title">Adresse</div>
+    <div class="field col-span-2"><label>Straße & Nr.</label><input id="c-street" value="${esc(c.street)}" /></div>
+    <div class="field"><label>PLZ</label><input id="c-zip" value="${esc(c.zip)}" /></div>
+    <div class="field"><label>Ort</label><input id="c-city" value="${esc(c.city)}" /></div>
+    <div class="field col-span-2"><label>Land</label><input id="c-country" value="${esc(c.country)}" /></div>
+
+    <div class="form-section-title">Aktien</div>
+    <div class="field"><label>Gesamtzahl Aktien</label><input id="c-total_shares" type="number" min="0" step="1" value="${esc(c.total_shares)}" /></div>
+    <div class="field"><label>Aktiengattung</label><input id="c-share_class" value="${esc(c.share_class)}" placeholder="z.B. Namensaktien" /></div>
+    <div class="field"><label>Nennwert je Aktie</label><input id="c-nominal_value" type="number" min="0" step="0.01" value="${esc(c.nominal_value)}" /></div>
+    <div class="field"><label>Währung</label><input id="c-currency" value="${esc(c.currency || 'EUR')}" /></div>
+    <div class="field"><label>Grundkapital</label><input id="c-share_capital" type="number" min="0" step="0.01" value="${esc(c.share_capital)}" /></div>
+
+    <div class="form-section-title">Für Unterschrift / PDF</div>
+    <div class="field col-span-2"><label>Vorstand / Geschäftsführung</label><input id="c-board" value="${esc(c.board)}" placeholder="Name(n) für Unterschriftszeile" /></div>
+    <div class="field col-span-2"><label>Notizen</label><textarea id="c-notes">${esc(c.notes)}</textarea></div>`;
+}
+function collectCompany() {
+  const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const num = id => { const v = g(id); return v === '' ? null : Number(v); };
+  return {
+    name: g('c-name'), legal_form: g('c-legal_form'), register_number: g('c-register_number'), seat: g('c-seat'),
+    street: g('c-street'), zip: g('c-zip'), city: g('c-city'), country: g('c-country'),
+    total_shares: num('c-total_shares'), share_class: g('c-share_class'), nominal_value: num('c-nominal_value'),
+    currency: g('c-currency') || 'EUR', share_capital: num('c-share_capital'), board: g('c-board'), notes: g('c-notes'),
+  };
+}
+function openCompanyModal() {
+  openModal(`
+    <div class="modal-head"><h3>Neues Unternehmen</h3><span class="x" onclick="closeModal()">&times;</span></div>
+    <div class="modal-body"><div class="grid2">${companyFormFields(null)}</div></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveCompany(null)">Anlegen</button>
+    </div>`, true);
+}
+async function saveCompany(id) {
+  const data = collectCompany();
+  if (!data.name) return toast('Bitte einen Namen angeben.', true);
+  try {
+    if (id) {
+      await api('/companies/' + id, { method: 'PUT', body: data });
+      await refreshCompany(); renderTab(); toast('Stammdaten gespeichert.');
+    } else {
+      const reg = await api('/companies', { method: 'POST', body: data });
+      closeModal();
+      await loadCompanies();
+      selectCompany(reg.company.id);
+      toast('Unternehmen angelegt.');
+    }
+  } catch (e) { toast(e.message, true); }
+}
+async function deleteCompany(id) {
+  const c = state.register.company;
+  if (!confirm(`Unternehmen „${c.name}“ mit allen Aktionären, Transaktionen und Snapshots unwiderruflich löschen?`)) return;
+  try {
+    await api('/companies/' + id, { method: 'DELETE' });
+    state.currentId = null; localStorage.removeItem('sh_current');
+    await boot();
+    toast('Unternehmen gelöscht.');
+  } catch (e) { toast(e.message, true); }
+}
+
+// ════════ PDF / PRINT ════════
+function buildPrintHTML({ company, holders, issued, base, total, title, asOf, version }) {
+  const hasNominal = company.nominal_value != null && company.nominal_value !== '';
+  const addr = [company.street, [company.zip, company.city].filter(Boolean).join(' '), company.country].filter(Boolean).join(', ');
+  const rows = holders.map((h, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${esc(h.name)}</td>
+      <td>${esc(h.city || '')}</td>
+      <td class="num">${fmtInt(h.shares)}</td>
+      ${hasNominal ? `<td class="num">${fmtMoney(h.shares * company.nominal_value, company.currency)}</td>` : ''}
+      <td class="num">${fmtPct(h.percent)}</td>
+    </tr>`).join('');
+  const place = company.seat || company.city || '';
+  const dateStr = new Date().toLocaleDateString('de-DE');
+  return `
+    <div class="ph-head">
+      <div>
+        <div style="font-size:14pt; font-weight:bold">${esc(company.name)}</div>
+        <div class="ph-meta">${esc(company.legal_form || '')}${addr ? ' · ' + esc(addr) : ''}</div>
+        ${company.register_number ? `<div class="ph-meta">HR-Nr.: ${esc(company.register_number)}</div>` : ''}
+      </div>
+      <div class="ph-meta" style="text-align:right">
+        ${version ? `Version ${esc(version)}<br>` : ''}
+        Stichtag: ${esc(asOf || dateStr)}
+      </div>
+    </div>
+    <h1>${esc(title)}</h1>
+    <div class="ph-sub">${company.share_class ? esc(company.share_class) + ' · ' : ''}Gesamtzahl Aktien: ${fmtInt(total || base)}${hasNominal ? ' · Nennwert je Aktie: ' + fmtMoney(company.nominal_value, company.currency) : ''}</div>
+    <table>
+      <thead><tr>
+        <th>Nr.</th><th>Aktionär</th><th>Ort</th><th class="num">Aktien</th>
+        ${hasNominal ? '<th class="num">Nennbetrag</th>' : ''}<th class="num">Anteil</th>
+      </tr></thead>
+      <tbody>${rows || `<tr><td colspan="${hasNominal ? 6 : 5}">Keine Aktien zugeteilt</td></tr>`}</tbody>
+      <tfoot><tr>
+        <td></td><td>Summe</td><td></td><td class="num">${fmtInt(issued)}</td>
+        ${hasNominal ? `<td class="num">${fmtMoney(issued * company.nominal_value, company.currency)}</td>` : ''}
+        <td class="num">${fmtPct(base ? issued / base * 100 : 0)}</td>
+      </tr></tfoot>
+    </table>
+    <div class="sig-block">
+      <div class="sig"><div class="line">${esc(place)}, den ${esc(dateStr)}</div></div>
+      <div class="sig"><div class="line">${company.board ? esc(company.board) + ' — ' : ''}Vorstand / Geschäftsführung</div></div>
+    </div>
+    <p style="margin-top:30px; font-size:8.5pt; color:#555">Dieses Aktienregister wurde mit Share Handling erstellt am ${dateStr}.</p>`;
+}
+function doPrint(html) {
+  document.getElementById('print-area').innerHTML = html;
+  window.print();
+}
+function printRegister() {
+  const r = state.register;
+  doPrint(buildPrintHTML({
+    company: r.company, holders: r.holders, issued: r.issued_shares,
+    base: r.base_shares, total: r.total_shares, title: 'Aktienregister',
+  }));
+}
+async function printSnapshot(id) {
+  try {
+    const s = await api('/snapshots/' + id);
+    const d = s.data;
+    doPrint(buildPrintHTML({
+      company: d.company, holders: d.holders, issued: d.issued_shares,
+      base: d.base_shares, total: d.total_shares,
+      title: 'Aktienregister', asOf: s.as_of_date, version: 'v' + s.version + (s.label ? ' — ' + s.label : ''),
+    }));
+  } catch (e) { toast(e.message, true); }
+}
+
+// ── Start ──
+boot().catch(e => {
+  document.getElementById('content').innerHTML = `<div class="empty"><div class="big">⚠</div><p>Backend nicht erreichbar.</p><p class="hint">${esc(e.message)}</p></div>`;
+});
+</script>
+</body>
+</html>

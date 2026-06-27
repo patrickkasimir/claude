@@ -47,4 +47,12 @@ export const APPS = [
     description: "Spezifikationen aller Prozesse – Felder, SLA, Features, Kanban-Gruppen",
     category: "Tools",
   },
+  {
+    id: "sharehandling",
+    title: "SHARE HANDLING",
+    icon: "📈",
+    path: "/claudeapps/sharehandling/",
+    description: "Aktienregister verwalten – Aktionäre, Verkäufe, prozentuale Auswertung, unterschriftsreifes PDF",
+    category: "Finanzen",
+  },
 ];
