@@ -179,6 +179,7 @@ export function initChatter(entityPath, getEditId, {
   return { load, renderFeed };
 }
 
+
 export class PageManager {
   constructor(cfg) {
     this.cfg = cfg;
@@ -393,7 +394,6 @@ export class PageManager {
       const th = document.createElement('th');
       th.dataset.col = col.key;
       th.style.width = (this.colSettings.widths[col.key] || 150) + 'px';
-      th.style.position = 'relative';
       th.draggable = true;
       if (this.sortCol === col.key) th.classList.add(this.sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
       th.innerHTML = `<span class="th-label">${col.label.toUpperCase()}</span><div class="col-resizer"></div>`;
@@ -833,24 +833,60 @@ export class PageManager {
   // ── DETAIL ──
   _bindDetail() {
     const cfg = this.cfg;
-    document.getElementById(cfg.bcBackId).addEventListener('click', () => this.closeDetail());
-    document.getElementById(cfg.cancelBtnId).addEventListener('click', () => this.closeDetail());
-    document.getElementById(cfg.saveBtnId).addEventListener('click', () => this._saveDetail());
-    document.getElementById(cfg.deleteBtnId).addEventListener('click', () => this._deleteDetail());
+    const formEl = document.getElementById(cfg.detailFormElId);
+
+    // Inject breadcrumb + action buttons generically
+    const pfx = cfg.entity;
+    const bcId    = `${pfx}-bc`;
+    const bcCurId = `${pfx}-bc-cur`;
+    const saveId  = `${pfx}-pm-save`;
+    const cancelId= `${pfx}-pm-cancel`;
+    const deleteId= `${pfx}-pm-delete`;
+
+    const svgCheck = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const svgX     = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+    const svgTrash = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+    const header = document.createElement('div');
+    header.innerHTML = `
+      <nav class="pm-breadcrumb" id="${bcId}">
+        <a class="pm-bc-back">${esc(cfg.backLabel || cfg.entity.toUpperCase())}</a>
+        <span class="bc-sep">›</span>
+        <span class="bc-current" id="${bcCurId}"></span>
+      </nav>
+      <div class="detail-actions">
+        <button class="btn btn-primary btn-icon" id="${saveId}" title="Speichern">${svgCheck}</button>
+        <button class="btn btn-ghost btn-icon" id="${cancelId}" title="Abbrechen">${svgX}</button>
+        <button class="btn btn-danger btn-icon" id="${deleteId}" title="Löschen" style="display:none">${svgTrash}</button>
+      </div>
+    `;
+    formEl.prepend(header);
+
+    // Store generated IDs for later use
+    cfg._bcId     = bcId;
+    cfg._bcCurId  = bcCurId;
+    cfg._saveId   = saveId;
+    cfg._cancelId = cancelId;
+    cfg._deleteId = deleteId;
+
+    header.querySelector('.pm-bc-back').addEventListener('click', () => this.closeDetail());
+    document.getElementById(cancelId).addEventListener('click', () => this.closeDetail());
+    document.getElementById(saveId).addEventListener('click', () => this._saveDetail());
+    document.getElementById(deleteId).addEventListener('click', () => this._deleteDetail());
   }
 
   _showDetailPanel(label) {
     const cfg = this.cfg;
     document.getElementById(cfg.listPageElId).style.display = 'none';
     document.getElementById(cfg.detailElId).classList.add('visible');
-    document.getElementById(cfg.breadcrumbElId).classList.add('visible');
-    document.getElementById(cfg.bcCurrentId).textContent = label;
+    document.getElementById(cfg._bcId).classList.add('visible');
+    document.getElementById(cfg._bcCurId).textContent = label;
   }
 
   closeDetail() {
     const cfg = this.cfg;
     document.getElementById(cfg.detailElId).classList.remove('visible');
-    document.getElementById(cfg.breadcrumbElId).classList.remove('visible');
+    document.getElementById(cfg._bcId).classList.remove('visible');
     document.getElementById(cfg.listPageElId).style.display = '';
     this.renderPage();
   }
@@ -858,7 +894,7 @@ export class PageManager {
   openNew() {
     this._editId = null;
     this.cfg.renderDetail(null, this);
-    document.getElementById(this.cfg.deleteBtnId).style.display = 'none';
+    document.getElementById(this.cfg._deleteId).style.display = 'none';
     if (this._chatter) {
       document.getElementById(this.cfg.chatter.composeElId).style.display = 'none';
       document.getElementById(this.cfg.chatter.addNoteBtnId).style.display = '';
@@ -872,7 +908,7 @@ export class PageManager {
     if (!item) return;
     this._editId = id;
     this.cfg.renderDetail(item, this);
-    document.getElementById(this.cfg.deleteBtnId).style.display = 'inline-block';
+    document.getElementById(this.cfg._deleteId).style.display = 'inline-flex';
     if (this._chatter) {
       document.getElementById(this.cfg.chatter.composeElId).style.display = 'none';
       document.getElementById(this.cfg.chatter.addNoteBtnId).style.display = '';

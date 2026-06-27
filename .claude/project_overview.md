@@ -50,6 +50,9 @@ location /claudeapps/ {
 |-----|-----|------|----------|
 | taskmanager | taskmanager | 3002 | `/var/www/html/claudeapps/taskmanager/` |
 | apppp | apppp | 3003 | `/var/www/html/claudeapps/apppp/` |
+| sharehandling | sharehandling | 3004 | `/var/www/html/claudeapps/sharehandling/` |
+
+**sharehandling** (Aktienregister): Backend `/home/elija/apps/sharehandling-backend/server.js`, DB `sharehandling.db`, API-Prefix `/claudeapps/sharehandling/api/`. nginx-Block siehe `sharehandling-backend/nginx-snippet.conf`. Frontend-Quelle `projects_claude/sharehandling/index.html`. Eigene Landing-Sektion „Finanzen".
 
 ## Landingpage
 
