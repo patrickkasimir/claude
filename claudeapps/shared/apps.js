@@ -24,6 +24,14 @@ export const APPS = [
     category: "Spiele",
   },
   {
+    id: "tetris",
+    title: "TETRIS",
+    icon: "🧱",
+    path: "/claudeapps/tetris/",
+    description: "Klassisches Tetris – Reihen auflösen, Level steigern, persistenter Highscore",
+    category: "Spiele",
+  },
+  {
     id: "poker",
     title: "POKER",
     icon: "🃏",
