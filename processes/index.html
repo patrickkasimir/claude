@@ -834,11 +834,16 @@ function buildNav(specs) {
   const navList = document.getElementById('nav-list');
   navList.innerHTML = '';
 
-  const archSpecs = specs.filter(s => s.pagemanager || s.generic);
-  const procSpecs = specs.filter(s => !s.pagemanager && !s.generic);
+  const archSpecs    = specs.filter(s => s.pagemanager || s.generic);
+  const conceptSpecs = specs.filter(s => s.concept);
+  const procSpecs    = specs.filter(s => !s.pagemanager && !s.generic && !s.concept);
 
+  if (conceptSpecs.length) {
+    navList.insertAdjacentHTML('beforeend', `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:10px 12px 4px">Konzepte</div>`);
+    conceptSpecs.forEach(spec => addNavBtn(navList, spec));
+  }
   if (archSpecs.length) {
-    navList.insertAdjacentHTML('beforeend', `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:10px 12px 4px">Architektur</div>`);
+    navList.insertAdjacentHTML('beforeend', `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:14px 12px 4px">Architektur</div>`);
     archSpecs.forEach(spec => addNavBtn(navList, spec));
   }
   if (procSpecs.length) {
@@ -870,6 +875,7 @@ function showSpec(id) {
 
   if (spec.generic) { main.innerHTML = renderGenericSpec(spec); return; }
   if (spec.pagemanager) { main.innerHTML = renderPageManagerSpec(spec); return; }
+  if (spec.concept) { main.innerHTML = renderConceptSpec(spec); return; }
 
   const required = spec.fields.filter(f => f.required && !f.auto);
   const auto     = spec.fields.filter(f => f.auto);
@@ -902,6 +908,161 @@ function showSpec(id) {
     ${renderFeatures(spec.features)}
     <div style="height:48px"></div>
   `;
+}
+
+function renderConceptSpec(spec) {
+  const h = (t, c='') => `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:28px 0 10px">${t}</div>${c}`;
+  const badge = (txt, col) => `<span style="background:${col}22;color:${col};border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:600">${txt}</span>`;
+  const chip = (txt) => `<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:0.78rem;color:var(--text)">${txt}</span>`;
+
+  let html = renderHeader(spec);
+  if (spec.status) html += `<div style="margin-bottom:24px">${badge(spec.status,'#fbbf24')}</div>`;
+
+  // Overview
+  if (spec.overview) {
+    html += h('Vision');
+    html += `<p style="color:var(--text);line-height:1.7;margin-bottom:16px">${spec.overview.vision}</p>`;
+    html += h('Grundsätze');
+    html += `<ul style="list-style:none;display:flex;flex-direction:column;gap:8px">${
+      spec.overview.principles.map(p => `<li style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--accent);margin-top:2px">✓</span><span style="color:var(--text);line-height:1.5">${p}</span></li>`).join('')
+    }</ul>`;
+  }
+
+  // Authentication
+  if (spec.authentication) {
+    html += h('Login-Flow');
+    html += `<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">${
+      spec.authentication.login_flow.map(s => `
+        <div style="display:flex;gap:14px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
+          <span style="background:var(--accent);color:#1a1a2e;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">${s.step}</span>
+          <div><strong style="color:var(--accent);font-size:0.85rem">${s.name}</strong><p style="color:var(--muted);font-size:0.82rem;margin-top:4px;line-height:1.5">${s.description}</p></div>
+        </div>`).join('')
+    }</div>`;
+
+    const pw = spec.authentication.password;
+    html += h('Passwort-Policy');
+    html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><span style="color:var(--muted);font-size:0.75rem">HASHING</span><p style="color:var(--text)">${pw.hashing}</p></div>
+      <div><span style="color:var(--muted);font-size:0.75rem">MINDESTLÄNGE</span><p style="color:var(--text)">${pw.min_length} Zeichen</p></div>
+      <div style="grid-column:1/-1"><span style="color:var(--muted);font-size:0.75rem">ANFORDERUNGEN</span><p style="color:var(--text)">${pw.requirements}</p></div>
+    </div>`;
+
+    const t2 = spec.authentication.totp_2fa;
+    html += h('2FA (TOTP)');
+    html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <p style="color:var(--muted);font-size:0.78rem;margin-bottom:8px">Bibliothek: <span style="color:var(--text)">${t2.library}</span> · Verpflichtend: <span style="color:var(--text)">${t2.enforcement}</span></p>
+      <ol style="list-style:decimal;padding-left:20px;display:flex;flex-direction:column;gap:4px">${t2.setup_flow.map(s => `<li style="color:var(--text);font-size:0.82rem">${s}</li>`).join('')}</ol>
+    </div>`;
+  }
+
+  // Role model
+  if (spec.role_model) {
+    html += h('Globale Rollen');
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${
+      spec.role_model.global_roles.map(r => `
+        <div style="background:var(--surface);border:1px solid ${r.color}44;border-radius:8px;padding:14px">
+          <div style="margin-bottom:6px">${badge(r.label, r.color)}</div>
+          <p style="color:var(--muted);font-size:0.8rem;line-height:1.5">${r.description}</p>
+        </div>`).join('')
+    }</div>`;
+  }
+
+  // Permission matrix
+  if (spec.permission_model) {
+    html += h('Berechtigungs-Matrix');
+    const perms = ['view','create','edit','delete','admin'];
+    const roleColors = {superadmin:'#f87171',admin:'#fb923c',user:'#4ade80',readonly:'#60a5fa'};
+    html += `<table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:8px 12px;color:var(--muted)">ROLLE</th>
+        ${perms.map(p => `<th style="text-align:center;padding:8px;color:var(--muted)">${p.toUpperCase()}</th>`).join('')}
+      </tr></thead>
+      <tbody>${spec.permission_model.permission_matrix.matrix.map(row => `
+        <tr style="border-bottom:1px solid var(--border)22">
+          <td style="padding:10px 12px">${badge(row.role, roleColors[row.role]||'#888')}</td>
+          ${perms.map(p => `<td style="text-align:center;padding:10px">${row[p] ? '<span style="color:#4ade80">✓</span>' : '<span style="color:#888">—</span>'}</td>`).join('')}
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+    html += h('Override-Beispiele');
+    html += `<ul style="list-style:none;display:flex;flex-direction:column;gap:6px">${
+      spec.permission_model.override_examples.map(e => `<li style="color:var(--muted);font-size:0.82rem;padding:8px 12px;background:var(--surface);border-radius:6px;border-left:3px solid var(--accent)">${e}</li>`).join('')
+    }</ul>`;
+  }
+
+  // DB Schema
+  if (spec.database_schema) {
+    html += h('Datenbank-Schema');
+    html += `<div style="display:flex;flex-direction:column;gap:12px">${
+      spec.database_schema.tables.map(t => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
+          <strong style="color:var(--accent);font-size:0.85rem">${t.table}</strong>
+          ${t.description ? `<p style="color:var(--muted);font-size:0.78rem;margin:4px 0 8px">${t.description}</p>` : ''}
+          <div style="display:flex;flex-direction:column;gap:3px;margin-top:8px">${
+            (t.columns||t.new_columns||[]).map(c => `<code style="font-size:0.75rem;color:var(--text);background:var(--bg);padding:2px 6px;border-radius:3px">${c}</code>`).join('')
+          }</div>
+        </div>`).join('')
+    }</div>`;
+  }
+
+  // API Endpoints
+  if (spec.api_endpoints) {
+    const methodColor = {GET:'#4ade80',POST:'#60a5fa',PUT:'#fbbf24',DELETE:'#f87171'};
+    Object.entries(spec.api_endpoints).forEach(([group, endpoints]) => {
+      html += h(group.toUpperCase() + '-Endpunkte');
+      html += `<table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:6px 10px;color:var(--muted);width:70px">METHOD</th>
+          <th style="text-align:left;padding:6px 10px;color:var(--muted);width:280px">PATH</th>
+          <th style="text-align:left;padding:6px 10px;color:var(--muted)">BESCHREIBUNG</th>
+        </tr></thead>
+        <tbody>${endpoints.map(e => `
+          <tr style="border-bottom:1px solid var(--border)11">
+            <td style="padding:7px 10px">${badge(e.method, methodColor[e.method]||'#888')}</td>
+            <td style="padding:7px 10px;font-family:monospace;font-size:0.75rem;color:var(--text)">${e.path}</td>
+            <td style="padding:7px 10px;color:var(--muted)">${e.description}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+    });
+  }
+
+  // Implementation Phases
+  if (spec.implementation_phases) {
+    html += h('Implementierungs-Phasen');
+    html += `<div style="display:flex;flex-direction:column;gap:12px">${
+      spec.implementation_phases.map(p => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="background:var(--accent);color:#1a1a2e;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">P${p.phase}</span>
+            <strong style="color:var(--text)">${p.name}</strong>
+          </div>
+          <p style="color:var(--muted);font-size:0.8rem;margin-bottom:10px">${p.description}</p>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:4px">${
+            p.tasks.map(t => `<li style="display:flex;gap:8px;font-size:0.78rem;color:var(--text)"><span style="color:var(--muted)">→</span>${t}</li>`).join('')
+          }</ul>
+        </div>`).join('')
+    }</div>`;
+  }
+
+  // Tech Stack
+  if (spec.tech_stack) {
+    html += h('Tech-Stack');
+    html += `<div style="display:flex;flex-wrap:wrap;gap:8px">${
+      spec.tech_stack.map(t => `<div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 14px"><code style="color:var(--accent);font-size:0.8rem">${t.package}</code><p style="color:var(--muted);font-size:0.75rem;margin-top:2px">${t.purpose}</p></div>`).join('')
+    }</div>`;
+  }
+
+  // Security Notes
+  if (spec.security_notes) {
+    html += h('Security-Hinweise');
+    html += `<ul style="list-style:none;display:flex;flex-direction:column;gap:6px">${
+      spec.security_notes.map(n => `<li style="display:flex;gap:10px;font-size:0.82rem;color:var(--text);align-items:flex-start"><span style="color:var(--danger);flex-shrink:0">⚠</span>${n}</li>`).join('')
+    }</ul>`;
+  }
+
+  return html;
 }
 
 function renderGenericSpec(spec) {

@@ -487,7 +487,8 @@
       "Session-Cookie: HttpOnly + Secure + SameSite=Strict",
       "Alle Admin-Aktionen ins Audit-Log",
       "Passwort-Reset-Token: crypto.randomBytes, 1h TTL, einmalig verwendbar"
-    ]
+    ],
+    "concept": true
   },
   {
     "id": "_pagemanager",
