@@ -146,6 +146,7 @@
     <a href="#apps">Apps (fachlich)</a>
     <a href="#geschaeftsdaten">Geschäftsdaten</a>
     <a href="#module">Module</a>
+    <a href="#appdeps">App-Abhängigkeiten</a>
   </nav>
 
   <main>
@@ -182,28 +183,42 @@
       </div>
       <div class="mod-list" id="mod-list"></div>
     </section>
+
+    <section id="appdeps">
+      <h2><span class="ic">⇄</span> App-Abhängigkeiten</h2>
+      <div class="desc">Welche App auf welcher anderen aufbaut (auf App-Ebene reduziert). App anklicken zum Aufklappen.</div>
+      <style>
+        #appdeps .dseg { display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; background:var(--surface); margin-bottom:14px; }
+        #appdeps .dseg button { border:none; background:transparent; color:var(--muted); font-size:0.82rem; padding:7px 16px; cursor:pointer; }
+        #appdeps .dseg button.on { background:var(--accent); color:#fff; }
+        #appdeps .drow { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; }
+        #appdeps .drow.clk { cursor:pointer; }
+        #appdeps .drow.clk:hover { background:var(--surface2); }
+        #appdeps .drow .car { width:14px; flex:0 0 auto; color:var(--accent); font-size:0.72rem; transition:transform .15s; }
+        #appdeps .drow.op > .car { transform:rotate(90deg); }
+        #appdeps .drow .lf { width:14px; flex:0 0 auto; color:var(--border); text-align:center; }
+        #appdeps .drow .dn { font-size:0.88rem; font-weight:500; }
+        #appdeps .drow .dt { font-family:ui-monospace,monospace; font-size:0.72rem; color:var(--muted); }
+        #appdeps .drow .more { font-size:0.72rem; color:var(--muted); }
+        #appdeps .dchildren { margin-left:15px; border-left:2px solid var(--accent-soft); padding-left:4px; }
+      </style>
+      <div class="dseg" id="dep-seg">
+        <button data-d="depends" class="on">hängt ab von ↓</button>
+        <button data-d="needed">wird benötigt von ↑</button>
+      </div>
+      <div id="dep-tree"></div>
+    </section>
   </main>
 </div>
 
 <footer id="footer"></footer>
 
+<script src="modules.js"></script>
 <script src="data.js"></script>
 <script>
   const D = window.ODOO_ANALYSIS;
+  let DEP_DIR = 'depends';
   const fmt = n => (n === null || n === undefined) ? '–' : Number(n).toLocaleString('de-DE');
-
-  if (!D) {
-    document.querySelector('main').innerHTML =
-      '<div class="empty">Keine Analyse-Daten gefunden.<br>Bitte zuerst <code>python3 odoo/analyze.py</code> ausführen.</div>';
-  } else {
-    renderHead();
-    renderOverview();
-    renderTech();
-    renderApps();
-    renderBusiness();
-    renderModules();
-    setupNav();
-  }
 
   function renderHead() {
     const s = D.server;
@@ -327,6 +342,62 @@
       });
     }, { rootMargin: '-20% 0px -70% 0px' });
     document.querySelectorAll('main section').forEach(s => obs.observe(s));
+  }
+
+  function esc2(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  function renderAppDeps() {
+    const A = window.ODOO_MODULES;
+    const host = document.getElementById('dep-tree');
+    if (!host) return;
+    if (!A) { host.innerHTML = '<div class="empty">Keine Modul-Daten (modules.js).</div>'; return; }
+    const label = {}; A.apps.forEach(a => label[a.name] = a.label);
+    const depends = A.deps || {}, needed = {};
+    Object.keys(depends).forEach(a => (depends[a] || []).forEach(b => (needed[b] = needed[b] || []).push(a)));
+    const childrenOf = n => (DEP_DIR === 'depends' ? (depends[n] || []) : (needed[n] || []));
+    const parentsOf = n => (DEP_DIR === 'depends' ? (needed[n] || []) : (depends[n] || []));
+    let uid = 0;
+    function row(name, path) {
+      const kids = childrenOf(name).filter(c => !path.includes(c));
+      const id = 'd' + (uid++);
+      const car = kids.length ? '<span class="car">▶</span>' : '<span class="lf">·</span>';
+      const more = kids.length ? `<span class="more">· ${kids.length}</span>` : '';
+      return `<div><div class="drow ${kids.length ? 'clk' : ''}" data-id="${id}" data-n="${esc2(name)}" data-path="${esc2(path.join('||'))}">
+        ${car}<span class="dn">${esc2(label[name] || name)}</span><span class="dt">${esc2(name)}</span>${more}
+      </div><div class="dchildren" id="${id}-c" style="display:none"></div></div>`;
+    }
+    const entries = A.apps.map(a => a.name).filter(n => !parentsOf(n).length)
+      .sort((a, b) => (label[a] || a).localeCompare(label[b] || b));
+    host.innerHTML = entries.map(n => row(n, [])).join('') || '<div class="empty">Keine Abhängigkeiten gefunden.</div>';
+    host.onclick = ev => {
+      const r = ev.target.closest('.drow.clk'); if (!r) return;
+      const cont = document.getElementById(r.dataset.id + '-c');
+      const path = r.dataset.path ? r.dataset.path.split('||') : [];
+      if (cont.dataset.built !== '1') {
+        cont.innerHTML = childrenOf(r.dataset.n).filter(c => !path.includes(c)).map(c => row(c, path.concat([r.dataset.n]))).join('');
+        cont.dataset.built = '1';
+      }
+      const open = cont.style.display !== 'none';
+      cont.style.display = open ? 'none' : 'block';
+      r.classList.toggle('op', !open);
+    };
+    const seg = document.getElementById('dep-seg');
+    if (seg && !seg.dataset.wired) {
+      seg.dataset.wired = '1';
+      seg.addEventListener('click', e => {
+        const b = e.target.closest('button[data-d]'); if (!b) return;
+        DEP_DIR = b.dataset.d;
+        [...seg.querySelectorAll('button')].forEach(x => x.classList.toggle('on', x === b));
+        renderAppDeps();
+      });
+    }
+  }
+
+  if (!D) {
+    document.querySelector('main').innerHTML =
+      '<div class="empty">Keine Analyse-Daten gefunden.<br>Bitte zuerst <code>python3 odoo/analyze.py</code> ausführen.</div>';
+  } else {
+    renderHead(); renderOverview(); renderTech(); renderApps();
+    renderBusiness(); renderModules(); renderAppDeps(); setupNav();
   }
 </script>
 </body>
