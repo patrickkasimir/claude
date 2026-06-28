@@ -123,6 +123,11 @@
           <button data-dir="contains" class="on">beinhaltet ↓</button>
           <button data-dir="containedIn">ist enthalten in ↑</button>
         </div>
+        <div class="seg" id="filter-seg">
+          <button data-filter="all" class="on">Alle</button>
+          <button data-filter="business">Business</button>
+          <button data-filter="technical">Technisch</button>
+        </div>
         <div class="tree-legend">
           <span><span class="dot" style="background:#8b8794"></span>Standard (OOTB)</span>
           <span><span class="dot" style="background:#c98a2b"></span>Custom</span>
@@ -178,6 +183,8 @@
   }
 
   let TREE_DIR = 'contains';
+  let TREE_FILTER = 'all';
+  const TECH_CATS = ['Technisch / ohne Privileg', 'Ohne Kategorie'];
   function tree() {
     const groups = S.groups || [];
     const escA = s => esc(s).replace(/"/g, '&quot;');
@@ -186,7 +193,10 @@
     groups.forEach(g => { impl[g.full_name] = (g.implies || []).filter(n => byFull[n]); });
     groups.forEach(g => impl[g.full_name].forEach(ch => (impledBy[ch] = impledBy[ch] || []).push(g.full_name)));
     const byCat = {}; groups.forEach(g => (byCat[g.category] = byCat[g.category] || []).push(g));
-    const cats = [...new Set([...CAT_ORDER, ...Object.keys(byCat)])].filter(c => byCat[c]);
+    const allCats = [...new Set([...CAT_ORDER, ...Object.keys(byCat)])].filter(c => byCat[c]);
+    const cats = TREE_FILTER === 'business'  ? allCats.filter(c => !TECH_CATS.includes(c))
+               : TREE_FILTER === 'technical' ? allCats.filter(c =>  TECH_CATS.includes(c))
+               : allCats;
 
     const childrenOf = fn => (TREE_DIR === 'contains' ? (impl[fn] || []) : (impledBy[fn] || []));
     const parentsOf  = fn => (TREE_DIR === 'contains' ? (impledBy[fn] || []) : (impl[fn] || []));
@@ -259,6 +269,17 @@
     });
   }
 
+  function setupFilterToggle() {
+    const seg = document.getElementById('filter-seg');
+    if (!seg) return;
+    seg.addEventListener('click', e => {
+      const b = e.target.closest('button[data-filter]'); if (!b) return;
+      TREE_FILTER = b.dataset.filter;
+      [...seg.querySelectorAll('button')].forEach(x => x.classList.toggle('on', x === b));
+      tree();
+    });
+  }
+
   function rules() {
     const r = S.rules || {};
     let html = `<div class="block"><h3>Übersicht</h3>
@@ -307,7 +328,7 @@
   if (!S) {
     document.querySelector('main').innerHTML = '<div class="block">Keine Sicherheitsdaten gefunden – bitte <code>python3 odoo/extract_security.py</code> ausführen.</div>';
   } else {
-    head(); overview(); privileged(); tree(); setupDirToggle(); rules(); findings(); setupNav();
+    head(); overview(); privileged(); tree(); setupDirToggle(); setupFilterToggle(); rules(); findings(); setupNav();
   }
 </script>
 </body>
