@@ -15,6 +15,7 @@ Start:  python3 odoo/webapp/app.py
 """
 import os
 import sys
+import time
 import hmac
 import hashlib
 import secrets
@@ -41,6 +42,20 @@ SCRIPTS = ["analyze.py", "extract_processes.py", "extract_technical.py",
 PAGES = ["index.html", "technik.html", "prozesse.html", "sicherheit.html", "advisor.html"]
 CTYPE = {".html": "text/html; charset=utf-8", ".js": "application/javascript; charset=utf-8",
          ".json": "application/json; charset=utf-8", ".css": "text/css"}
+
+SESSION_MAX_AGE = 14 * 86400          # Session-Ablauf: 14 Tage
+RL_WINDOW, RL_LIMIT = 600, 10         # max. 10 Auth-Versuche je IP / 10 min
+_rl = {}
+_rl_lock = threading.Lock()
+
+
+def error_page(title, msg):
+    return ("<!DOCTYPE html><meta charset='utf-8'><title>" + title + "</title>"
+            "<div style=\"font-family:'Segoe UI',system-ui,sans-serif;max-width:480px;margin:80px auto;"
+            "padding:24px;text-align:center;color:#2b2733\">"
+            "<h1 style='font-size:1.4rem;color:#714B67'>" + title + "</h1>"
+            "<p style='color:#8b8794;margin-top:8px'>" + msg + "</p>"
+            "<p style='margin-top:18px'><a href='/' style='color:#714B67'>Zur Startseite</a></p></div>")
 
 DATA.mkdir(parents=True, exist_ok=True)
 INSTANCES.mkdir(parents=True, exist_ok=True)
@@ -83,9 +98,19 @@ def user_by_session(token):
     if not token:
         return None
     with db() as con:
-        return con.execute(
-            "SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=?",
+        row = con.execute(
+            "SELECT u.*, s.created_at AS s_created FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=?",
             (token,)).fetchone()
+        if not row:
+            return None
+        try:
+            age = (datetime.now() - datetime.fromisoformat(row["s_created"])).total_seconds()
+        except Exception:
+            age = 0
+        if age > SESSION_MAX_AGE:
+            con.execute("DELETE FROM sessions WHERE token=?", (token,))
+            return None
+        return row
 
 
 def new_session(user_id):
@@ -279,7 +304,42 @@ class H(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length", 0))
         return {k: v[0] for k, v in parse_qs(self.rfile.read(n).decode("utf-8")).items()}
 
+    def _client_ip(self):
+        return self.headers.get("X-Real-IP") or self.client_address[0]
+
+    def _cookie(self, token=None, clear=False):
+        sec = "; Secure" if self.headers.get("X-Real-IP") else ""   # Secure nur hinter nginx/HTTPS
+        if clear:
+            return "sid=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax" + sec
+        return f"sid={token}; HttpOnly; Path=/; SameSite=Lax{sec}"
+
+    def _rate_limited(self):
+        ip, now = self._client_ip(), time.time()
+        with _rl_lock:
+            q = [t for t in _rl.get(ip, []) if now - t < RL_WINDOW]
+            q.append(now)
+            _rl[ip] = q
+            return len(q) > RL_LIMIT
+
+    def _safe500(self):
+        try:
+            self._send(500, error_page("Fehler", "Es ist ein interner Fehler aufgetreten."))
+        except Exception:
+            pass
+
     def do_GET(self):
+        try:
+            self.route_get()
+        except Exception:
+            self._safe500()
+
+    def do_POST(self):
+        try:
+            self.route_post()
+        except Exception:
+            self._safe500()
+
+    def route_get(self):
         path = urlparse(self.path).path
         user = self._user()
         if path == "/login":
@@ -301,15 +361,17 @@ class H(BaseHTTPRequestHandler):
             with db() as con:
                 own = con.execute("SELECT 1 FROM instances WHERE id=? AND user_id=?", (iid, user["id"])).fetchone()
             if not own:
-                return self._send(403, "kein Zugriff")
+                return self._send(403, error_page("Kein Zugriff", "Diese Instanz gehört nicht zu deinem Konto."))
             f = INSTANCES / iid / "report" / rel
             if not f.is_file():
                 return self._send(404, "Noch keine Analyse für diese Instanz.")
             return self._send(200, f.read_bytes(), CTYPE.get(f.suffix, "application/octet-stream"))
-        return self._send(404, "not found")
+        return self._send(404, error_page("Nicht gefunden", "Diese Seite existiert nicht."))
 
-    def do_POST(self):
+    def route_post(self):
         path = urlparse(self.path).path
+        if path in ("/login", "/register") and self._rate_limited():
+            return self._send(429, error_page("Zu viele Versuche", "Bitte in einigen Minuten erneut versuchen."))
         form = self._form()
         if path == "/register":
             email, pw = form.get("email", "").strip().lower(), form.get("password", "")
@@ -326,7 +388,7 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, AUTH.render(title="Registrieren", action="register",
                                   error="E-Mail ist bereits registriert.",
                                   alt='Schon ein Konto? <a href="login">Anmelden</a>'))
-            return self._redirect(".", cookie=f"sid={new_session(uid)}; HttpOnly; Path=/; SameSite=Lax")
+            return self._redirect(".", cookie=self._cookie(new_session(uid)))
         if path == "/login":
             email, pw = form.get("email", "").strip().lower(), form.get("password", "")
             with db() as con:
@@ -335,7 +397,7 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, AUTH.render(title="Anmelden", action="login",
                                   error="E-Mail oder Passwort falsch.",
                                   alt='Kein Konto? <a href="register">Registrieren</a>'))
-            return self._redirect(".", cookie=f"sid={new_session(u['id'])}; HttpOnly; Path=/; SameSite=Lax")
+            return self._redirect(".", cookie=self._cookie(new_session(u['id'])))
 
         user = self._user()
         if not user:
@@ -345,7 +407,7 @@ class H(BaseHTTPRequestHandler):
             if "sid" in c:
                 with db() as con:
                     con.execute("DELETE FROM sessions WHERE token=?", (c["sid"].value,))
-            return self._redirect("login", cookie="sid=; Path=/; Max-Age=0")
+            return self._redirect("login", cookie=self._cookie(clear=True))
         if path == "/add":
             with db() as con:
                 con.execute("INSERT INTO instances(user_id,name,url,db,login,created_at) VALUES(?,?,?,?,?,?)",
@@ -368,7 +430,7 @@ class H(BaseHTTPRequestHandler):
                 import shutil
                 shutil.rmtree(d, ignore_errors=True)
             return self._redirect()
-        return self._send(404, "not found")
+        return self._send(404, error_page("Nicht gefunden", "Diese Seite existiert nicht."))
 
 
 def dashboard_html(user):
