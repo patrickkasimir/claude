@@ -139,7 +139,7 @@
 <script>
   const S = window.ODOO_SECURITY;
   const esc = s => (s == null ? '' : String(s)).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-  const CAT_ORDER = ['Sales', 'Accounting', 'Human Resources', 'Services', 'Marketing', 'Productivity', 'Master Data', 'Website', 'Administration', 'Technisch / ohne Privileg', 'Ohne Kategorie'];
+  const CAT_ORDER = ['Organisationsrollen', 'Sales', 'Accounting', 'Human Resources', 'Services', 'Marketing', 'Productivity', 'Master Data', 'Website', 'Administration', 'Technisch / ohne Privileg', 'Ohne Kategorie'];
 
   function head() {
     const s = S.server, dt = new Date(S.generated_at);

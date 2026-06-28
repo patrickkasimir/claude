@@ -83,7 +83,7 @@ def main() -> int:
     priv_map = {}
     for p in sread("res.groups.privilege", [], fields=["name", "category_id"]):
         cat = p.get("category_id")
-        priv_map[p["id"]] = {"name": p.get("name"), "category": cat[1] if cat else "Ohne Kategorie"}
+        priv_map[p["id"]] = {"name": p.get("name"), "category": cat[1] if cat else (p.get("name") or "Ohne Kategorie")}
 
     # ---- OOTB vs. Custom: definierendes Modul je Gruppe (via XML-ID) ----
     grp_modules = {}
