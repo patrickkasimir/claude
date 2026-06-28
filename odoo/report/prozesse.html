@@ -125,8 +125,9 @@
     if (area === 'Vertrieb' && c.sale_templates) out.push(tagBlock('Angebotsvorlagen', 'sale.order.template', c.sale_templates));
     return out.join('');
   }
-  const tagBlock = (title, model, arr) =>
-    `<div class="block"><h3>${esc(title)}</h3><div class="meta">${esc(model)} · ${arr.length}</div>${arr.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div>`;
+  function tagBlock(title, model, arr) {
+    return `<div class="block"><h3>${esc(title)}</h3><div class="meta">${esc(model)} · ${arr.length}</div>${arr.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div>`;
+  }
 
   function areaContent(area) {
     let html = '';
