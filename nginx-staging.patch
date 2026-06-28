@@ -1,0 +1,11 @@
+# Füge diese Blöcke in /etc/nginx/sites-available/codetalk ein,
+# DIREKT VOR dem Block "location /claudeapps/ {"
+
+    location /claudeapps/staging/apppp/api/ {
+        proxy_pass http://127.0.0.1:3005/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+# Danach: sudo nginx -t && sudo systemctl reload nginx
