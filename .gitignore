@@ -16,3 +16,5 @@ odoo/report/technical.js
 odoo/report/technical.json
 odoo/report/security.js
 odoo/report/security.json
+odoo/report/advisor.js
+odoo/report/advisor.json
