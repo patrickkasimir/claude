@@ -92,12 +92,17 @@ def main() -> int:
     STUDIO_MODULES = ("studio_customization", "__custom__", "__export__")
 
     # ---- Gruppen (für Tree + Analyse) ----
-    grp_recs = pick("res.groups", [], ["name", "full_name", "privilege_id", "implied_ids", "comment", "user_ids", "all_user_ids"], order="id")
+    grp_recs = pick("res.groups", [], ["name", "full_name", "privilege_id", "category_id", "implied_ids", "comment", "user_ids", "all_user_ids"], order="id")
     id2name = {g["id"]: (g.get("full_name") or g.get("name")) for g in grp_recs}
     groups = []
     for g in grp_recs:
         pv = g.get("privilege_id")
         pinfo = priv_map.get(pv[0]) if pv else None
+        # Fallback: category_id direkt auf res.groups (OCA/Custom/ältere Module ohne privilege_id)
+        if not pinfo:
+            cat = g.get("category_id")
+            if cat:
+                pinfo = {"name": cat[1], "category": cat[1]}
         mod = grp_modules.get(g["id"])
         custom = (mod is None) or (mod in STUDIO_MODULES)
         groups.append({
