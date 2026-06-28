@@ -79,10 +79,11 @@ fi
 
 echo "== Schritt 5/5: Report-Dateien bereitstellen =="
 mkdir -p "$DEST"
-cp "$SRC/index.html" "$SRC/data.js" "$DEST/"
+cp "$SRC"/*.html "$DEST/" 2>/dev/null || true
+cp "$SRC"/*.js   "$DEST/" 2>/dev/null || true
 chown -R "$OWNER":"$OWNER" "$DEST"
 chmod -R a+rX "$DEST"
-echo "   -> Dateien kopiert."
+echo "   -> Dateien kopiert ($(ls "$SRC"/*.html "$SRC"/*.js 2>/dev/null | wc -l) Stück)."
 
 echo
 echo "FERTIG ✓"

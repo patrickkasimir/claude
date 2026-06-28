@@ -10,3 +10,5 @@ odoo/.env
 # Generierte Analyse-Daten (instanzspezifisch) – nicht committen
 odoo/report/data.js
 odoo/report/analysis.json
+odoo/report/processes.js
+odoo/report/processes.json
