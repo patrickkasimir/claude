@@ -364,15 +364,14 @@ TWOFA_LOGIN = JENV.from_string("""<div class="auth"><div class="card"><h2>Zwei-F
 
 IMPRESSUM = JENV.from_string("""<div class="card legal"><h2>Impressum</h2>
   <p><b>Angaben gemäß § 5 DDG / § 5 TMG</b></p>
-  <p>[FIRMENNAME]<br>[Straße Nr.]<br>[PLZ Ort]</p>
-  <h3>Vertreten durch</h3><p>[Geschäftsführer/Inhaber]</p>
-  <h3>Kontakt</h3><p>Telefon: [Tel]<br>E-Mail: [E-Mail]</p>
-  <h3>Umsatzsteuer-ID</h3><p>[USt-IdNr., falls vorhanden]</p>
-  <h3>Verantwortlich für den Inhalt</h3><p>[Name, Anschrift]</p>
-  <p class="muted" style="margin-top:16px">Hinweis: Platzhalter [..] mit echten Angaben füllen. Inhalte vor Veröffentlichung rechtlich prüfen lassen.</p></div>""")
+  <p>ViaAlia GmbH<br>Tulpenstr. 1<br>85053 Ingolstadt</p>
+  <h3>Vertreten durch</h3><p>Barbara Kasimir (Geschäftsführerin), Patrick Kasimir (Geschäftsführer)</p>
+  <h3>Kontakt</h3><p>Telefon: 016096498283<br>E-Mail: info@viaalia.de</p>
+  <h3>Verantwortlich für den Inhalt</h3><p>Patrick Kasimir, Tulpenstr. 1, 85053 Ingolstadt</p>
+</div>""")
 
 DATENSCHUTZ = JENV.from_string("""<div class="card legal"><h2>Datenschutzerklärung</h2>
-  <h3>1. Verantwortlicher</h3><p>[FIRMENNAME, Anschrift, E-Mail]. Datenschutzbeauftragter (falls bestellt): [..].</p>
+  <h3>1. Verantwortlicher</h3><p>ViaAlia GmbH, Tulpenstr. 1, 85053 Ingolstadt, info@viaalia.de.</p>
   <h3>2. Zweck &amp; verarbeitete Daten</h3>
   <p><b>Konto:</b> E-Mail und (gehashtes) Passwort zur Anmeldung. Rechtsgrundlage: Vertrag (Art. 6 Abs. 1 lit. b DSGVO).</p>
   <p><b>Hinterlegte Odoo-Instanzen:</b> Name, URL, Datenbank, Login. Der <b>API-Key wird nicht gespeichert</b> – er wird nur zur Laufzeit der Analyse verwendet.</p>
@@ -382,7 +381,7 @@ DATENSCHUTZ = JENV.from_string("""<div class="card legal"><h2>Datenschutzerklär
   <h3>5. Cookies</h3><p>Nur ein technisch notwendiges Session-Cookie (HttpOnly, Secure, SameSite) – kein Tracking.</p>
   <h3>6. Speicherdauer</h3><p>Konto-/Instanzdaten bis zur Löschung durch den Nutzer. Analysen können jederzeit gelöscht werden.</p>
   <h3>7. Ihre Rechte</h3><p>Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit, Widerspruch sowie Beschwerde bei einer Aufsichtsbehörde.</p>
-  <p class="muted" style="margin-top:16px">Hinweis: Vorlage mit Platzhaltern – vor Veröffentlichung rechtlich prüfen und vervollständigen lassen.</p></div>""")
+</div>""")
 
 
 def dashboard_html(user):
