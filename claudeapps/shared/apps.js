@@ -72,11 +72,11 @@ export const APPS = [
     category: "Finanzen",
   },
   {
-    id: "odoo-analyse",
-    title: "ODOO-ANALYSE",
+    id: "odoo-analyzer",
+    title: "ODOO-ANALYZER",
     icon: "🔎",
-    path: "/claudeapps/odoo-analyse/",
+    path: "/analyzer/",
     description: "Technische & fachliche Analyse der Odoo-Instanz – Login erforderlich",
-    category: "Intern",
+    category: "Tools",
   },
 ];
