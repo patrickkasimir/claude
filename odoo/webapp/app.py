@@ -45,6 +45,7 @@ DATA = WEBAPP / "data"
 INSTANCES = DATA / "instances"
 DB = DATA / "app.db"
 BASE_URL = os.environ.get("APP_BASE_URL", "https://backend.kasimir.info/analyzer").rstrip("/")
+BASE = os.environ.get("BASE_PATH", "").rstrip("/")   # nginx-Unterpfad, z.B. /analyzer (für ausgehende Links)
 
 SCRIPTS = ["analyze.py", "extract_processes.py", "extract_technical.py",
            "extract_security.py", "extract_modules.py", "advisor.py"]
@@ -270,7 +271,8 @@ def shell(title, inner, user=None):
     if user:
         hdr += f'<div class="u">{html.escape(user["email"])} <a href="/account">Konto</a> <form method="post" action="/logout" style="display:inline"><button class="btn s" style="padding:4px 10px">Logout</button></form></div>'
     hdr += "</header>"
-    return f"<!DOCTYPE html><html lang='de'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Odoo-Analyzer · {title}</title>{CSS}</head><body>{hdr}<main>{inner}</main>{FOOTER}</body></html>"
+    page = f"<!DOCTYPE html><html lang='de'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Odoo-Analyzer · {title}</title>{CSS}</head><body>{hdr}<main>{inner}</main>{FOOTER}</body></html>"
+    return page.replace('href="/', f'href="{BASE}/').replace('action="/', f'action="{BASE}/') if BASE else page
 
 
 def error_page(title, msg):
@@ -402,6 +404,8 @@ class H(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _redirect(self, to=".", cookie=None):
+        if to.startswith("/"):
+            to = BASE + to
         self.send_response(303)
         self.send_header("Location", to)
         if cookie:
