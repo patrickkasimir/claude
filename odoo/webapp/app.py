@@ -23,6 +23,8 @@ import sys
 import time
 import html
 import hmac
+import base64
+import struct
 import hashlib
 import secrets
 import sqlite3
@@ -32,7 +34,7 @@ from datetime import datetime
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http.cookies import SimpleCookie
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 
 from jinja2 import Environment
 
@@ -66,7 +68,12 @@ def db():
 
 with db() as con:
     con.execute("""CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL, pwhash TEXT NOT NULL, verified INTEGER DEFAULT 0, created_at TEXT)""")
+        email TEXT UNIQUE NOT NULL, pwhash TEXT NOT NULL, verified INTEGER DEFAULT 0,
+        totp_secret TEXT, created_at TEXT)""")
+    try:
+        con.execute("ALTER TABLE users ADD COLUMN totp_secret TEXT")   # Migration für bestehende DBs
+    except sqlite3.OperationalError:
+        pass
     con.execute("""CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, user_id INTEGER, created_at TEXT)""")
     con.execute("""CREATE TABLE IF NOT EXISTS tokens(token TEXT PRIMARY KEY, user_id INTEGER, kind TEXT, created_at TEXT)""")
     con.execute("""CREATE TABLE IF NOT EXISTS instances(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
@@ -85,6 +92,25 @@ def verify_pw(pw, stored):
         return hmac.compare_digest(stored, hash_pw(pw, bytes.fromhex(salt_hex)))
     except Exception:
         return False
+
+
+def new_totp_secret():
+    return base64.b32encode(secrets.token_bytes(20)).decode().rstrip("=")
+
+
+def totp_at(secret, t):
+    key = base64.b32decode(secret + "=" * (-len(secret) % 8), casefold=True)
+    h = hmac.new(key, struct.pack(">Q", int(t // 30)), hashlib.sha1).digest()
+    o = h[-1] & 0x0f
+    return str((struct.unpack(">I", h[o:o + 4])[0] & 0x7fffffff) % 1000000).zfill(6)
+
+
+def verify_totp(secret, code):
+    code = (code or "").strip().replace(" ", "")
+    if not (secret and code.isdigit()):
+        return False
+    now = time.time()
+    return any(hmac.compare_digest(totp_at(secret, now + d * 30), code) for d in (-1, 0, 1))
 
 
 def user_by_session(token):
@@ -291,7 +317,12 @@ ACCOUNT = JENV.from_string("""<div class="card"><h2>Konto</h2><p class="muted">A
   <form method="post" action="/account" style="max-width:360px">
     <label>Aktuelles Passwort</label><input name="current" type="password" required>
     <label>Neues Passwort</label><input name="new" type="password" minlength="8" required>
-    <button class="btn p" style="margin-top:12px">Ändern</button></form></div>""")
+    <button class="btn p" style="margin-top:12px">Ändern</button></form></div>
+<div class="card"><h2>Zwei-Faktor-Authentifizierung (2FA)</h2>
+{% if user.totp_secret %}<p class="muted">Status: <b style="color:#2f8f63">aktiv</b>.</p>
+  <form method="post" action="/2fa/disable" style="max-width:360px;margin-top:10px"><label>Passwort zum Deaktivieren</label><input name="password" type="password" required><button class="btn d" style="margin-top:10px">2FA deaktivieren</button></form>
+{% else %}<p class="muted">Status: nicht aktiv. Schütze dein Konto zusätzlich mit einer Authenticator-App.</p>
+  <p style="margin-top:10px"><a class="btn p" href="/2fa/setup">2FA einrichten</a></p>{% endif %}</div>""")
 
 EDIT = JENV.from_string("""<div class="card"><h2>Instanz bearbeiten</h2>
   <form class="grid" method="post" action="/edit"><input type="hidden" name="id" value="{{ r.id }}">
@@ -299,6 +330,26 @@ EDIT = JENV.from_string("""<div class="card"><h2>Instanz bearbeiten</h2>
     <div><label>Datenbank</label><input name="db" value="{{ r.db }}" required></div><div><label>Login</label><input name="login" value="{{ r.login }}" required></div>
     <div><button class="btn p" style="width:100%">Speichern</button></div></form>
   <p style="margin-top:12px"><a class="btn s" href="/">Zurück</a></p></div>""")
+
+TWOFA_SETUP = JENV.from_string("""<div class="card"><h2>Zwei-Faktor-Authentifizierung einrichten</h2>
+  <p>Scanne den QR-Code mit einer Authenticator-App (z. B. Google Authenticator, Authy) – oder gib den Schlüssel manuell ein.</p>
+  <div id="qr" style="margin:16px 0"></div>
+  <p class="muted">Schlüssel: <span class="mono">{{ secret }}</span></p>
+  {% if msg %}<div class="msg e">{{ msg }}</div>{% endif %}
+  <form method="post" action="/2fa/enable" style="max-width:300px;margin-top:6px">
+    <input type="hidden" name="secret" value="{{ secret }}">
+    <label>6-stelliger Code aus der App</label><input name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required>
+    <button class="btn p" style="margin-top:10px">Aktivieren</button></form>
+  <p style="margin-top:12px"><a class="btn s" href="/account">Abbrechen</a></p>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>new QRCode(document.getElementById('qr'),{text:{{ otpauth|tojson }},width:172,height:172});</script></div>""")
+
+TWOFA_LOGIN = JENV.from_string("""<div class="auth"><div class="card"><h2>Zwei-Faktor-Code</h2>
+  {% if msg %}<div class="msg e">{{ msg }}</div>{% endif %}
+  <form method="post" action="/2fa/verify"><input type="hidden" name="token" value="{{ token }}">
+    <label>6-stelliger Code aus deiner App</label><input name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autofocus required>
+    <button class="btn p" style="width:100%;margin-top:10px">Anmelden</button></form>
+  <div class="alt"><a href="/login">Abbrechen</a></div></div></div>""")
 
 IMPRESSUM = JENV.from_string("""<div class="card legal"><h2>Impressum</h2>
   <p><b>Angaben gemäß § 5 DDG / § 5 TMG</b></p>
@@ -428,12 +479,18 @@ class H(BaseHTTPRequestHandler):
                     con.execute("UPDATE users SET verified=1 WHERE id=?", (uid,))
             return self._send(200, error_page("E-Mail bestätigt" if uid else "Link ungültig",
                 "Danke, deine E-Mail ist bestätigt." if uid else "Der Bestätigungslink ist ungültig oder abgelaufen."))
+        if path == "/2fa":
+            return self._send(200, shell("2FA", TWOFA_LOGIN.render(token=(query.get("token") or [""])[0], msg=None)))
         if path == "/":
             return self._send(200, dashboard_html(user)) if user else self._send(200, shell("Start", LANDING.render(flow=FLOW_SVG)))
         if not user:
             return self._redirect("/login")
         if path == "/account":
             return self._send(200, shell("Konto", ACCOUNT.render(user=user, msg=None), user))
+        if path == "/2fa/setup":
+            secret = new_totp_secret()
+            otpauth = f"otpauth://totp/Odoo-Analyzer:{quote(user['email'])}?secret={secret}&issuer=Odoo-Analyzer&digits=6&period=30"
+            return self._send(200, shell("2FA einrichten", TWOFA_SETUP.render(secret=secret, otpauth=otpauth, msg=None), user))
         if path == "/edit":
             iid = (query.get("id") or [""])[0]
             with db() as con:
@@ -459,7 +516,7 @@ class H(BaseHTTPRequestHandler):
 
     def route_post(self):
         path = urlparse(self.path).path
-        if path in ("/login", "/register", "/forgot") and self._rate_limited():
+        if path in ("/login", "/register", "/forgot", "/2fa/verify") and self._rate_limited():
             return self._send(429, error_page("Zu viele Versuche", "Bitte in einigen Minuten erneut versuchen."))
         form = self._form()
 
@@ -484,6 +541,8 @@ class H(BaseHTTPRequestHandler):
             if not u or not verify_pw(pw, u["pwhash"]):
                 return self._send(200, shell("Anmelden", AUTH.render(title="Anmelden", action="/login", msg="E-Mail oder Passwort falsch.", msgtype="e",
                     fields=[{"label": "E-Mail", "name": "email", "type": "email", "required": 1}, {"label": "Passwort", "name": "password", "type": "password", "required": 1}], alt='Kein Konto? <a href="/register">Registrieren</a> · <a href="/forgot">Passwort vergessen?</a>')))
+            if u["totp_secret"]:
+                return self._send(200, shell("2FA", TWOFA_LOGIN.render(token=make_token(u["id"], "2fa_login"), msg=None)))
             return self._redirect("/", cookie=self._cookie(new_session(u["id"])))
 
         if path == "/forgot":
@@ -505,6 +564,21 @@ class H(BaseHTTPRequestHandler):
                 con.execute("UPDATE users SET pwhash=? WHERE id=?", (hash_pw(pw), uid))
                 con.execute("DELETE FROM sessions WHERE user_id=?", (uid,))
             return self._send(200, error_page("Passwort geändert", "Dein Passwort wurde gesetzt. Du kannst dich jetzt anmelden."))
+
+        if path == "/2fa/verify":
+            tok, code = form.get("token", ""), form.get("code", "")
+            with db() as con:
+                row = con.execute("SELECT * FROM tokens WHERE token=? AND kind='2fa_login'", (tok,)).fetchone()
+            ok_age = bool(row) and (datetime.now() - datetime.fromisoformat(row["created_at"])).total_seconds() < 300
+            if not ok_age:
+                return self._send(200, error_page("Abgelaufen", "Bitte erneut anmelden."))
+            with db() as con:
+                u = con.execute("SELECT * FROM users WHERE id=?", (row["user_id"],)).fetchone()
+            if u and verify_totp(u["totp_secret"], code):
+                with db() as con:
+                    con.execute("DELETE FROM tokens WHERE token=?", (tok,))
+                return self._redirect("/", cookie=self._cookie(new_session(u["id"])))
+            return self._send(200, shell("2FA", TWOFA_LOGIN.render(token=tok, msg="Code falsch – bitte erneut.")))
 
         user = self._user()
         if not user:
@@ -529,6 +603,19 @@ class H(BaseHTTPRequestHandler):
             with db() as con:
                 con.execute("UPDATE users SET pwhash=? WHERE id=?", (hash_pw(new), user["id"]))
             return self._send(200, shell("Konto", ACCOUNT.render(user=user, msg="Passwort geändert.", msgtype="i"), user))
+        if path == "/2fa/enable":
+            secret, code = form.get("secret", ""), form.get("code", "")
+            if verify_totp(secret, code):
+                with db() as con:
+                    con.execute("UPDATE users SET totp_secret=? WHERE id=?", (secret, user["id"]))
+                return self._redirect("/account")
+            otpauth = f"otpauth://totp/Odoo-Analyzer:{quote(user['email'])}?secret={secret}&issuer=Odoo-Analyzer&digits=6&period=30"
+            return self._send(200, shell("2FA einrichten", TWOFA_SETUP.render(secret=secret, otpauth=otpauth, msg="Code falsch – bitte erneut versuchen."), user))
+        if path == "/2fa/disable":
+            if verify_pw(form.get("password", ""), user["pwhash"]):
+                with db() as con:
+                    con.execute("UPDATE users SET totp_secret=NULL WHERE id=?", (user["id"],))
+            return self._redirect("/account")
         if path == "/add":
             with db() as con:
                 con.execute("INSERT INTO instances(user_id,name,url,db,login,created_at) VALUES(?,?,?,?,?,?)",
