@@ -69,6 +69,39 @@ JENV = Environment(autoescape=True)
 DATA.mkdir(parents=True, exist_ok=True)
 INSTANCES.mkdir(parents=True, exist_ok=True)
 
+MASTER_KEY_FILE = DATA / ".master_key"
+
+
+def _get_master_key():
+    if not MASTER_KEY_FILE.exists():
+        key = secrets.token_bytes(32)
+        MASTER_KEY_FILE.write_bytes(key)
+        os.chmod(MASTER_KEY_FILE, 0o600)
+    return MASTER_KEY_FILE.read_bytes()
+
+
+def encrypt_totp_secret(secret):
+    master = _get_master_key()
+    salt = secrets.token_bytes(16)
+    raw = secret.encode()
+    key = hashlib.pbkdf2_hmac("sha256", master, salt, 1, dklen=len(raw))
+    ct = bytes(a ^ b for a, b in zip(raw, key))
+    mac = hmac.new(master, salt + ct, hashlib.sha256).digest()
+    return "enc1:" + base64.b64encode(salt + mac + ct).decode()
+
+
+def decrypt_totp_secret(stored):
+    if not stored or not stored.startswith("enc1:"):
+        return stored  # plaintext (form value or pre-encryption legacy)
+    master = _get_master_key()
+    data = base64.b64decode(stored[5:])
+    salt, mac, ct = data[:16], data[16:48], data[48:]
+    expected = hmac.new(master, salt + ct, hashlib.sha256).digest()
+    if not hmac.compare_digest(mac, expected):
+        raise ValueError("TOTP secret integrity check failed")
+    key = hashlib.pbkdf2_hmac("sha256", master, salt, 1, dklen=len(ct))
+    return bytes(a ^ b for a, b in zip(ct, key)).decode()
+
 
 def db():
     con = sqlite3.connect(DB)
@@ -88,6 +121,39 @@ with db() as con:
     con.execute("""CREATE TABLE IF NOT EXISTS tokens(token TEXT PRIMARY KEY, user_id INTEGER, kind TEXT, created_at TEXT)""")
     con.execute("""CREATE TABLE IF NOT EXISTS instances(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
         name TEXT, url TEXT, db TEXT, login TEXT, created_at TEXT, last_run TEXT, last_status TEXT)""")
+    con.execute("""CREATE TABLE IF NOT EXISTS recovery_codes(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        code_hash TEXT NOT NULL,
+        created_at TEXT)""")
+    # Migrate plaintext TOTP secrets to encrypted form
+    for u in con.execute("SELECT id, totp_secret FROM users WHERE totp_secret IS NOT NULL AND totp_secret NOT LIKE 'enc1:%'").fetchall():
+        con.execute("UPDATE users SET totp_secret=? WHERE id=?", (encrypt_totp_secret(u["totp_secret"]), u["id"]))
+
+
+# ───────── Recovery Codes ─────────
+def _hash_recovery(code):
+    return hashlib.sha256(code.replace("-", "").upper().encode()).hexdigest()
+
+
+def generate_recovery_codes(con, user_id):
+    con.execute("DELETE FROM recovery_codes WHERE user_id=?", (user_id,))
+    codes = [secrets.token_hex(5).upper() + "-" + secrets.token_hex(5).upper() for _ in range(8)]
+    now = datetime.now().isoformat()
+    for code in codes:
+        con.execute("INSERT INTO recovery_codes(user_id,code_hash,created_at) VALUES(?,?,?)",
+                    (user_id, _hash_recovery(code), now))
+    return codes
+
+
+def verify_and_consume_recovery_code(user_id, code):
+    h = _hash_recovery(code)
+    with db() as con:
+        row = con.execute("SELECT id FROM recovery_codes WHERE user_id=? AND code_hash=?", (user_id, h)).fetchone()
+        if not row:
+            return False
+        con.execute("DELETE FROM recovery_codes WHERE id=?", (row["id"],))
+    return True
 
 
 # ───────── Auth / Token / Mail ─────────
@@ -115,10 +181,11 @@ def totp_at(secret, t):
     return str((struct.unpack(">I", h[o:o + 4])[0] & 0x7fffffff) % 1000000).zfill(6)
 
 
-def verify_totp(secret, code):
+def verify_totp(stored_secret, code):
     code = (code or "").strip().replace(" ", "")
-    if not (secret and code.isdigit()):
+    if not (stored_secret and code.isdigit()):
         return False
+    secret = decrypt_totp_secret(stored_secret)
     now = time.time()
     return any(hmac.compare_digest(totp_at(secret, now + d * 30), code) for d in (-1, 0, 1))
 
@@ -331,6 +398,7 @@ ACCOUNT = JENV.from_string("""<div class="card"><h2>Konto</h2><p class="muted">A
     <button class="btn p" style="margin-top:12px">Ändern</button></form></div>
 <div class="card"><h2>Zwei-Faktor-Authentifizierung (2FA)</h2>
 {% if user.totp_secret %}<p class="muted">Status: <b style="color:#2f8f63">aktiv</b>.</p>
+  <form method="post" action="/2fa/regen-recovery" style="max-width:360px;margin-top:10px"><label>Passwort zum Generieren neuer Recovery-Codes</label><input name="password" type="password" required><button class="btn s" style="margin-top:10px">Recovery-Codes neu generieren</button></form>
   <form method="post" action="/2fa/disable" style="max-width:360px;margin-top:10px"><label>Passwort zum Deaktivieren</label><input name="password" type="password" required><button class="btn d" style="margin-top:10px">2FA deaktivieren</button></form>
 {% else %}<p class="muted">Status: nicht aktiv. Schütze dein Konto zusätzlich mit einer Authenticator-App.</p>
   <p style="margin-top:10px"><a class="btn p" href="/2fa/setup">2FA einrichten</a></p>{% endif %}</div>""")
@@ -360,7 +428,23 @@ TWOFA_LOGIN = JENV.from_string("""<div class="auth"><div class="card"><h2>Zwei-F
   <form method="post" action="/2fa/verify"><input type="hidden" name="token" value="{{ token }}">
     <label>6-stelliger Code aus deiner App</label><input name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autofocus required>
     <button class="btn p" style="width:100%;margin-top:10px">Anmelden</button></form>
-  <div class="alt"><a href="/login">Abbrechen</a></div></div></div>""")
+  <div class="alt"><a href="/2fa/recover?token={{ token }}">Recovery-Code verwenden</a> · <a href="/login">Abbrechen</a></div></div></div>""")
+
+TWOFA_RECOVER = JENV.from_string("""<div class="auth"><div class="card"><h2>Recovery-Code</h2>
+  <p class="muted">Gib einen deiner Recovery-Codes ein (Format: XXXXX-XXXXX).</p>
+  {% if msg %}<div class="msg e">{{ msg }}</div>{% endif %}
+  <form method="post" action="/2fa/recover">
+    <input type="hidden" name="token" value="{{ token }}">
+    <label>Recovery-Code</label><input name="code" autocomplete="off" autofocus required placeholder="XXXXX-XXXXX" style="font-family:monospace;letter-spacing:.1em">
+    <button class="btn p" style="width:100%;margin-top:10px">Anmelden</button></form>
+  <div class="alt"><a href="/2fa?token={{ token }}">Zurück zum Code-Eingabe</a> · <a href="/login">Abbrechen</a></div></div></div>""")
+
+RECOVERY_CODES_SHOW = JENV.from_string("""<div class="card"><h2>Recovery-Codes</h2>
+  <div class="msg i" style="margin-bottom:16px"><b>Wichtig:</b> Speichere diese 8 Codes sicher (z.&nbsp;B. Passwort-Manager). Jeder Code kann einmalig verwendet werden, wenn du keinen Zugriff auf deine Authenticator-App hast. Die Codes werden <b>nicht erneut angezeigt</b>.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:360px;margin-bottom:20px">
+    {% for code in codes %}<div class="mono" style="background:#f5f5f5;padding:8px 12px;border-radius:6px;font-size:1.05rem;letter-spacing:.05em">{{ code }}</div>{% endfor %}
+  </div>
+  <a class="btn p" href="/account">Verstanden, weiter</a></div>""")
 
 IMPRESSUM = JENV.from_string("""<div class="card legal"><h2>Impressum</h2>
   <p><b>Angaben gemäß § 5 DDG / § 5 TMG</b></p>
@@ -493,6 +577,9 @@ class H(BaseHTTPRequestHandler):
                 "Danke, deine E-Mail ist bestätigt." if uid else "Der Bestätigungslink ist ungültig oder abgelaufen."))
         if path == "/2fa":
             return self._send(200, shell("2FA", TWOFA_LOGIN.render(token=(query.get("token") or [""])[0], msg=None)))
+        if path == "/2fa/recover":
+            tok = (query.get("token") or [""])[0]
+            return self._send(200, shell("Recovery-Code", TWOFA_RECOVER.render(token=tok, msg=None)))
         if path == "/":
             return self._send(200, dashboard_html(user)) if user else self._send(200, shell("Start", LANDING.render(flow=FLOW_SVG)))
         if not user:
@@ -528,7 +615,7 @@ class H(BaseHTTPRequestHandler):
 
     def route_post(self):
         path = urlparse(self.path).path
-        if path in ("/login", "/register", "/forgot", "/2fa/verify") and self._rate_limited():
+        if path in ("/login", "/register", "/forgot", "/2fa/verify", "/2fa/recover") and self._rate_limited():
             return self._send(429, error_page("Zu viele Versuche", "Bitte in einigen Minuten erneut versuchen."))
         form = self._form()
 
@@ -592,6 +679,19 @@ class H(BaseHTTPRequestHandler):
                 return self._redirect("/", cookie=self._cookie(new_session(u["id"])))
             return self._send(200, shell("2FA", TWOFA_LOGIN.render(token=tok, msg="Code falsch – bitte erneut.")))
 
+        if path == "/2fa/recover":
+            tok, code = form.get("token", ""), form.get("code", "").strip().upper()
+            with db() as con:
+                row = con.execute("SELECT * FROM tokens WHERE token=? AND kind='2fa_login'", (tok,)).fetchone()
+            ok_age = bool(row) and (datetime.now() - datetime.fromisoformat(row["created_at"])).total_seconds() < 300
+            if not ok_age:
+                return self._send(200, error_page("Abgelaufen", "Bitte erneut anmelden."))
+            if verify_and_consume_recovery_code(row["user_id"], code):
+                with db() as con:
+                    con.execute("DELETE FROM tokens WHERE token=?", (tok,))
+                return self._redirect("/", cookie=self._cookie(new_session(row["user_id"])))
+            return self._send(200, shell("Recovery-Code", TWOFA_RECOVER.render(token=tok, msg="Ungültiger Code – bitte erneut versuchen.")))
+
         user = self._user()
         if not user:
             return self._redirect("/login")
@@ -619,15 +719,25 @@ class H(BaseHTTPRequestHandler):
             secret, code = form.get("secret", ""), form.get("code", "")
             if verify_totp(secret, code):
                 with db() as con:
-                    con.execute("UPDATE users SET totp_secret=? WHERE id=?", (secret, user["id"]))
-                return self._redirect("/account")
+                    con.execute("UPDATE users SET totp_secret=? WHERE id=?", (encrypt_totp_secret(secret), user["id"]))
+                    codes = generate_recovery_codes(con, user["id"])
+                return self._send(200, shell("Recovery-Codes", RECOVERY_CODES_SHOW.render(codes=codes), user))
             otpauth = f"otpauth://totp/Odoo-Analyzer:{quote(user['email'])}?secret={secret}&issuer=Odoo-Analyzer&digits=6&period=30"
             return self._send(200, shell("2FA einrichten", TWOFA_SETUP.render(secret=secret, otpauth=otpauth, msg="Code falsch – bitte erneut versuchen."), user))
         if path == "/2fa/disable":
             if verify_pw(form.get("password", ""), user["pwhash"]):
                 with db() as con:
                     con.execute("UPDATE users SET totp_secret=NULL WHERE id=?", (user["id"],))
+                    con.execute("DELETE FROM recovery_codes WHERE user_id=?", (user["id"],))
             return self._redirect("/account")
+        if path == "/2fa/regen-recovery":
+            if not user["totp_secret"]:
+                return self._redirect("/account")
+            if not verify_pw(form.get("password", ""), user["pwhash"]):
+                return self._send(200, shell("Konto", ACCOUNT.render(user=user, msg="Passwort falsch.", msgtype="e"), user))
+            with db() as con:
+                codes = generate_recovery_codes(con, user["id"])
+            return self._send(200, shell("Recovery-Codes", RECOVERY_CODES_SHOW.render(codes=codes), user))
         if path == "/add":
             with db() as con:
                 con.execute("INSERT INTO instances(user_id,name,url,db,login,created_at) VALUES(?,?,?,?,?,?)",
