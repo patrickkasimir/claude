@@ -114,19 +114,17 @@ def main() -> int:
         })
 
     # ---- Privilegierte Benutzer ----
-    def members(xmlname):
+    # Datenminimierung: nur Anzahl privilegierter Benutzer, KEINE Namen/E-Mails
+    def member_count(xmlname):
         gid = group_id(xmlname)
         if not gid:
-            return []
+            return 0
         rec = sread("res.groups", [["id", "=", gid]], fields=["all_user_ids"])
-        ids = rec[0]["all_user_ids"] if rec else []
-        if not ids:
-            return []
-        return [f"{u.get('name')} ({u.get('login')})" for u in sread("res.users", [["id", "in", ids]], fields=["name", "login"])]
+        return len(rec[0]["all_user_ids"]) if rec else 0
 
     privileged = {
-        "Einstellungen / Administration (group_system)": members("group_system"),
-        "Administration: Zugriffsrechte (group_erp_manager)": members("group_erp_manager"),
+        "Einstellungen / Administration (group_system)": member_count("group_system"),
+        "Administration: Zugriffsrechte (group_erp_manager)": member_count("group_erp_manager"),
     }
 
     # ---- Benutzer-Kennzahlen ----
@@ -184,7 +182,7 @@ def main() -> int:
     cats = len({g["category"] for g in groups})
     print("Sicherheits-Analyse geschrieben →", out / "security.js")
     print(f"  Gruppen          : {len(groups)} in {cats} Kategorien")
-    print(f"  Privilegiert     : " + ", ".join(f"{k.split(' (')[0]}={len(v)}" for k, v in privileged.items()))
+    print(f"  Privilegiert     : " + ", ".join(f"{k.split(' (')[0]}={v}" for k, v in privileged.items()))
     print(f"  Benutzer         : intern {users['internal_active']}, portal {users['portal_external']}, 2FA {users['with_2fa']}")
     print(f"  Zugriffsrechte   : {access_total} | Regeln {rule_total} (global {rule_global}, broad {len(broad)})")
     print(f"  Custom o. Rechte : {len(models_without_access)}")

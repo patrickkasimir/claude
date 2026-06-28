@@ -52,7 +52,7 @@ def main() -> int:
     users = S.get("users", {})
     intN = users.get("internal_active") or 0
     priv = S.get("privileged", {})
-    privN = max((len(v) for v in priv.values()), default=0)
+    privN = max((v for v in priv.values()), default=0)
     if intN and privN:
         ratio = privN / intN
         if privN == intN and intN > 1:

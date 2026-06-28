@@ -151,8 +151,7 @@
 
   function privCount() {
     const p = S.privileged || {};
-    const first = Object.values(p)[0] || [];
-    return first.length;
+    return Math.max(0, ...Object.values(p).map(v => +v || 0));
   }
 
   function overview() {
@@ -174,8 +173,8 @@
 
   function privileged() {
     const p = S.privileged || {};
-    document.getElementById('priv-b').innerHTML = Object.entries(p).map(([grp, users]) =>
-      `<div class="block"><h3>${esc(grp)} · ${users.length}</h3>${users.length ? users.map(x => `<span class="tag danger">${esc(x)}</span>`).join('') : '<span class="muted">niemand</span>'}</div>`).join('');
+    document.getElementById('priv-b').innerHTML = Object.entries(p).map(([grp, count]) =>
+      `<div class="block"><h3>${esc(grp)}</h3>${count ? `<span class="tag danger">${count} Benutzer</span>` : '<span class="muted">niemand</span>'}</div>`).join('');
   }
 
   let TREE_DIR = 'contains';

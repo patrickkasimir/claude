@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """Odoo-Analyzer – MVP-Web-App (Phase 1, single-user).
 
-Erfasst Odoo-Instanzen, fährt je Instanz die Analyse (unsere Extraktoren +
-Advisor) und zeigt die Report-Seiten pro Instanz an.
+Erfasst Odoo-Instanzen (Stammdaten OHNE Key), fährt je Instanz die Analyse
+und zeigt die Report-Seiten pro Instanz an.
 
-- Standardbibliothek (http.server) + jinja2 + cryptography (Fernet) + sqlite3
-- API-Keys werden VERSCHLÜSSELT gespeichert (Fernet, Schlüssel in data/secret.key)
-- Bindet nur an 127.0.0.1 -> öffentlicher Zugriff später über nginx (Basic-Auth/TLS)
+Datenschutz by design:
+- Der API-Key wird NICHT gespeichert. Er wird pro Analyse eingegeben,
+  nur zur Laufzeit verwendet und danach verworfen.
+- Es werden nur Stammdaten (Name, URL, DB, Login) gespeichert.
+
+Stack: Standardbibliothek (http.server) + jinja2 + sqlite3 (kein pip nötig).
+Bindet nur an 127.0.0.1 -> öffentlicher Zugriff über nginx (Basic-Auth/TLS).
 
 Start:  python3 odoo/webapp/app.py
 """
 import os
 import sys
-import json
 import sqlite3
 import threading
 import subprocess
@@ -21,16 +24,14 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-from cryptography.fernet import Fernet
 from jinja2 import Template
 
 HOST, PORT = "127.0.0.1", 3010
 WEBAPP = Path(__file__).resolve().parent
-ODOO = WEBAPP.parent                      # Verzeichnis mit den Extraktoren
+ODOO = WEBAPP.parent
 DATA = WEBAPP / "data"
 INSTANCES = DATA / "instances"
 DB = DATA / "app.db"
-SECRET = DATA / "secret.key"
 
 SCRIPTS = ["analyze.py", "extract_processes.py", "extract_technical.py",
            "extract_security.py", "extract_modules.py", "advisor.py"]
@@ -40,10 +41,6 @@ CTYPE = {".html": "text/html; charset=utf-8", ".js": "application/javascript; ch
 
 DATA.mkdir(parents=True, exist_ok=True)
 INSTANCES.mkdir(parents=True, exist_ok=True)
-if not SECRET.exists():
-    SECRET.write_bytes(Fernet.generate_key())
-    SECRET.chmod(0o600)
-fernet = Fernet(SECRET.read_bytes())
 
 
 def db():
@@ -56,10 +53,11 @@ with db() as con:
     con.execute("""CREATE TABLE IF NOT EXISTS instances (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL, url TEXT NOT NULL, db TEXT NOT NULL, login TEXT NOT NULL,
-        key_enc TEXT NOT NULL, created_at TEXT, last_run TEXT, last_status TEXT)""")
+        created_at TEXT, last_run TEXT, last_status TEXT)""")
 
 
-def run_analysis(inst_id):
+def run_analysis(inst_id, api_key):
+    """Analyse mit transientem Key. Der Key wird NICHT gespeichert."""
     with db() as con:
         row = con.execute("SELECT * FROM instances WHERE id=?", (inst_id,)).fetchone()
         if not row:
@@ -68,26 +66,55 @@ def run_analysis(inst_id):
     out = INSTANCES / str(inst_id) / "report"
     out.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ)
-    env.update({
-        "ODOO_URL": row["url"], "ODOO_DB": row["db"], "ODOO_USER": row["login"],
-        "ODOO_API_KEY": fernet.decrypt(row["key_enc"].encode()).decode(),
-        "ODOO_OUT_DIR": str(out),
-    })
+    env.update({"ODOO_URL": row["url"], "ODOO_DB": row["db"], "ODOO_USER": row["login"],
+                "ODOO_API_KEY": api_key, "ODOO_OUT_DIR": str(out)})
     status = "ok"
     try:
         for s in SCRIPTS:
             r = subprocess.run([sys.executable, str(ODOO / s)], env=env,
                                capture_output=True, text=True, timeout=300)
             if r.returncode != 0:
-                status = f"Fehler in {s}: " + (r.stdout + r.stderr).strip().splitlines()[-1][:120]
+                tail = (r.stdout + r.stderr).strip().splitlines()
+                status = f"Fehler in {s}: " + (tail[-1][:120] if tail else "unbekannt")
                 break
-        for p in PAGES:                       # Report-Seiten in den Instanz-Ordner kopieren
+        for p in PAGES:
             (out / p).write_text((ODOO / "report" / p).read_text(encoding="utf-8"), encoding="utf-8")
     except Exception as e:
         status = f"Fehler: {e}"
+    finally:
+        api_key = None  # Key verwerfen
     with db() as con:
         con.execute("UPDATE instances SET last_run=?, last_status=? WHERE id=?",
                     (datetime.now().strftime("%d.%m.%Y %H:%M"), status, inst_id))
+
+
+FLOW_SVG = """<svg viewBox="0 0 780 330" width="100%" style="max-width:780px" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Datenfluss zwischen Nutzer, Ionos-Server, Kundeninstanz und optionalem KI-Modell">
+<defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#714B67"/></marker>
+<marker id="arm" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#8b8794"/></marker></defs>
+<rect x="24" y="112" width="150" height="72" rx="12" fill="#fff" stroke="#e7e3ec"/>
+<text x="99" y="142" text-anchor="middle" font-size="14" font-weight="600" fill="#2b2733">Nutzer</text>
+<text x="99" y="162" text-anchor="middle" font-size="12" fill="#8b8794">Browser</text>
+<rect x="298" y="80" width="214" height="134" rx="14" fill="#f0e9ef" stroke="#d9c9d4"/>
+<text x="405" y="104" text-anchor="middle" font-size="14" font-weight="600" fill="#714B67">Ionos-Server (EU / DE)</text>
+<text x="405" y="124" text-anchor="middle" font-size="12" fill="#5f5e5a">Analyzer-App · Datenbank</text>
+<line x1="318" y1="138" x2="492" y2="138" stroke="#e7e3ec"/>
+<text x="405" y="158" text-anchor="middle" font-size="11" fill="#5f5e5a">speichert: Name · URL · DB · Login</text>
+<text x="405" y="178" text-anchor="middle" font-size="11" font-weight="600" fill="#b14">speichert NICHT: API-Key</text>
+<rect x="628" y="112" width="128" height="72" rx="12" fill="#fff" stroke="#e7e3ec"/>
+<text x="692" y="142" text-anchor="middle" font-size="14" font-weight="600" fill="#2b2733">Kunden-Odoo</text>
+<text x="692" y="162" text-anchor="middle" font-size="12" fill="#8b8794">Instanz</text>
+<rect x="305" y="250" width="200" height="54" rx="12" fill="#fff8ee" stroke="#c98a2b" stroke-dasharray="5 4"/>
+<text x="405" y="274" text-anchor="middle" font-size="13" font-weight="600" fill="#7a5b1e">KI-Modell</text>
+<text x="405" y="292" text-anchor="middle" font-size="11" fill="#a07a2e">optional / geplant</text>
+<line x1="174" y1="148" x2="294" y2="148" stroke="#714B67" marker-end="url(#ar)"/>
+<text x="234" y="140" text-anchor="middle" font-size="11" fill="#714B67">HTTPS · Login</text>
+<line x1="514" y1="132" x2="624" y2="132" stroke="#714B67" marker-end="url(#ar)"/>
+<text x="569" y="124" text-anchor="middle" font-size="10.5" fill="#714B67">API-Key nur zur Laufzeit</text>
+<line x1="624" y1="166" x2="514" y2="166" stroke="#8b8794" marker-end="url(#arm)"/>
+<text x="569" y="182" text-anchor="middle" font-size="10.5" fill="#8b8794">nur Metadaten / Zähler</text>
+<line x1="405" y1="214" x2="405" y2="248" stroke="#c98a2b" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+<text x="448" y="236" text-anchor="middle" font-size="10" fill="#a07a2e">optional</text>
+</svg>"""
 
 
 DASH = Template("""<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">
@@ -113,23 +140,42 @@ label{display:block;font-size:.72rem;color:#8b8794;margin-bottom:3px}
 input{width:100%;padding:8px 10px;border:1px solid #e7e3ec;border-radius:7px;font-size:.88rem}
 input:focus{outline:none;border-color:#714B67}
 .muted{color:#8b8794;font-size:.82rem}.empty{color:#8b8794;padding:14px 0}
-.note{background:#fff8ee;border:1px solid #f0e0c0;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#7a5b1e;margin-top:12px}
+.aform{display:flex;gap:6px;align-items:center}.aform input{width:130px}
+.flow-notes{list-style:none;margin-top:14px;font-size:.85rem;color:#5f5e5a}
+.flow-notes li{padding:3px 0 3px 22px;position:relative}
+.flow-notes li:before{content:"✓";position:absolute;left:0;color:#2f8f63;font-weight:700}
 </style></head><body>
 <header><h1>Odoo-Analyzer</h1><p>Instanzen erfassen · Analyse fahren · Reports ansehen</p></header>
 <main>
   <div class="card">
+    <h2>Datenfluss &amp; Datenschutz</h2>
+    {{ flow_svg|safe }}
+    <ul class="flow-notes">
+      <li>Hosting in der EU (Ionos, Deutschland).</li>
+      <li>Der API-Key wird nur zur Analyse eingegeben und <b>niemals gespeichert</b>.</li>
+      <li>Übertragen werden nur Struktur/Metadaten/Zähler – keine Geschäftsinhalte.</li>
+      <li>Das KI-Modell ist optional/geplant; derzeit fließen dorthin keine Daten.</li>
+    </ul>
+  </div>
+
+  <div class="card">
     <h2>Instanzen</h2>
     {% if rows %}
-    <table><thead><tr><th>Name</th><th>Instanz</th><th>Letzte Analyse</th><th>Status</th><th></th></tr></thead><tbody>
+    <table><thead><tr><th>Name</th><th>Instanz</th><th>Letzte Analyse</th><th>Status</th><th>Analyse (API-Key)</th><th></th></tr></thead><tbody>
     {% for r in rows %}
       <tr>
         <td><b>{{ r.name }}</b><div class="muted">{{ r.login }}</div></td>
         <td class="mono">{{ r.db }}</td>
         <td>{{ r.last_run or "–" }}</td>
-        <td>{% set s = r.last_status or "" %}
-          <span class="st {{ 'ok' if s=='ok' else 'run' if 'läuft' in s else 'err' if s else '' }}">{{ s or "neu" }}</span></td>
+        <td>{% set s = r.last_status or "" %}<span class="st {{ 'ok' if s=='ok' else 'run' if 'läuft' in s else 'err' if s else '' }}">{{ s or "neu" }}</span></td>
+        <td>
+          <form class="aform" method="post" action="analyze">
+            <input type="hidden" name="id" value="{{ r.id }}">
+            <input type="password" name="key" placeholder="API-Key" required autocomplete="off">
+            <button class="btn p">Analysieren</button>
+          </form>
+        </td>
         <td style="white-space:nowrap;text-align:right">
-          <form method="post" action="analyze" style="display:inline"><input type="hidden" name="id" value="{{ r.id }}"><button class="btn p">Analysieren</button></form>
           {% if r.has_report %}<a class="btn s" href="i/{{ r.id }}/" target="_blank">Öffnen</a>{% endif %}
           <form method="post" action="delete" style="display:inline" onsubmit="return confirm('Instanz löschen?')"><input type="hidden" name="id" value="{{ r.id }}"><button class="btn d">Löschen</button></form>
         </td>
@@ -146,10 +192,9 @@ input:focus{outline:none;border-color:#714B67}
       <div><label>URL</label><input name="url" placeholder="https://firma.odoo.com" required></div>
       <div><label>Datenbank</label><input name="db" placeholder="firma" required></div>
       <div><label>Login</label><input name="login" placeholder="user@firma.de" required></div>
-      <div><label>API-Key</label><input name="key" type="password" placeholder="API-Key" required></div>
       <div><button class="btn p" style="width:100%">Speichern</button></div>
     </form>
-    <div class="note">Der API-Key wird verschlüsselt gespeichert (Fernet) und nur zur Analyse entschlüsselt.</div>
+    <div class="muted" style="margin-top:10px">Kein API-Key hier – der wird erst beim Analysieren eingegeben (und nicht gespeichert).</div>
   </div>
 </main></body></html>""")
 
@@ -173,8 +218,7 @@ class H(BaseHTTPRequestHandler):
 
     def _form(self):
         n = int(self.headers.get("Content-Length", 0))
-        raw = self.rfile.read(n).decode("utf-8")
-        return {k: v[0] for k, v in parse_qs(raw).items()}
+        return {k: v[0] for k, v in parse_qs(self.rfile.read(n).decode("utf-8")).items()}
 
     def do_GET(self):
         path = urlparse(self.path).path
@@ -197,14 +241,16 @@ class H(BaseHTTPRequestHandler):
         form = self._form()
         if path == "/add":
             with db() as con:
-                con.execute("INSERT INTO instances(name,url,db,login,key_enc,created_at) VALUES(?,?,?,?,?,?)",
-                            (form["name"].strip(), form["url"].strip().rstrip("/"), form["db"].strip(),
-                             form["login"].strip(), fernet.encrypt(form["key"].encode()).decode(),
+                con.execute("INSERT INTO instances(name,url,db,login,created_at) VALUES(?,?,?,?,?)",
+                            (form["name"].strip(), form["url"].strip().rstrip("/"),
+                             form["db"].strip(), form["login"].strip(),
                              datetime.now().strftime("%d.%m.%Y %H:%M")))
             return self._redirect()
         if path == "/analyze":
             iid = int(form["id"])
-            threading.Thread(target=run_analysis, args=(iid,), daemon=True).start()
+            key = form.get("key", "")
+            if key:
+                threading.Thread(target=run_analysis, args=(iid, key), daemon=True).start()
             return self._redirect()
         if path == "/delete":
             iid = form["id"]
@@ -223,7 +269,7 @@ def dashboard_html():
         rows = [dict(r) for r in con.execute("SELECT * FROM instances ORDER BY id DESC")]
     for r in rows:
         r["has_report"] = (INSTANCES / str(r["id"]) / "report" / "index.html").is_file()
-    return DASH.render(rows=rows)
+    return DASH.render(rows=rows, flow_svg=FLOW_SVG)
 
 
 if __name__ == "__main__":

@@ -59,7 +59,7 @@ def main() -> int:
         except Exception:
             return None
 
-    me = execute("res.users", "read", [uid], fields=["name", "login"])[0]
+    # Datenminimierung: keine Namen/E-Mails des API-Users erfassen
 
     # ---- technische Kennzahlen ----
     tech = {
@@ -130,7 +130,7 @@ def main() -> int:
         "generated_at": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         "server": {
             "version": version, "db": db, "url": url,
-            "user": f"{me['name']} ({me['login']}, uid {uid})",
+            "user": f"uid {uid}",
         },
         "tech": tech,
         "languages": langs,
