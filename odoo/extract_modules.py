@@ -98,8 +98,8 @@ def main() -> int:
         "deps": app_dep,  # app -> [direkte App-Abhängigkeiten]
     }
 
-    out = HERE / "report"
-    out.mkdir(exist_ok=True)
+    out = Path(os.environ.get("ODOO_OUT_DIR") or (HERE / "report"))
+    out.mkdir(parents=True, exist_ok=True)
     (out / "modules.js").write_text(
         "// Automatisch erzeugt von odoo/extract_modules.py - nicht manuell editieren.\n"
         "window.ODOO_MODULES = " + json.dumps(data, ensure_ascii=False, indent=2) + ";\n",

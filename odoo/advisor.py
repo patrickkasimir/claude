@@ -10,13 +10,14 @@ Portabel: rein dateibasiert (keine API). Muss NACH den Extraktoren laufen.
 Ausgabe (gitignored):  odoo/report/advisor.js  (window.ODOO_ADVISOR)
 Aufruf:  python3 odoo/advisor.py
 """
+import os
 import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).parent
-REPORT = HERE / "report"
+REPORT = Path(os.environ.get("ODOO_OUT_DIR") or (HERE / "report"))
 
 SEV_WEIGHT = {"critical": 15, "warning": 6, "info": 1}
 SEV_RANK = {"critical": 0, "warning": 1, "info": 2}

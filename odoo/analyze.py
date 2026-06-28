@@ -139,8 +139,8 @@ def main() -> int:
         "business_counts": business_counts,
     }
 
-    out_dir = HERE / "report"
-    out_dir.mkdir(exist_ok=True)
+    out_dir = Path(os.environ.get("ODOO_OUT_DIR") or (HERE / "report"))
+    out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "data.js").write_text(
         "// Automatisch erzeugt von odoo/analyze.py – nicht manuell editieren.\n"
         "window.ODOO_ANALYSIS = " + json.dumps(data, ensure_ascii=False, indent=2) + ";\n",

@@ -191,8 +191,8 @@ def main() -> int:
         "config": config,
     }
 
-    out = HERE / "report"
-    out.mkdir(exist_ok=True)
+    out = Path(os.environ.get("ODOO_OUT_DIR") or (HERE / "report"))
+    out.mkdir(parents=True, exist_ok=True)
     (out / "processes.js").write_text(
         "// Automatisch erzeugt von odoo/extract_processes.py - nicht manuell editieren.\n"
         "window.ODOO_PROCESSES = " + json.dumps(data, ensure_ascii=False, indent=2) + ";\n",

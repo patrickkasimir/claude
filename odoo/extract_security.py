@@ -172,8 +172,8 @@ def main() -> int:
         "models_without_access": models_without_access,
     }
 
-    out = HERE / "report"
-    out.mkdir(exist_ok=True)
+    out = Path(os.environ.get("ODOO_OUT_DIR") or (HERE / "report"))
+    out.mkdir(parents=True, exist_ok=True)
     (out / "security.js").write_text(
         "// Automatisch erzeugt von odoo/extract_security.py - nicht manuell editieren.\n"
         "window.ODOO_SECURITY = " + json.dumps(data, ensure_ascii=False, indent=2) + ";\n",

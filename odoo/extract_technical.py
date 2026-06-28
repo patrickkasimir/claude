@@ -195,8 +195,8 @@ def main() -> int:
         "groups": {"total": groups_total, "custom": groups_custom},
     }
 
-    out = HERE / "report"
-    out.mkdir(exist_ok=True)
+    out = Path(os.environ.get("ODOO_OUT_DIR") or (HERE / "report"))
+    out.mkdir(parents=True, exist_ok=True)
     (out / "technical.js").write_text(
         "// Automatisch erzeugt von odoo/extract_technical.py - nicht manuell editieren.\n"
         "window.ODOO_TECH = " + json.dumps(data, ensure_ascii=False, indent=2) + ";\n",
