@@ -38,6 +38,15 @@ from urllib.parse import urlparse, parse_qs, quote
 
 from jinja2 import Environment
 
+# .env laden (gitignored) – muss vor os.environ.get()-Aufrufen stehen
+_ENV_FILE = Path(__file__).resolve().parent / ".env"
+if _ENV_FILE.exists():
+    for _line in _ENV_FILE.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _, _v = _line.partition("=")
+            os.environ.setdefault(_k.strip(), _v.strip())
+
 HOST, PORT = "127.0.0.1", 3010
 WEBAPP = Path(__file__).resolve().parent
 ODOO = WEBAPP.parent
