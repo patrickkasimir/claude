@@ -71,4 +71,12 @@ export const APPS = [
     description: "Aktienregister verwalten – Aktionäre, Verkäufe, prozentuale Auswertung, unterschriftsreifes PDF",
     category: "Finanzen",
   },
+  {
+    id: "odoo-analyse",
+    title: "ODOO-ANALYSE",
+    icon: "🔎",
+    path: "/claudeapps/odoo-analyse/",
+    description: "Technische & fachliche Analyse der Odoo-Instanz – Login erforderlich",
+    category: "Intern",
+  },
 ];
