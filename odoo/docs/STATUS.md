@@ -16,7 +16,8 @@ Alles mit **Python-Standardbibliothek + jinja2** (auf dem Server ist **kein pip*
 - **Branch: `odoo-remote-customizing`** (das gesamte Odoo-Projekt liegt unter `odoo/`).
 - `main` enthält die „claudeapps" (Spiele, Landing-Page) – nicht dieses Projekt.
 - Wiedereinstieg auf neuem Rechner: clone → `git checkout odoo-remote-customizing` →
-  `odoo/.env` aus `odoo/.env.example` neu anlegen (Instanz-Zugang + API-Key, s. u.).
+  `odoo/.env` aus `odoo/.env.example` neu anlegen (Instanz-Zugang + API-Key).
+  `odoo/webapp/.env` aus `odoo/webapp/.env.example` neu anlegen (SMTP-Zugangsdaten).
 
 ## 2. Komponenten (alle unter `odoo/`)
 **Extraktoren (portabel, nur API, Output nach `ODOO_OUT_DIR` bzw. `odoo/report/`, gitignored):**
@@ -25,82 +26,123 @@ Alles mit **Python-Standardbibliothek + jinja2** (auf dem Server ist **kein pip*
 - `extract_processes.py` – Prozesse (Pipelines/Stadien, Belegstatus, Automatisierungen, Mails, Config)
 - `extract_technical.py` – Customizing (Custom-Modelle/-Felder, Studio, Server-Aktionen, Datensatzregeln, Sequenzen)
 - `extract_security.py` – Benutzer/Gruppen/Rechte (Gruppen mit App-Bezug via `res.groups.privilege`)
+  **Neu:** lädt parallel deutsche Übersetzungen (`de_DE`-Kontext) → `name_de`, `full_name_de`,
+  `category_de`, `privilege_de` je Gruppe + `model_de` je Zugriffsrecht. `"languages"` im JSON.
 - `extract_modules.py` – App-Abhängigkeitsgraph (transitive Reduktion)
 - `advisor.py` – liest die JSONs der anderen → Regelkatalog + gewichteter Health-Score
-- `create_org_roles.py` – legt Organisationsrollen-Gruppen in der Instanz an (Vertriebsmitarbeiter/Projektleiter/HR)
+- `create_org_roles.py` – legt Organisationsrollen-Gruppen in der Instanz an
 
 **Report-Seiten (`odoo/report/*.html`):** statisches HTML+JS, rendern **clientseitig** aus
 den erzeugten `*.js` (`window.ODOO_*`). 5 Reiter, gegenseitig verlinkt.
+- `sicherheit.html`: **DE/EN-Toggle** (oben rechts im Header) – schaltet Gruppen-Baum,
+  App-Detailseite und Modellnamen zwischen Deutsch und Englisch um. Nur sichtbar wenn
+  `de_DE` in der Odoo-Instanz installiert ist.
 
 **Web-App (`odoo/webapp/app.py`):** stdlib http.server + jinja2 + sqlite3.
-- Registrierung/Login/Logout (scrypt), **E-Mail-Verifizierung**, **Passwort-Reset**,
-  Konto (PW ändern), **TOTP-2FA** (opt-in), Mandanten-Trennung (`instances.user_id`).
+- Registrierung/Login/Logout (scrypt), E-Mail-Verifizierung, Passwort-Reset,
+  Konto (PW ändern), **TOTP-2FA** (opt-in, PBKDF2+XOR+HMAC verschlüsselt im DB),
+  **Recovery Codes** (8×, SHA-256 gehashed, einmalig verwendbar), Mandanten-Trennung.
+- **Rollen:** `admin` (alle Instanzen sehen, Benutzerverwaltung) / `user` (nur eigene).
+  Ältester Nutzer (`patrick@kasimir.info`) ist automatisch Admin.
+- **Verbindungstest:** vor jeder Analyse Button „Verbindung testen" → 3-stufiger XML-RPC-Test.
 - **API-Key wird NIE gespeichert** (Eingabe pro Analyse, transient). DB nur Stammdaten.
-- Sicherheit: Rate-Limit, Session-Ablauf (14 T), Secure/HttpOnly/SameSite-Cookie, Fehlerseiten.
-- Landing-Page, Impressum, Datenschutz (Templates mit Platzhaltern).
-- Datenfluss-Schaubild (SVG) im Dashboard.
+- Sicherheit: Rate-Limit, Session-Ablauf (14 T), Secure/HttpOnly/SameSite-Cookie.
+- Impressum/Datenschutz: **ViaAlia GmbH**, Tulpenstr. 1, 85053 Ingolstadt,
+  Barbara + Patrick Kasimir, 016096498283, info@viaalia.de.
+- **SMTP:** läuft über Ionos `apppp@kasimir.info`, Kreds in `odoo/webapp/.env` (gitignored).
 - DB/Daten: `odoo/webapp/data/` (gitignored: `app.db`, `instances/`, `mail_outbox/`, `backups/`).
 
 ## 3. Betrieb (auf dem Server backend.kasimir.info / Ionos, EU)
-- **Web-App:** pm2-Prozess **`odoo-analyzer`**, `127.0.0.1:3010`, env **`BASE_PATH=/analyzer`**
-  (für ausgehende Links unter dem nginx-Unterpfad). `pm2 restart odoo-analyzer` nach Codeänderung.
-- **nginx:** `/etc/nginx/sites-available/codetalk`, `server_name backend.kasimir.info`.
-  - `/analyzer/` → proxy 3010, Basic-Auth (`/etc/nginx/.htpasswd-odoo`, User `odoo`).
-  - `/claudeapps/odoo-analyse/` → statischer Report (Single-Instanz), Basic-Auth.
-  - Catch-all `location / → 127.0.0.1:3000` (Node „codetalk") – daher kommt „Cannot GET" bei falschem Pfad.
-- **URLs (mit Login):** App `https://backend.kasimir.info/analyzer/` ·
-  Report `https://backend.kasimir.info/claudeapps/odoo-analyse/`
+- **Web-App:** pm2-Prozess **`odoo-analyzer`**, `127.0.0.1:3010`, env **`BASE_PATH=/analyzer`**.
+  `pm2 restart odoo-analyzer` nach Codeänderungen in `odoo/webapp/app.py`.
+- **nginx:** `/etc/nginx/sites-enabled/codetalk`, `server_name backend.kasimir.info`.
+  - `/analyzer/` → proxy 3010, **kein Basic-Auth** (seit Go-live, öffentliche Registrierung).
+  - `/claudeapps/odoo-analyse/` → statischer Report (Einzel-Instanz), Basic-Auth bleibt.
+  - `location = /claudeapps` → 301 Redirect auf `/claudeapps/` (Trailing-Slash-Fix).
+  - Catch-all `location / → 127.0.0.1:3000` (Node „codetalk").
+- **URLs:** App `https://backend.kasimir.info/analyzer/` ·
+  Statischer Report `https://backend.kasimir.info/claudeapps/odoo-analyse/`
+- **Landing-Page** `https://backend.kasimir.info/claudeapps/`:
+  ODOO-ANALYZER-Kachel unter „Tools" → verlinkt direkt auf `/analyzer/`.
+  (Eintrag in `claudeapps/shared/apps.js` im `main`-Branch des Repos.)
 
 ## 4. Wichtige Befehle
 ```bash
-# Einzel-Instanz-Analyse + Deploy des statischen Reports:
-bash odoo/update.sh                       # alle Extraktoren + advisor + Deploy
+# Analyse starten (über die Web-App UI), danach Report automatisch verfügbar.
 
-# Web-App lokal starten (Dev, ohne nginx -> BASE_PATH leer lassen):
+# Web-App lokal starten (Dev, ohne nginx → BASE_PATH leer lassen):
 python3 odoo/webapp/app.py                # http://127.0.0.1:3010
 
-# Einmalige Server-Einrichtung (sudo):
-sudo bash odoo/setup-webserver.sh         # Report unter /claudeapps/odoo-analyse/ (Basic-Auth, fragt PW)
-sudo bash odoo/setup-analyzer-nginx.sh    # App unter /analyzer/ (Basic-Auth)
-sudo bash odoo/setup-analyzer-public.sh   # GO-LIVE: Basic-Auth entfernen (öffentliche Registrierung)
+# Statischen Report (Einzel-Instanz) neu erzeugen + deployen:
+bash odoo/update.sh
 
-bash odoo/webapp/backup.sh                # DB-Backup (cron-fähig)
+# Nach Codeänderung in app.py:
+pm2 restart odoo-analyzer
+
+# DB-Backup:
+bash odoo/webapp/backup.sh
 ```
 
 ## 5. Zugangsdaten / Secrets (NICHT im Git)
-- **Odoo-Test-Instanz:** `https://viaalia-test-saas19-0623.odoo.com` (saas~19.2 Enterprise).
-  DB = `viaalia-test-saas19-0623` (= Subdomain). Login `patrick.kasimir@viaalia.de`.
-  **API-Key liegt in `odoo/.env`** (gitignored; Vorlage: `odoo/.env.example`).
-- App-Login (nginx Basic-Auth): User `odoo`, Passwort wurde beim Setup gesetzt.
-- Auf neuem Rechner: `odoo/.env` neu anlegen, App-Daten (`odoo/webapp/data/`) starten frisch.
 
-## 6. Funktionsumfang – ERLEDIGT
-Analyse (5 Reiter), Health-Score + Regelkatalog, Gruppen-Baum (App-Bezug, klickbar,
-Richtung umschaltbar, OOTB/Custom), App-Abhängigkeitsgraph, Pro-Bereich-Narrativ,
-Organisationsrollen in der Instanz angelegt. SaaS: Registrierung, Login, **2FA (TOTP)**,
-E-Mail-Verifizierung, Passwort-Reset, Konto, Instanz add/edit/delete/analyze, Mandanten-
-Trennung, Rate-Limit, Datenminimierung, **kein Key-Storage**, Pflichtseiten, Datenfluss-Bild,
-Backup-/Go-live-Skripte, AVV-Vorlage, BASE_PATH-Fix für Unterpfad.
+**`odoo/.env`** (Odoo-Instanz, wird vom Einzel-Extraktions-Workflow genutzt):
+```
+ODOO_URL=https://viaalia-test-saas19-0623.odoo.com
+ODOO_DB=viaalia-test-saas19-0623
+ODOO_USER=patrick.kasimir@viaalia.de
+ODOO_API_KEY=…
+```
+
+**`odoo/webapp/.env`** (SMTP für die Web-App):
+```
+SMTP_HOST=smtp.ionos.de
+SMTP_PORT=587
+SMTP_USER=apppp@kasimir.info
+SMTP_PASS=…   # → Patrick fragen
+SMTP_FROM=apppp@kasimir.info
+```
+
+Auf neuem Rechner: beide `.env`-Dateien neu anlegen, App-Daten (`odoo/webapp/data/`) starten frisch.
+
+## 6. Funktionsumfang – VOLLSTÄNDIG ERLEDIGT
+
+| Feature | Status |
+|---|---|
+| Analyse (5 Reiter: Überblick, Technik, Prozesse, Sicherheit, Advisor) | ✅ |
+| Health-Score + Regelkatalog (advisor.py) | ✅ |
+| Gruppen-Baum (App-Bezug, klickbar, Richtung + Business/Technisch-Filter) | ✅ |
+| Applikationen & Rollen (Detailseite mit CRUD-Rechten je Gruppe) | ✅ |
+| **DE/EN-Sprachumschalter** in sicherheit.html | ✅ |
+| App-Abhängigkeitsgraph | ✅ |
+| SaaS-Web-App: Registrierung, Login, Konto, Mandantentrennung | ✅ |
+| TOTP-2FA (verschlüsselt) + Recovery Codes | ✅ |
+| E-Mail-Verifizierung + Passwort-Reset (SMTP Ionos) | ✅ |
+| Admin-Rolle: Benutzerverwaltung + Alle-Instanzen-Ansicht | ✅ |
+| Verbindungstest vor Analyse | ✅ |
+| Impressum/Datenschutz (ViaAlia GmbH) | ✅ |
+| Go-live: Basic-Auth entfernt, öffentliche Registrierung | ✅ |
+| nginx Redirect /claudeapps → /claudeapps/ | ✅ |
+| Landing-Page: ODOO-ANALYZER unter Tools | ✅ |
 
 ## 7. OFFEN / nächste Schritte
-- **SMTP einrichten** (aktuell KEINER konfiguriert → Mails landen nur in `data/mail_outbox/`).
-  App liest `SMTP_HOST/PORT/USER/PASS/FROM`. Geplant: kleiner `.env`-Loader in `odoo/webapp/`,
-  Werte (z. B. Ionos: `smtp.ionos.de:587`) trägt der Nutzer in gitignorierte Datei ein.
-- **TOTP-Secrets verschlüsseln** (liegen aktuell im Klartext in der DB; Fernet wurde entfernt).
-- **2FA-Recovery-Codes** (sonst Lockout bei verlorenem Authenticator).
-- **Echte Rechtsinhalte** in Impressum/Datenschutz/AVV + juristische Prüfung.
-- **Go-live**: `setup-analyzer-public.sh` (Basic-Auth weg → öffentliche Registrierung).
-- Optional: Konto-Mgmt-Komfort, Analyse-Verlauf, eigene Domain.
+- **SOLVVision Test neu analysieren:** Analyse neu starten um (a) Kategorie-Fallback-Fix
+  und (b) DE-Übersetzungen im JSON zu bekommen. → Einfach in der Web-App „Analyse starten".
+- **Testnutzer aufräumen:** `u@test.de` und `z@test.de` über Admin-UI löschen.
+- **Weitere Instanzen anlegen:** z. B. Produktiv-Instanz als zweite Instanz erfassen.
+- Optional: Analyse-Verlauf pro Instanz, eigene Domain, AVV-Vorlage für Kundenbetrieb.
 
 ## 8. Stolpersteine / Lessons Learned
 - **Kein pip auf dem Server** → nur Standardbibliothek (jinja2 ist als System-Paket da).
-- **Odoo 19.2 Gruppenmodell:** `res.groups` nutzt `user_ids`/`all_user_ids` + `privilege_id`
-  (→ `res.groups.privilege.category_id` = App), NICHT mehr `users`/`category_id`.
-- **XML-RPC:** Optionen (`fields`/`order`/`attributes`) immer als kwargs, nie positional.
-  Vor neuen Modellen Felder per `fields_get` prüfen.
-- **Report-JS:** Init/Render erst NACH allen const/function-Definitionen aufrufen (sonst TDZ → leere Seite).
-- **nginx-Unterpfad:** App muss `BASE_PATH` kennen (ausgehende Links/Redirects), sonst „Cannot GET".
-- **Datenminimierung:** keine Namen/E-Mails (privilegierte User nur als Anzahl, `server.user` = `uid N`).
+- **Odoo 19.2 Gruppenmodell:** `res.groups` nutzt `privilege_id → res.groups.privilege → category_id`
+  (neu), NICHT mehr `category_id` direkt. Fallback: `category_id` direkt (OCA/ältere Module),
+  dann `full_name`-Parsing für Custom-Gruppen.
+- **XML-RPC Sprach-Kontext:** `context={"lang": "de_DE"}` in kwargs gibt übersetzte Namen zurück.
+  `model_id[1]` in Many2one-Feldern wird dabei korrekt in der Zielsprache geliefert.
+- **XML-RPC:** Optionen (`fields`/`order`/`context`) immer als kwargs, nie positional.
+- **Report-JS:** Init/Render erst NACH allen const/function-Definitionen aufrufen (sonst TDZ).
+- **nginx-Unterpfad:** App muss `BASE_PATH` kennen; Trailing-Slash-Redirect nötig für statische Roots.
+- **Admin-Zuweisung:** DB-Migration weist automatisch dem Benutzer mit `id=1` Admin zu → bei
+  Testnutzern kann das der falsche sein. Manuell korrigieren via `sqlite3` wenn nötig.
 
 ## 9. Datenschutz/DSGVO (Kurz)
 Bei Analyse fremder Instanzen ist der Kunde Verantwortlicher, wir Auftragsverarbeiter (Art. 28 →

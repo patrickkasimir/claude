@@ -107,6 +107,9 @@
 
     footer { max-width: 1140px; margin: 0 auto; padding: 16px 28px 50px; color: var(--muted); font-size: 0.8rem; }
     .muted { color: var(--muted); }
+    .lang-seg { display: inline-flex; border: 1px solid #ffffff55; border-radius: 999px; overflow: hidden; margin-left: auto; }
+    .lang-seg button { border: none; background: transparent; color: #ffffffaa; font-size: 0.82rem; padding: 5px 13px; cursor: pointer; transition: all .15s; }
+    .lang-seg button.on { background: #ffffff33; color: #fff; font-weight: 600; }
     @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } nav.side { flex-direction: row; flex-wrap: wrap; } }
   </style>
 </head>
@@ -122,6 +125,10 @@
       <a href="prozesse.html">Prozesse</a>
       <a href="sicherheit.html" class="cur">Sicherheit</a>
       <a href="advisor.html">Advisor</a>
+      <div class="lang-seg" id="lang-seg" style="display:none">
+        <button data-lang="de" class="on">DE</button>
+        <button data-lang="en">EN</button>
+      </div>
     </div>
   </div>
 </header>
@@ -174,6 +181,19 @@
   const S = window.ODOO_SECURITY;
   const esc = s => (s == null ? '' : String(s)).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   const CAT_ORDER = ['Organisationsrollen', 'Sales', 'Accounting', 'Human Resources', 'Services', 'Marketing', 'Productivity', 'Master Data', 'Website', 'Administration', 'Technisch / ohne Privileg', 'Ohne Kategorie'];
+
+  const HAS_DE = S && (S.languages || []).includes('de');
+  let LANG = HAS_DE ? 'de' : 'en';
+  const t = (obj, field) => {
+    if (LANG === 'de') { const v = obj && obj[field + '_de']; if (v) return v; }
+    return (obj && obj[field]) || '';
+  };
+  let CAT_TRANS = {};
+  function buildCatTrans() {
+    CAT_TRANS = {};
+    (S && S.groups || []).forEach(g => { if (g.category && g.category_de) CAT_TRANS[g.category] = g.category_de; });
+  }
+  const tcat = cat => (LANG === 'de' && CAT_TRANS[cat]) ? CAT_TRANS[cat] : cat;
 
   function head() {
     const s = S.server, dt = new Date(S.generated_at);
@@ -244,11 +264,14 @@
                              : `<span class="badge std" title="Modul: ${escA(g.module)}">Standard</span>`;
       const caret = kids.length ? '<span class="caret">▶</span>' : '<span class="leaf">·</span>';
       const more = kids.length ? `<span class="muted" style="font-size:.72rem">· ${TREE_DIR === 'contains' ? 'enthält ' + kids.length : 'in ' + kids.length + ' enthalten'}</span>` : '';
+      const gname = t(g, 'name');
+      const gpriv = t(g, 'privilege');
+      const gcat = tcat(g.category);
       return `<div class="gn">
         <div class="grow ${kids.length ? 'clk' : ''}" data-id="${id}" data-fn="${escA(fn)}" data-path="${escA(path.join('||'))}">
           ${caret}
-          ${g.privilege && g.privilege !== g.category && g.privilege !== g.name ? `<span class="gpriv">${esc(g.privilege)} / </span>` : ''}<span class="gname">${esc(g.name)}</span>
-          <span class="badge catb">${esc(g.category)}</span>
+          ${gpriv && gpriv !== gcat && gpriv !== gname ? `<span class="gpriv">${esc(gpriv)} / </span>` : ''}<span class="gname">${esc(gname)}</span>
+          <span class="badge catb">${esc(gcat)}</span>
           ${badge}
           <span class="badge usr ${ub ? 'has' : ''}">${g.users_effective} User</span>
           ${more}
@@ -259,13 +282,13 @@
 
     const entriesFor = cat => byCat[cat]
       .filter(g => !parentsOf(g.full_name).some(p => byFull[p] && byFull[p].category === cat))
-      .sort((a, b) => b.users_effective - a.users_effective || a.name.localeCompare(b.name));
+      .sort((a, b) => b.users_effective - a.users_effective || t(a,'name').localeCompare(t(b,'name')));
 
     const el = document.getElementById('tree-b');
     el.innerHTML = cats.map(cat => {
       const gs = byCat[cat], custom = gs.filter(g => g.custom).length;
       return `<div class="cat collapsed">
-        <div class="cat-h"><span class="caret">▾</span> ${esc(cat)} <span class="n">· ${gs.length} Gruppen${custom ? ', ' + custom + ' custom' : ''}</span></div>
+        <div class="cat-h"><span class="caret">▾</span> ${esc(tcat(cat))} <span class="n">· ${gs.length} Gruppen${custom ? ', ' + custom + ' custom' : ''}</span></div>
         <div class="cat-body">${entriesFor(cat).map(g => rowHtml(g.full_name, [])).join('')}</div>
       </div>`;
     }).join('');
@@ -315,6 +338,7 @@
 
   function appDetail() {
     const groups = S.groups || [];
+    const byFull = {}; groups.forEach(g => byFull[g.full_name] = g);
     const bizGroups = groups.filter(g => !TECH_CATS.includes(g.category));
     const byCat = {};
     bizGroups.forEach(g => (byCat[g.category] = byCat[g.category] || []).push(g));
@@ -329,7 +353,7 @@
         ? `<div class="rights-wrap"><table class="rights-tbl">
             <thead><tr><th>Objekt</th><th title="Lesen">L</th><th title="Ändern">Ä</th><th title="Erstellen">E</th><th title="Löschen">✕</th></tr></thead>
             <tbody>${rights.map(r =>
-              `<tr><td>${esc(r.model)}</td>
+              `<tr><td>${esc(t(r, 'model'))}</td>
                <td class="${r.r ? 'ok' : ''}">${r.r ? '✓' : '–'}</td>
                <td class="${r.w ? 'ok' : ''}">${r.w ? '✓' : '–'}</td>
                <td class="${r.c ? 'ok' : ''}">${r.c ? '✓' : '–'}</td>
@@ -337,11 +361,13 @@
             ).join('')}</tbody></table></div>`
         : `<p class="muted" style="font-size:.82rem;padding:6px 0">Keine direkten Zugriffsrechte – Berechtigungen kommen ausschließlich über vererbte Gruppen.</p>`;
       const impliesHtml = (g.implies || []).length
-        ? `<div class="role-implies"><span class="muted">Beinhaltet: </span>${g.implies.map(n => `<span class="tag">${esc(n)}</span>`).join('')}</div>`
+        ? `<div class="role-implies"><span class="muted">Beinhaltet: </span>${
+            g.implies.map(n => { const ig = byFull[n]; return `<span class="tag">${esc(ig ? t(ig,'full_name') : n)}</span>`; }).join('')
+          }</div>`
         : '';
       return `<div class="role-card">
         <div class="role-h">${'<span class="caret">▶</span>'}
-          <span class="role-name">${esc(g.full_name || g.name)}</span>
+          <span class="role-name">${esc(t(g, 'full_name') || t(g, 'name'))}</span>
           ${badge} ${userBadge} ${hint}
         </div>
         <div class="role-body" style="display:none">${rightsHtml}${impliesHtml}</div>
@@ -350,9 +376,9 @@
 
     const el = document.getElementById('apps-b');
     el.innerHTML = cats.map((cat, ci) => {
-      const gs = [...(byCat[cat] || [])].sort((a, b) => b.users_effective - a.users_effective || a.name.localeCompare(b.name));
+      const gs = [...(byCat[cat] || [])].sort((a, b) => b.users_effective - a.users_effective || t(a,'name').localeCompare(t(b,'name')));
       return `<div class="cat${ci > 0 ? ' collapsed' : ''}">
-        <div class="cat-h"><span class="caret">▾</span> ${esc(cat)} <span class="n">· ${gs.length} Rollen</span></div>
+        <div class="cat-h"><span class="caret">▾</span> ${esc(tcat(cat))} <span class="n">· ${gs.length} Rollen</span></div>
         <div class="cat-body" style="padding:0 4px 8px">${gs.map(roleCard).join('')}</div>
       </div>`;
     }).join('');
@@ -405,6 +431,19 @@
       `<div class="finding ${x.l}"><span class="lvl">${x.l === 'warn' ? 'Hinweis' : 'Info'}</span><span class="txt">${x.t}</span></div>`).join('');
   }
 
+  function setupLangToggle() {
+    const seg = document.getElementById('lang-seg');
+    if (!seg) return;
+    if (!HAS_DE) { seg.style.display = 'none'; return; }
+    seg.style.display = 'inline-flex';
+    seg.addEventListener('click', e => {
+      const b = e.target.closest('button[data-lang]'); if (!b) return;
+      LANG = b.dataset.lang;
+      [...seg.querySelectorAll('button')].forEach(x => x.classList.toggle('on', x === b));
+      tree(); appDetail();
+    });
+  }
+
   function setupNav() {
     const links = [...document.querySelectorAll('nav.side a')], map = {};
     links.forEach(l => { map[l.getAttribute('href').slice(1)] = l; });
@@ -417,7 +456,7 @@
   if (!S) {
     document.querySelector('main').innerHTML = '<div class="block">Keine Sicherheitsdaten gefunden – bitte <code>python3 odoo/extract_security.py</code> ausführen.</div>';
   } else {
-    head(); overview(); privileged(); tree(); setupDirToggle(); setupFilterToggle(); appDetail(); rules(); findings(); setupNav();
+    buildCatTrans(); head(); overview(); privileged(); tree(); setupDirToggle(); setupFilterToggle(); setupLangToggle(); appDetail(); rules(); findings(); setupNav();
   }
 </script>
 </body>

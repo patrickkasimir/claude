@@ -85,6 +85,27 @@ def main() -> int:
         cat = p.get("category_id")
         priv_map[p["id"]] = {"name": p.get("name"), "category": cat[1] if cat else (p.get("name") or "Ohne Kategorie")}
 
+    # ---- Zweisprachigkeit: Deutsche Übersetzungen (de_DE falls installiert) ----
+    has_de = bool(sread("res.lang", [["code", "=", "de_DE"], ["active", "=", True]]))
+    languages = ["en"] + (["de"] if has_de else [])
+
+    de_priv_map = {}
+    if has_de:
+        for p in sread("res.groups.privilege", [], fields=["name", "category_id"], context={"lang": "de_DE"}):
+            cat = p.get("category_id")
+            de_priv_map[p["id"]] = {"name": p.get("name") or "", "category": cat[1] if cat else (p.get("name") or "")}
+
+    de_group_data = {}
+    if has_de:
+        for g in sread("res.groups", [], fields=["id", "name", "full_name", "category_id"], context={"lang": "de_DE"}):
+            cat = g.get("category_id")
+            de_group_data[g["id"]] = {"name": g.get("name") or "", "full_name": g.get("full_name") or "", "category": cat[1] if cat else ""}
+
+    model_names_de = {}
+    if has_de:
+        for m in sread("ir.model", [], fields=["id", "name"], context={"lang": "de_DE"}):
+            model_names_de[m["id"]] = m["name"]
+
     # ---- OOTB vs. Custom: definierendes Modul je Gruppe (via XML-ID) ----
     grp_modules = {}
     for r in sread("ir.model.data", [["model", "=", "res.groups"]], fields=["res_id", "module"]):
@@ -101,6 +122,7 @@ def main() -> int:
             continue
         access_by_gid.setdefault(gid, []).append({
             "model": mid[1],
+            "model_de": model_names_de.get(mid[0], mid[1]),
             "r": 1 if rec["perm_read"] else 0,
             "w": 1 if rec["perm_write"] else 0,
             "c": 1 if rec["perm_create"] else 0,
@@ -129,12 +151,37 @@ def main() -> int:
             if " / " in fn:
                 inferred = fn.rsplit(" / ", 1)[0]
                 pinfo = {"name": inferred, "category": inferred}
+
+        # Deutsche Übersetzungen
+        de_g = de_group_data.get(g["id"], {})
+        pv_id = pv[0] if pv else None
+        de_pinfo = de_priv_map.get(pv_id) if pv_id else None
+        de_priv_name, de_cat = "", ""
+        if de_pinfo:
+            de_priv_name = de_pinfo["name"]
+            de_cat = de_pinfo["category"] or de_priv_name
+        elif de_g.get("category"):
+            de_cat = de_g["category"]
+            de_priv_name = de_g["category"]
+        elif custom:
+            fn_de = de_g.get("full_name") or de_g.get("name") or ""
+            if " / " in fn_de:
+                de_cat = fn_de.rsplit(" / ", 1)[0]
+                de_priv_name = de_cat
+            else:
+                de_cat = fn_de
+                de_priv_name = fn_de
+
         groups.append({
             "id": g["id"],
             "name": g.get("name"),
             "full_name": g.get("full_name") or g.get("name"),
+            "name_de": de_g.get("name") or g.get("name"),
+            "full_name_de": de_g.get("full_name") or g.get("full_name") or g.get("name"),
             "privilege": pinfo["name"] if pinfo else (pv[1] if pv else ""),
+            "privilege_de": de_priv_name or (pinfo["name"] if pinfo else ""),
             "category": pinfo["category"] if pinfo else "Technisch / ohne Privileg",
+            "category_de": de_cat or (pinfo["category"] if pinfo else "Technisch / ohne Privileg"),
             "implies": [id2name.get(i, str(i)) for i in (g.get("implied_ids") or [])],
             "users": len(g.get("user_ids") or []),
             "users_effective": len(g.get("all_user_ids") or []),
@@ -192,6 +239,7 @@ def main() -> int:
     data = {
         "generated_at": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         "server": {"version": version, "db": db, "url": url},
+        "languages": languages,
         "groups": groups,
         "privileged": privileged,
         "users": users,
