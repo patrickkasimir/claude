@@ -85,6 +85,12 @@ def main() -> int:
         cat = p.get("category_id")
         priv_map[p["id"]] = {"name": p.get("name"), "category": cat[1] if cat else "Ohne Kategorie"}
 
+    # ---- OOTB vs. Custom: definierendes Modul je Gruppe (via XML-ID) ----
+    grp_modules = {}
+    for r in sread("ir.model.data", [["model", "=", "res.groups"]], fields=["res_id", "module"]):
+        grp_modules[r["res_id"]] = r.get("module")
+    STUDIO_MODULES = ("studio_customization", "__custom__", "__export__")
+
     # ---- Gruppen (für Tree + Analyse) ----
     grp_recs = pick("res.groups", [], ["name", "full_name", "privilege_id", "implied_ids", "comment", "user_ids", "all_user_ids"], order="id")
     id2name = {g["id"]: (g.get("full_name") or g.get("name")) for g in grp_recs}
@@ -92,6 +98,8 @@ def main() -> int:
     for g in grp_recs:
         pv = g.get("privilege_id")
         pinfo = priv_map.get(pv[0]) if pv else None
+        mod = grp_modules.get(g["id"])
+        custom = (mod is None) or (mod in STUDIO_MODULES)
         groups.append({
             "id": g["id"],
             "name": g.get("name"),
@@ -101,6 +109,8 @@ def main() -> int:
             "implies": [id2name.get(i, str(i)) for i in (g.get("implied_ids") or [])],
             "users": len(g.get("user_ids") or []),
             "users_effective": len(g.get("all_user_ids") or []),
+            "module": mod or "",
+            "custom": custom,
         })
 
     # ---- Privilegierte Benutzer ----

@@ -45,17 +45,36 @@
     .tag.danger { background: #fbeaea; color: #b14; border-color: #f0c9c9; }
 
     /* Gruppen-Baum */
-    .cat { margin-bottom: 16px; }
-    .cat > .cat-h { font-size: 0.82rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-    .cat > .cat-h .n { color: var(--muted); font-weight: 400; }
-    .node { border-left: 2px solid var(--accent-soft); margin-left: 6px; padding-left: 14px; position: relative; }
-    .node::before { content: ''; position: absolute; left: -2px; top: 16px; width: 12px; height: 2px; background: var(--accent-soft); }
-    .grow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 0; }
-    .gname { font-size: 0.88rem; font-weight: 500; }
-    .gpriv { font-size: 0.72rem; color: var(--muted); font-family: ui-monospace, monospace; }
-    .ubadge { font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; background: var(--surface2); color: var(--muted); }
-    .ubadge.has { background: #e6f4ec; color: var(--ok); }
-    .ext { font-size: 0.7rem; color: var(--info); background: #eef4fb; border: 1px solid #d3e3f5; border-radius: 6px; padding: 1px 7px; }
+    .tree-toolbar { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; background: var(--surface); }
+    .seg button { border: none; background: transparent; color: var(--muted); font-size: 0.82rem; padding: 7px 16px; cursor: pointer; transition: all .15s; }
+    .seg button.on { background: var(--accent); color: #fff; }
+    .tree-legend { font-size: 0.74rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+    .tree-legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
+
+    .cat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 10px; overflow: hidden; }
+    .cat-h { display: flex; align-items: center; gap: 8px; padding: 12px 16px; cursor: pointer; user-select: none; font-weight: 600; font-size: 0.92rem; }
+    .cat-h:hover { background: var(--surface2); }
+    .cat-h .caret { transition: transform .15s; color: var(--muted); font-size: 0.8rem; }
+    .cat.collapsed .caret { transform: rotate(-90deg); }
+    .cat-h .n { color: var(--muted); font-weight: 400; font-size: 0.8rem; }
+    .cat-body { padding: 4px 12px 12px; }
+    .cat.collapsed .cat-body { display: none; }
+
+    .grow { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; flex-wrap: wrap; }
+    .grow.clk { cursor: pointer; }
+    .grow.clk:hover { background: var(--surface2); }
+    .grow > .caret { width: 14px; flex: 0 0 auto; color: var(--accent); transition: transform .15s; font-size: 0.72rem; }
+    .grow.open > .caret { transform: rotate(90deg); }
+    .grow > .leaf { width: 14px; flex: 0 0 auto; color: var(--border); text-align: center; }
+    .grow .gname { font-size: 0.87rem; font-weight: 500; }
+    .badge { font-size: 0.66rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .badge.catb { background: var(--accent-soft); color: var(--accent); }
+    .badge.std { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .badge.cust { background: #fff3e0; color: var(--warn); }
+    .badge.usr { background: var(--surface2); color: var(--muted); }
+    .badge.usr.has { background: #e6f4ec; color: var(--ok); }
+    .children { margin-left: 15px; border-left: 2px solid var(--accent-soft); padding-left: 4px; }
 
     .finding { display: flex; gap: 10px; padding: 11px 14px; border-radius: 10px; margin-bottom: 8px; font-size: 0.88rem; border: 1px solid var(--border); background: var(--surface); }
     .finding .lvl { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 999px; height: fit-content; white-space: nowrap; }
@@ -95,7 +114,20 @@
   <main>
     <section id="ueberblick"><h2>Sicherheits-Überblick</h2><div class="desc">Benutzer, Rechte und Absicherung auf einen Blick.</div><div class="cards" id="ov"></div></section>
     <section id="priv"><h2>Privilegierte Benutzer</h2><div class="desc">Wer weitreichende Administrationsrechte besitzt.</div><div id="priv-b"></div></section>
-    <section id="tree"><h2>Gruppen-Baum nach App</h2><div class="desc">Berechtigungsgruppen je App-Kategorie. Eingerückt = vererbt (Gruppe erbt die Rechte der eingerückten). Badge = Benutzer (effektiv).</div><div id="tree-b"></div></section>
+    <section id="tree"><h2>Gruppen-Baum nach App</h2>
+      <div class="desc">Gruppe anklicken, um nach unten durchzuhangeln. <b>beinhaltet</b> = welche Gruppen diese Gruppe einschließt · <b>ist enthalten in</b> = welche Gruppen sie einschließen.</div>
+      <div class="tree-toolbar">
+        <div class="seg" id="dir-seg">
+          <button data-dir="contains" class="on">beinhaltet ↓</button>
+          <button data-dir="containedIn">ist enthalten in ↑</button>
+        </div>
+        <div class="tree-legend">
+          <span><span class="dot" style="background:#8b8794"></span>Standard (OOTB)</span>
+          <span><span class="dot" style="background:#c98a2b"></span>Custom</span>
+          <span><span class="dot" style="background:#2f8f63"></span>hat Benutzer</span>
+        </div>
+      </div>
+      <div id="tree-b"></div></section>
     <section id="rules"><h2>Datensatzregeln</h2><div class="desc">Sichtbarkeits-/Änderungsregeln auf Datenebene.</div><div id="rules-b"></div></section>
     <section id="hinweise"><h2>Sicherheits-Fallstricke</h2><div class="desc">Automatisch erkannte Auffälligkeiten.</div><div id="hin-b"></div></section>
   </main>
@@ -144,40 +176,86 @@
       `<div class="block"><h3>${esc(grp)} · ${users.length}</h3>${users.length ? users.map(x => `<span class="tag danger">${esc(x)}</span>`).join('') : '<span class="muted">niemand</span>'}</div>`).join('');
   }
 
+  let TREE_DIR = 'contains';
   function tree() {
     const groups = S.groups || [];
+    const escA = s => esc(s).replace(/"/g, '&quot;');
     const byFull = {}; groups.forEach(g => byFull[g.full_name] = g);
+    const impl = {}, impledBy = {};
+    groups.forEach(g => { impl[g.full_name] = (g.implies || []).filter(n => byFull[n]); });
+    groups.forEach(g => impl[g.full_name].forEach(ch => (impledBy[ch] = impledBy[ch] || []).push(g.full_name)));
     const byCat = {}; groups.forEach(g => (byCat[g.category] = byCat[g.category] || []).push(g));
     const cats = [...new Set([...CAT_ORDER, ...Object.keys(byCat)])].filter(c => byCat[c]);
 
-    const sameCatChildren = (g, cat) => g.implies.map(n => byFull[n]).filter(x => x && x.category === cat);
-    const extImplies = (g, cat) => g.implies.filter(n => !byFull[n] || byFull[n].category !== cat);
+    const childrenOf = fn => (TREE_DIR === 'contains' ? (impl[fn] || []) : (impledBy[fn] || []));
+    const parentsOf  = fn => (TREE_DIR === 'contains' ? (impledBy[fn] || []) : (impl[fn] || []));
 
-    function node(g, cat, seen) {
-      if (seen.has(g.full_name)) return `<div class="node"><div class="grow"><span class="gname">${esc(g.name)}</span> <span class="muted" style="font-size:.72rem">(↻ bereits gezeigt)</span></div></div>`;
-      seen = new Set(seen); seen.add(g.full_name);
+    let uid = 0;
+    function rowHtml(fn, path) {
+      const g = byFull[fn]; if (!g) return '';
+      const kids = childrenOf(fn).filter(c => !path.includes(c));
+      const id = 'n' + (uid++);
       const ub = g.users_effective > 0;
-      const ext = extImplies(g, cat);
-      const kids = sameCatChildren(g, cat);
-      return `<div class="node">
-        <div class="grow">
+      const badge = g.custom ? '<span class="badge cust">Custom</span>'
+                             : `<span class="badge std" title="Modul: ${escA(g.module)}">Standard</span>`;
+      const caret = kids.length ? '<span class="caret">▶</span>' : '<span class="leaf">·</span>';
+      const more = kids.length ? `<span class="muted" style="font-size:.72rem">· ${TREE_DIR === 'contains' ? 'enthält ' + kids.length : 'in ' + kids.length + ' enthalten'}</span>` : '';
+      return `<div class="gn">
+        <div class="grow ${kids.length ? 'clk' : ''}" data-id="${id}" data-fn="${escA(fn)}" data-path="${escA(path.join('||'))}">
+          ${caret}
           <span class="gname">${esc(g.name)}</span>
-          ${g.privilege && g.privilege !== g.name ? `<span class="gpriv">${esc(g.privilege)}</span>` : ''}
-          <span class="ubadge ${ub ? 'has' : ''}">${g.users_effective} User${g.users !== g.users_effective ? ` (${g.users} direkt)` : ''}</span>
-          ${ext.length ? `<span class="ext" title="${esc(ext.join(', '))}">+ erbt ${ext.length} extern</span>` : ''}
+          <span class="badge catb">${esc(g.category)}</span>
+          ${badge}
+          <span class="badge usr ${ub ? 'has' : ''}">${g.users_effective} User</span>
+          ${more}
         </div>
-        ${kids.map(c => node(c, cat, seen)).join('')}
+        <div class="children" id="${id}-c" style="display:none"></div>
       </div>`;
     }
 
-    document.getElementById('tree-b').innerHTML = cats.map(cat => {
-      const gs = byCat[cat];
-      const childSet = new Set();
-      gs.forEach(g => sameCatChildren(g, cat).forEach(c => childSet.add(c.full_name)));
-      const roots = gs.filter(g => !childSet.has(g.full_name));
-      return `<div class="block cat"><div class="cat-h">${esc(cat)} <span class="n">· ${gs.length} Gruppen</span></div>
-        ${roots.map(g => node(g, cat, new Set())).join('')}</div>`;
+    const entriesFor = cat => byCat[cat]
+      .filter(g => !parentsOf(g.full_name).some(p => byFull[p] && byFull[p].category === cat))
+      .sort((a, b) => b.users_effective - a.users_effective || a.name.localeCompare(b.name));
+
+    const el = document.getElementById('tree-b');
+    el.innerHTML = cats.map(cat => {
+      const gs = byCat[cat], custom = gs.filter(g => g.custom).length;
+      return `<div class="cat collapsed">
+        <div class="cat-h"><span class="caret">▾</span> ${esc(cat)} <span class="n">· ${gs.length} Gruppen${custom ? ', ' + custom + ' custom' : ''}</span></div>
+        <div class="cat-body">${entriesFor(cat).map(g => rowHtml(g.full_name, [])).join('')}</div>
+      </div>`;
     }).join('');
+    const firstCat = el.querySelector('.cat'); if (firstCat) firstCat.classList.remove('collapsed');
+
+    el.onclick = ev => {
+      const ch = ev.target.closest('.cat-h');
+      if (ch) { ch.parentElement.classList.toggle('collapsed'); return; }
+      const row = ev.target.closest('.grow.clk');
+      if (!row) return;
+      const id = row.dataset.id, fn = row.dataset.fn;
+      const path = row.dataset.path ? row.dataset.path.split('||') : [];
+      const cont = document.getElementById(id + '-c');
+      if (!cont) return;
+      if (cont.dataset.built !== '1') {
+        const kids = childrenOf(fn).filter(c => !path.includes(c));
+        cont.innerHTML = kids.map(c => rowHtml(c, path.concat([fn]))).join('');
+        cont.dataset.built = '1';
+      }
+      const open = cont.style.display !== 'none';
+      cont.style.display = open ? 'none' : 'block';
+      row.classList.toggle('open', !open);
+    };
+  }
+
+  function setupDirToggle() {
+    const seg = document.getElementById('dir-seg');
+    if (!seg) return;
+    seg.addEventListener('click', e => {
+      const b = e.target.closest('button[data-dir]'); if (!b) return;
+      TREE_DIR = b.dataset.dir;
+      [...seg.querySelectorAll('button')].forEach(x => x.classList.toggle('on', x === b));
+      tree();
+    });
   }
 
   function rules() {
@@ -208,6 +286,9 @@
     if ((S.models_without_access || []).length) add('warn', `Custom-Modelle ohne Zugriffsregel: <b>${(S.models_without_access).join(', ')}</b> – können je nach Standard offen oder gesperrt sein.`);
     if (r.global) add('info', `${r.global} <b>globale</b> Datensatzregeln bilden die zentrale Sicherheitsschicht – Änderungen daran wirken für alle.`);
     if (u.portal_external) add('info', `${u.portal_external} Portal-/externe Benutzer.`);
+    const cg = (S.groups || []).filter(g => g.custom).length;
+    add('info', cg ? `${cg} benutzerdefinierte Berechtigungsgruppe(n) (Custom) – bei Migration mitnehmen.`
+                   : `Keine custom Berechtigungsgruppen – alle ${(S.groups || []).length} Gruppen sind Standard (Customizing läuft über Felder/Automatisierungen/Rechte).`);
     if (!F.length) add('info', 'Keine Auffälligkeiten in dieser Regel-Schicht.');
     document.getElementById('hin-b').innerHTML = F.map(x =>
       `<div class="finding ${x.l}"><span class="lvl">${x.l === 'warn' ? 'Hinweis' : 'Info'}</span><span class="txt">${x.t}</span></div>`).join('');
@@ -225,7 +306,7 @@
   if (!S) {
     document.querySelector('main').innerHTML = '<div class="block">Keine Sicherheitsdaten gefunden – bitte <code>python3 odoo/extract_security.py</code> ausführen.</div>';
   } else {
-    head(); overview(); privileged(); tree(); rules(); findings(); setupNav();
+    head(); overview(); privileged(); tree(); setupDirToggle(); rules(); findings(); setupNav();
   }
 </script>
 </body>
