@@ -20,6 +20,8 @@ REPORT = HERE / "report"
 
 SEV_WEIGHT = {"critical": 15, "warning": 6, "info": 1}
 SEV_RANK = {"critical": 0, "warning": 1, "info": 2}
+# Sicherheit wiegt schwerer, Datenqualität leichter (für den Gesamt-Score)
+CAT_WEIGHT = {"Sicherheit": 1.5, "Wartbarkeit": 1.0, "Konfiguration": 1.0, "Datenqualität": 0.6}
 
 
 def load(name):
@@ -60,6 +62,10 @@ def main() -> int:
             add("SEC-ADMIN-MANY", "warning", "Sicherheit", "Viele Voll-Admins",
                 f"{privN} von {intN} internen Benutzern haben volle Administrationsrechte.",
                 "Voll-Admin-Rechte möglichst wenigen Personen geben; sonst Organisationsrollen nutzen.")
+    if privN == 1:
+        add("SEC-BUS-FACTOR", "info", "Sicherheit", "Nur ein Voll-Admin",
+            "Nur eine Person hat volle Administrationsrechte – Ausfallrisiko.",
+            "Eine zweite Person mit Admin-Rechten vorsehen (Ausfallsicherheit / Vier-Augen).")
     twofa = users.get("with_2fa")
     if twofa is not None and intN and twofa < intN:
         add("SEC-2FA", "warning", "Sicherheit", "Benutzer ohne Zwei-Faktor-Authentifizierung",
@@ -99,6 +105,16 @@ def main() -> int:
         add("MNT-CUSTOMMODELS", "info", "Wartbarkeit", "Custom-Modelle vorhanden",
             "Eigene Modelle: " + ", ".join(m.get("model", "") for m in cm) + ".",
             "Custom-Modelle dokumentieren; bei Migration zuerst übertragen.")
+    studio_total = sum(s.get("count", 0) for s in T.get("studio_footprint", []))
+    if studio_total > 25:
+        add("MNT-STUDIO-SIZE", "info", "Wartbarkeit", "Umfangreiches Studio-Customizing",
+            f"{studio_total} per Studio angepasste Objekte.",
+            "Studio-Anpassungen dokumentieren und bei Odoo-Updates gezielt testen.")
+    custom_auto = sorted({a.get("model") for a in P.get("automations", []) if (a.get("model") or "").startswith("x_")})
+    if custom_auto:
+        add("MNT-CUSTOM-AUTO", "info", "Wartbarkeit", "Automatisierungen auf Custom-Modellen",
+            "Betroffen: " + ", ".join(custom_auto) + ".",
+            "Eigene Automatisierungen dokumentieren; bei Migration mitnehmen.")
 
     # ───────────────── Konfiguration ─────────────────
     for p in P.get("pipelines", []):
@@ -118,6 +134,11 @@ def main() -> int:
             add("CFG-CRM-NOWON", "warning", "Konfiguration", "CRM-Pipeline ohne „Gewonnen“-Phase",
                 "Keine Phase ist als „is_won“ markiert.",
                 "Gewonnen-Phase markieren – sonst sind Gewinnquoten/Reports verfälscht.")
+        if len(p.get("stages", [])) > 2 and not any(s.get("fold") for s in p.get("stages", [])):
+            add(f"CFG-NOFOLD-{p.get('model')}", "info", "Konfiguration",
+                f"Kein eingeklapptes Endstadium in „{p.get('label')}“",
+                "Keine Spalte ist als „fold“ (eingeklappt) markiert.",
+                "Abschluss-Stadien (Erledigt/Abgebrochen) als „fold“ markieren – hält das Kanban übersichtlich.")
     autos = P.get("automations", [])
     inactive_auto = [a for a in autos if not a.get("active")]
     inactive_cron = [c for c in P.get("crons", []) if not c.get("active")]
@@ -149,13 +170,26 @@ def main() -> int:
             "Selten genutzte Vorlagen aufräumen, um Übersicht zu behalten.")
 
     # ───────────────── Score & Aggregation ─────────────────
-    penalty = sum(SEV_WEIGHT.get(f["severity"], 0) for f in findings)
-    score = max(0, 100 - penalty)
-    grade = ("sehr gut" if score >= 85 else "gut" if score >= 70 else
-             "verbesserungswürdig" if score >= 50 else "kritisch")
+    def grade_of(sc):
+        return ("sehr gut" if sc >= 85 else "gut" if sc >= 70 else
+                "verbesserungswürdig" if sc >= 50 else "kritisch")
+
+    # Gesamt-Score: Schweregrad × Kategorie-Gewicht
+    penalty = sum(SEV_WEIGHT.get(f["severity"], 0) * CAT_WEIGHT.get(f["category"], 1.0) for f in findings)
+    score = max(0, round(100 - penalty))
+    grade = grade_of(score)
     by_sev = {s: sum(1 for f in findings if f["severity"] == s) for s in SEV_WEIGHT}
+
+    # Teil-Score je Kategorie (eigenständig, ohne Kategorie-Gewichtung)
     cats = sorted({f["category"] for f in findings})
-    by_cat = {c: sum(1 for f in findings if f["category"] == c) for c in cats}
+
+    def cat_score(c):
+        p = sum(20 if f["severity"] == "critical" else 10 if f["severity"] == "warning" else 3
+                for f in findings if f["category"] == c)
+        return max(0, 100 - p)
+
+    by_cat = {c: {"count": sum(1 for f in findings if f["category"] == c),
+                  "score": cat_score(c), "grade": grade_of(cat_score(c))} for c in cats}
     findings.sort(key=lambda f: (SEV_RANK.get(f["severity"], 9), f["category"]))
 
     data = {
@@ -176,7 +210,7 @@ def main() -> int:
     print(f"  Health-Score : {score}/100 ({grade})")
     print(f"  Befunde      : {len(findings)}  (kritisch {by_sev['critical']}, "
           f"Warnung {by_sev['warning']}, Info {by_sev['info']})")
-    print(f"  Kategorien   : {by_cat}")
+    print("  Teil-Scores  : " + ", ".join(f"{c} {by_cat[c]['score']}" for c in cats))
     return 0
 
 

@@ -33,6 +33,15 @@
     .score-fill { height: 100%; border-radius: 999px; transition: width .4s; }
     .score-hint { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
 
+    .catscores { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .cscore { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; box-shadow: var(--shadow); }
+    .cscore .cc { display: flex; justify-content: space-between; align-items: baseline; }
+    .cscore .cn { font-size: 0.86rem; font-weight: 600; }
+    .cscore .cv { font-size: 1.3rem; font-weight: 700; }
+    .cscore .cbar { height: 7px; border-radius: 999px; background: var(--surface2); overflow: hidden; margin-top: 8px; border: 1px solid var(--border); }
+    .cscore .cfill { height: 100%; border-radius: 999px; }
+    .cscore .ccnt { font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
+
     .filters { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
     .fgroup { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .fgroup .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-right: 2px; }
@@ -77,6 +86,7 @@
 
 <main>
   <div class="hero" id="hero"></div>
+  <div class="catscores" id="cats"></div>
   <div class="filters" id="filters"></div>
   <div id="findings"></div>
 </main>
@@ -108,11 +118,22 @@
       </div>`;
   }
 
+  function categories() {
+    document.getElementById('cats').innerHTML = Object.entries(D.by_category).map(([c, v]) => {
+      const col = scoreColor(v.score);
+      return `<div class="cscore">
+        <div class="cc"><span class="cn">${esc(c)}</span><span class="cv" style="color:${col}">${v.score}</span></div>
+        <div class="cbar"><div class="cfill" style="width:${v.score}%;background:${col}"></div></div>
+        <div class="ccnt">${v.count} Befund${v.count === 1 ? '' : 'e'} · ${esc(v.grade)}</div>
+      </div>`;
+    }).join('');
+  }
+
   function filters() {
     const sevChips = SEV_ORDER.filter(s => D.by_severity[s]).map(s =>
       `<span class="chip-f" data-t="sev" data-v="${s}">${SEV_LABEL[s]} <b>${D.by_severity[s]}</b></span>`).join('');
     const catChips = Object.entries(D.by_category).map(([c, n]) =>
-      `<span class="chip-f" data-t="cat" data-v="${esc(c)}">${esc(c)} <b>${n}</b></span>`).join('');
+      `<span class="chip-f" data-t="cat" data-v="${esc(c)}">${esc(c)} <b>${n.count}</b></span>`).join('');
     document.getElementById('filters').innerHTML =
       `<div class="fgroup"><span class="lbl">Schweregrad</span>${sevChips}</div>` +
       `<div class="fgroup"><span class="lbl">Kategorie</span>${catChips}</div>`;
@@ -146,7 +167,7 @@
   if (!D) {
     document.querySelector('main').innerHTML = '<div class="empty">Keine Advisor-Daten gefunden – bitte <code>python3 odoo/advisor.py</code> ausführen (nach den Extraktoren).</div>';
   } else {
-    hero(); filters(); renderFindings();
+    hero(); categories(); filters(); renderFindings();
   }
 </script>
 </body>
