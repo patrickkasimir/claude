@@ -112,11 +112,15 @@ def db():
 with db() as con:
     con.execute("""CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT UNIQUE NOT NULL, pwhash TEXT NOT NULL, verified INTEGER DEFAULT 0,
-        totp_secret TEXT, created_at TEXT)""")
-    try:
-        con.execute("ALTER TABLE users ADD COLUMN totp_secret TEXT")   # Migration für bestehende DBs
-    except sqlite3.OperationalError:
-        pass
+        totp_secret TEXT, role TEXT DEFAULT 'user', created_at TEXT)""")
+    for col, default in [("totp_secret", "TEXT"), ("role", "TEXT DEFAULT 'user'")]:
+        try:
+            con.execute(f"ALTER TABLE users ADD COLUMN {col} {default}")
+        except sqlite3.OperationalError:
+            pass
+    # Ältester User wird Admin, falls noch keiner existiert
+    if not con.execute("SELECT 1 FROM users WHERE role='admin'").fetchone():
+        con.execute("UPDATE users SET role='admin' WHERE id=(SELECT MIN(id) FROM users)")
     con.execute("""CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, user_id INTEGER, created_at TEXT)""")
     con.execute("""CREATE TABLE IF NOT EXISTS tokens(token TEXT PRIMARY KEY, user_id INTEGER, kind TEXT, created_at TEXT)""")
     con.execute("""CREATE TABLE IF NOT EXISTS instances(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
@@ -345,7 +349,8 @@ FLOW_SVG = """<svg viewBox="0 0 780 330" width="100%" style="max-width:780px" xm
 def shell(title, inner, user=None):
     hdr = f'<header><a class="brand" href="/">Odoo-Analyzer</a>'
     if user:
-        hdr += f'<div class="u">{html.escape(user["email"])} <a href="/account">Konto</a> <form method="post" action="/logout" style="display:inline"><button class="btn s" style="padding:4px 10px">Logout</button></form></div>'
+        admin_link = ' <a href="/admin">Admin</a>' if user["role"] == "admin" else ""
+        hdr += f'<div class="u">{html.escape(user["email"])}{admin_link} <a href="/account">Konto</a> <form method="post" action="/logout" style="display:inline"><button class="btn s" style="padding:4px 10px">Logout</button></form></div>'
     hdr += "</header>"
     page = f"<!DOCTYPE html><html lang='de'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Odoo-Analyzer · {title}</title>{CSS}</head><body>{hdr}<main>{inner}</main>{FOOTER}</body></html>"
     return page.replace('href="/', f'href="{BASE}/').replace('action="/', f'action="{BASE}/') if BASE else page
@@ -445,6 +450,59 @@ RECOVERY_CODES_SHOW = JENV.from_string("""<div class="card"><h2>Recovery-Codes</
     {% for code in codes %}<div class="mono" style="background:#f5f5f5;padding:8px 12px;border-radius:6px;font-size:1.05rem;letter-spacing:.05em">{{ code }}</div>{% endfor %}
   </div>
   <a class="btn p" href="/account">Verstanden, weiter</a></div>""")
+
+ADMIN_TPL = JENV.from_string("""
+<div class="card">
+  <h2>Benutzerverwaltung</h2>
+  <table>
+    <thead><tr><th>E-Mail</th><th>Rolle</th><th>Bestätigt</th><th>2FA</th><th>Registriert</th><th>Instanzen</th><th></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.email }}</td>
+      <td><span class="st {{ 'ok' if u.role == 'admin' else '' }}">{{ u.role }}</span></td>
+      <td>{{ '✓' if u.verified else '–' }}</td>
+      <td>{{ '✓' if u.totp_secret else '–' }}</td>
+      <td class="muted">{{ u.created_at[:10] if u.created_at else '–' }}</td>
+      <td class="muted">{{ u.instance_count }}</td>
+      <td style="white-space:nowrap">
+        {% if u.id != me.id %}
+        <form method="post" action="/admin/user/role" style="display:inline">
+          <input type="hidden" name="uid" value="{{ u.id }}">
+          <button class="btn s" style="padding:3px 9px;font-size:.78rem">{{ 'zu User' if u.role == 'admin' else 'zu Admin' }}</button>
+        </form>
+        <form method="post" action="/admin/user/delete" style="display:inline" onsubmit="return confirm('Benutzer {{ u.email }} und alle Daten löschen?')">
+          <input type="hidden" name="uid" value="{{ u.id }}">
+          <button class="btn d" style="padding:3px 9px;font-size:.78rem">Löschen</button>
+        </form>
+        {% else %}<span class="muted" style="font-size:.78rem">du</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="card">
+  <h2>Alle Instanzen</h2>
+  {% if instances %}
+  <table>
+    <thead><tr><th>Benutzer</th><th>Name</th><th>URL</th><th>Datenbank</th><th>Login</th><th>Letzte Analyse</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for i in instances %}
+    <tr>
+      <td class="muted" style="font-size:.8rem">{{ i.email }}</td>
+      <td>{{ i.name }}</td>
+      <td class="mono">{{ i.url }}</td>
+      <td class="mono">{{ i.db }}</td>
+      <td class="muted">{{ i.login }}</td>
+      <td class="muted">{{ i.last_run or '–' }}</td>
+      <td>{% if i.last_status %}<span class="st {{ 'ok' if i.last_status == 'ok' else 'err' }}">{{ i.last_status[:30] }}</span>{% else %}–{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="empty">Keine Instanzen vorhanden.</p>{% endif %}
+</div>""")
 
 IMPRESSUM = JENV.from_string("""<div class="card legal"><h2>Impressum</h2>
   <p><b>Angaben gemäß § 5 DDG / § 5 TMG</b></p>
@@ -586,6 +644,14 @@ class H(BaseHTTPRequestHandler):
             return self._redirect("/login")
         if path == "/account":
             return self._send(200, shell("Konto", ACCOUNT.render(user=user, msg=None), user))
+        if path == "/admin":
+            if user["role"] != "admin":
+                return self._send(403, error_page("Kein Zugriff", "Nur Admins können diese Seite aufrufen."))
+            with db() as con:
+                users = con.execute("""SELECT u.*, COUNT(i.id) as instance_count
+                    FROM users u LEFT JOIN instances i ON i.user_id=u.id GROUP BY u.id ORDER BY u.id""").fetchall()
+                instances = con.execute("""SELECT i.*, u.email FROM instances i JOIN users u ON u.id=i.user_id ORDER BY u.email, i.name""").fetchall()
+            return self._send(200, shell("Admin", ADMIN_TPL.render(users=[dict(u) for u in users], instances=[dict(i) for i in instances], me=user), user))
         if path == "/2fa/setup":
             secret = new_totp_secret()
             otpauth = f"otpauth://totp/Odoo-Analyzer:{quote(user['email'])}?secret={secret}&issuer=Odoo-Analyzer&digits=6&period=30"
@@ -738,6 +804,31 @@ class H(BaseHTTPRequestHandler):
             with db() as con:
                 codes = generate_recovery_codes(con, user["id"])
             return self._send(200, shell("Recovery-Codes", RECOVERY_CODES_SHOW.render(codes=codes), user))
+        if path in ("/admin/user/delete", "/admin/user/role"):
+            if user["role"] != "admin":
+                return self._send(403, error_page("Kein Zugriff", "Nur Admins können diese Aktion ausführen."))
+            uid = int(form.get("uid", 0))
+            if path == "/admin/user/delete":
+                if uid == user["id"]:
+                    return self._send(400, error_page("Nicht möglich", "Du kannst dein eigenes Konto nicht löschen."))
+                with db() as con:
+                    for iid in [r["id"] for r in con.execute("SELECT id FROM instances WHERE user_id=?", (uid,)).fetchall()]:
+                        import shutil
+                        d = INSTANCES / str(iid)
+                        if d.exists():
+                            shutil.rmtree(d)
+                    for tbl in ("instances", "sessions", "tokens", "recovery_codes"):
+                        con.execute(f"DELETE FROM {tbl} WHERE user_id=?", (uid,))
+                    con.execute("DELETE FROM users WHERE id=?", (uid,))
+            elif path == "/admin/user/role":
+                if uid == user["id"]:
+                    return self._send(400, error_page("Nicht möglich", "Du kannst deine eigene Rolle nicht ändern."))
+                with db() as con:
+                    target = con.execute("SELECT role FROM users WHERE id=?", (uid,)).fetchone()
+                    if target:
+                        new_role = "user" if target["role"] == "admin" else "admin"
+                        con.execute("UPDATE users SET role=? WHERE id=?", (new_role, uid))
+            return self._redirect("/admin")
         if path == "/add":
             with db() as con:
                 con.execute("INSERT INTO instances(user_id,name,url,db,login,created_at) VALUES(?,?,?,?,?,?)",
