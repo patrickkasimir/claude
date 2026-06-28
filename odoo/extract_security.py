@@ -98,13 +98,19 @@ def main() -> int:
     for g in grp_recs:
         pv = g.get("privilege_id")
         pinfo = priv_map.get(pv[0]) if pv else None
-        # Fallback: category_id direkt auf res.groups (OCA/Custom/ältere Module ohne privilege_id)
+        # Fallback 1: category_id direkt auf res.groups (OCA/ältere Module ohne privilege_id)
         if not pinfo:
             cat = g.get("category_id")
             if cat:
                 pinfo = {"name": cat[1], "category": cat[1]}
         mod = grp_modules.get(g["id"])
         custom = (mod is None) or (mod in STUDIO_MODULES)
+        # Fallback 2: für Custom-Gruppen "App / Rolle" aus full_name ableiten
+        if not pinfo and custom:
+            fn = g.get("full_name") or g.get("name") or ""
+            if " / " in fn:
+                inferred = fn.rsplit(" / ", 1)[0]
+                pinfo = {"name": inferred, "category": inferred}
         groups.append({
             "id": g["id"],
             "name": g.get("name"),

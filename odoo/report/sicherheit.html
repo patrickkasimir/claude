@@ -200,11 +200,17 @@
 
     const childrenOf = fn => (TREE_DIR === 'contains' ? (impl[fn] || []) : (impledBy[fn] || []));
     const parentsOf  = fn => (TREE_DIR === 'contains' ? (impledBy[fn] || []) : (impl[fn] || []));
+    const matchesFilter = fn => {
+      if (TREE_FILTER === 'all') return true;
+      const g = byFull[fn]; if (!g) return true;
+      const isTech = TECH_CATS.includes(g.category);
+      return TREE_FILTER === 'business' ? !isTech : isTech;
+    };
 
     let uid = 0;
     function rowHtml(fn, path) {
       const g = byFull[fn]; if (!g) return '';
-      const kids = childrenOf(fn).filter(c => !path.includes(c));
+      const kids = childrenOf(fn).filter(c => !path.includes(c) && matchesFilter(c));
       const id = 'n' + (uid++);
       const ub = g.users_effective > 0;
       const badge = g.custom ? '<span class="badge cust">Custom</span>'
@@ -248,7 +254,7 @@
       const cont = document.getElementById(id + '-c');
       if (!cont) return;
       if (cont.dataset.built !== '1') {
-        const kids = childrenOf(fn).filter(c => !path.includes(c));
+        const kids = childrenOf(fn).filter(c => !path.includes(c) && matchesFilter(c));
         cont.innerHTML = kids.map(c => rowHtml(c, path.concat([fn]))).join('');
         cont.dataset.built = '1';
       }
