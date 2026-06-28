@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Odoo – Technische Dokumentation</title>
+  <style>
+    :root {
+      --bg: #f4f3f7; --surface: #ffffff; --surface2: #faf9fc; --text: #2b2733;
+      --muted: #8b8794; --accent: #714B67; --accent2: #9b6a8c; --accent-soft: #f0e9ef;
+      --border: #e7e3ec; --ok: #2f8f63; --warn: #c98a2b; --info: #3b6ea5;
+      --shadow: 0 1px 3px #2b273310, 0 8px 24px #2b273308;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.5; font-size: 15px; }
+
+    header.top { background: linear-gradient(120deg, var(--accent), var(--accent2)); color: #fff; padding: 30px 28px; }
+    header.top .wrap { max-width: 1140px; margin: 0 auto; }
+    header.top h1 { font-size: 1.6rem; font-weight: 600; }
+    header.top .sub { margin-top: 8px; opacity: 0.92; font-size: 0.92rem; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+    header.top .nav { margin-top: 14px; display: flex; gap: 10px; }
+    header.top .nav a { color: #fff; text-decoration: none; font-size: 0.82rem; background: #ffffff22; border: 1px solid #ffffff55; padding: 4px 12px; border-radius: 999px; }
+    header.top .nav a.cur { background: #fff; color: var(--accent); }
+
+    .layout { max-width: 1140px; margin: 0 auto; padding: 28px; display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: start; }
+    nav.side { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 2px; }
+    nav.side a { text-decoration: none; color: var(--muted); padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; border-left: 3px solid transparent; }
+    nav.side a:hover { background: var(--accent-soft); color: var(--accent); }
+    nav.side a.active { background: var(--accent-soft); color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+
+    main { min-width: 0; }
+    section { margin-bottom: 40px; scroll-margin-top: 20px; }
+    section > h2 { font-size: 1.18rem; font-weight: 600; margin-bottom: 4px; }
+    section .desc { color: var(--muted); font-size: 0.86rem; margin-bottom: 16px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+    .card .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+    .card .value { font-size: 1.6rem; font-weight: 700; color: var(--accent); margin-top: 3px; }
+
+    .block { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+    .block h3 { font-size: 0.92rem; font-weight: 600; margin-bottom: 8px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; color: var(--muted); font-weight: normal; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    td { padding: 7px 8px; border-bottom: 1px solid #00000008; vertical-align: top; }
+    td.mono, .mono { font-family: ui-monospace, monospace; font-size: 0.76rem; color: var(--accent); }
+    .pill { font-size: 0.64rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .pill.warn { background: #fbf0dc; color: var(--warn); }
+    .pill.cust { background: #fff3e0; color: var(--warn); }
+    .pill.glob { background: #e7f0fa; color: var(--info); }
+    .pill.ok { background: #e6f4ec; color: var(--ok); }
+    .tag { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px; font-size: 0.78rem; margin: 0 4px 6px 0; }
+
+    .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+    .toolbar input { flex: 1; max-width: 320px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; }
+    .toolbar input:focus { outline: none; border-color: var(--accent); }
+    .toolbar .cnt { color: var(--muted); font-size: 0.82rem; }
+    .scroll { max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    .scroll table th { position: sticky; top: 0; background: var(--surface); }
+
+    .finding { display: flex; gap: 10px; padding: 11px 14px; border-radius: 10px; margin-bottom: 8px; font-size: 0.88rem; border: 1px solid var(--border); background: var(--surface); }
+    .finding .lvl { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 999px; height: fit-content; white-space: nowrap; }
+    .finding.warn .lvl { background: #fbf0dc; color: var(--warn); }
+    .finding.info .lvl { background: #e7f0fa; color: var(--info); }
+    .finding .txt b { color: var(--text); }
+
+    footer { max-width: 1140px; margin: 0 auto; padding: 16px 28px 50px; color: var(--muted); font-size: 0.8rem; }
+    .muted { color: var(--muted); }
+    @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } nav.side { flex-direction: row; flex-wrap: wrap; } }
+  </style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>Technische Dokumentation</h1>
+    <div class="sub" id="head-sub"></div>
+    <div class="nav">
+      <a href="index.html">Überblick</a>
+      <a href="technik.html" class="cur">Technik</a>
+      <a href="prozesse.html">Prozesse</a>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="side">
+    <a href="#ueberblick" class="active">Customizing-Überblick</a>
+    <a href="#studio">Studio-Fußabdruck</a>
+    <a href="#models">Custom-Modelle</a>
+    <a href="#fields">Custom-Felder</a>
+    <a href="#actions">Server-Aktionen</a>
+    <a href="#rules">Datensatzregeln</a>
+    <a href="#sequences">Sequenzen</a>
+    <a href="#hinweise">Fallstricke</a>
+  </nav>
+
+  <main>
+    <section id="ueberblick"><h2>Customizing-Überblick</h2><div class="desc">Wie stark und wo die Instanz vom Standard abweicht.</div><div class="cards" id="ov"></div></section>
+    <section id="studio"><h2>Studio-Fußabdruck</h2><div class="desc">Welche Objekte über Odoo Studio angepasst wurden.</div><div id="studio-b"></div></section>
+    <section id="models"><h2>Custom-Modelle</h2><div class="desc">Eigene, nicht zum Standard gehörende Datenmodelle.</div><div id="models-b"></div></section>
+    <section id="fields"><h2>Custom-Felder</h2><div class="desc">Benutzerdefinierte Felder (Studio) je Modell.</div><div id="fields-b"></div></section>
+    <section id="actions"><h2>Server-Aktionen</h2><div class="desc">Automatische Aktionen – inkl. eigener Python-Logik.</div><div id="actions-b"></div></section>
+    <section id="rules"><h2>Datensatzregeln (Sicherheit)</h2><div class="desc">Wer welche Datensätze sehen/ändern darf. Global = für alle Benutzer.</div><div id="rules-b"></div></section>
+    <section id="sequences"><h2>Sequenzen (Nummernkreise)</h2><div class="desc">Automatische Nummerierung von Belegen.</div><div id="seq-b"></div></section>
+    <section id="hinweise"><h2>Technische Fallstricke</h2><div class="desc">Automatisch erkannte Auffälligkeiten.</div><div id="hin-b"></div></section>
+  </main>
+</div>
+
+<footer id="footer"></footer>
+
+<script src="technical.js"></script>
+<script>
+  const T = window.ODOO_TECH;
+  const esc = s => (s == null ? '' : String(s)).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+  function head() {
+    const s = T.server, dt = new Date(T.generated_at);
+    document.getElementById('head-sub').innerHTML = `<span>DB: ${esc(s.db)}</span><span>Version: ${esc(s.version)}</span><span>Erzeugt: ${dt.toLocaleString('de-DE')}</span>`;
+    document.getElementById('footer').textContent = 'Automatisch erzeugt aus der Odoo-Instanz · ' + dt.toLocaleString('de-DE');
+  }
+
+  function overview() {
+    const r = T.record_rules || [], sa = T.server_actions || {};
+    const cards = [
+      ['Custom-Modelle', (T.custom_models || []).length],
+      ['Custom-Felder', (T.custom_fields || []).length],
+      ['Studio-Objekte', (T.studio_footprint || []).reduce((s, x) => s + x.count, 0)],
+      ['Server-Aktionen', `${sa.total || 0}`],
+      ['– davon custom', (sa.custom || []).length],
+      ['Datensatzregeln', r.length],
+      ['– global', r.filter(x => x.global).length],
+      ['Sequenzen', (T.sequences || []).length],
+    ];
+    document.getElementById('ov').innerHTML = cards.map(([l, v]) =>
+      `<div class="card"><div class="label">${l}</div><div class="value">${v}</div></div>`).join('');
+  }
+
+  function studio() {
+    const f = T.studio_footprint || [];
+    document.getElementById('studio-b').innerHTML = `<div class="block">
+      <table><thead><tr><th>Objekt-Typ</th><th>Anzahl</th></tr></thead><tbody>
+      ${f.map(x => `<tr><td class="mono">${esc(x.model)}</td><td>${x.count}</td></tr>`).join('')}
+      </tbody></table></div>`;
+  }
+
+  function models() {
+    const m = T.custom_models || [];
+    document.getElementById('models-b').innerHTML = m.length ? m.map(x =>
+      `<div class="block"><h3>${esc(x.label)} <span class="mono">${esc(x.model)}</span></h3>
+        <span class="tag">${x.fields} Felder</span><span class="tag">${x.custom_fields} davon custom</span></div>`).join('')
+      : '<div class="block muted">Keine Custom-Modelle.</div>';
+  }
+
+  function fields() {
+    const fl = T.custom_fields || [];
+    const byModel = {};
+    fl.forEach(f => (byModel[f.model] = byModel[f.model] || []).push(f));
+    document.getElementById('fields-b').innerHTML = Object.entries(byModel).map(([model, fs]) =>
+      `<div class="block"><h3 class="mono">${esc(model)}</h3>
+        <table><thead><tr><th>Feld</th><th>Typ</th><th>Eigenschaften</th><th>Hilfetext</th></tr></thead><tbody>
+        ${fs.map(f => `<tr>
+          <td class="mono">${esc(f.name)}<div class="muted" style="font-family:'Segoe UI'">${esc(f.label || '')}</div></td>
+          <td>${esc(f.type)}</td>
+          <td>${f.related ? `<span class="tag">related: ${esc(f.related)}</span>` : ''}${f.stored ? '<span class="tag">stored</span>' : ''}${f.required ? '<span class="tag">required</span>' : ''}</td>
+          <td>${f.help ? '<span class="pill ok">vorhanden</span>' : '<span class="pill warn">fehlt</span>'}</td>
+        </tr>`).join('')}
+        </tbody></table></div>`).join('') || '<div class="block muted">Keine Custom-Felder.</div>';
+  }
+
+  function actions() {
+    const sa = T.server_actions || {};
+    const types = Object.entries(sa.by_type || {}).sort((a, b) => b[1] - a[1]);
+    document.getElementById('actions-b').innerHTML = `
+      <div class="block"><h3>Gesamt: ${sa.total || 0}</h3>
+        ${types.map(([t, n]) => `<span class="tag">${esc(t)}: ${n}</span>`).join('')}</div>
+      <div class="block"><h3>Eigene (custom) Server-Aktionen · ${(sa.custom || []).length}</h3>
+        ${(sa.custom || []).length ? `<table><thead><tr><th>Name</th><th>Typ</th><th>Objekt</th></tr></thead><tbody>
+          ${sa.custom.map(a => `<tr><td>${esc(a.name)}</td><td><span class="tag">${esc(a.state)}</span></td><td class="mono">${esc(a.model)}</td></tr>`).join('')}
+          </tbody></table>` : '<span class="muted">Keine.</span>'}</div>`;
+  }
+
+  function rules() {
+    const r = T.record_rules || [];
+    const el = document.getElementById('rules-b');
+    const draw = (q) => {
+      const f = q ? r.filter(x => (x.name || '').toLowerCase().includes(q) || (x.model || '').toLowerCase().includes(q)) : r;
+      cnt.textContent = `${f.length} / ${r.length}`;
+      body.innerHTML = `<table><thead><tr><th>Regel</th><th>Objekt</th><th>Rechte</th><th>Art</th><th>Domain</th></tr></thead><tbody>
+        ${f.slice(0, 400).map(x => `<tr>
+          <td>${esc(x.name)}</td>
+          <td class="mono">${esc(x.model)}</td>
+          <td class="mono">${esc(x.perms)}</td>
+          <td>${x.custom ? '<span class="pill cust">custom</span> ' : ''}${x.global ? '<span class="pill glob">global</span>' : '<span class="muted" style="font-size:.72rem">Gruppe</span>'}</td>
+          <td class="mono" style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(x.domain)}">${esc(x.domain)}</td>
+        </tr>`).join('')}</tbody></table>
+        ${f.length > 400 ? '<div class="muted" style="padding:8px">… nur die ersten 400 angezeigt, bitte filtern.</div>' : ''}`;
+    };
+    el.innerHTML = `<div class="block">
+      <div style="margin-bottom:10px"><span class="tag">${r.length} gesamt</span><span class="tag">${r.filter(x => x.global).length} global</span><span class="tag">${r.filter(x => x.custom).length} custom</span></div>
+      <div class="toolbar"><input id="rule-q" type="text" placeholder="Regeln filtern (Name oder Objekt)…"><span class="cnt" id="rule-cnt"></span></div>
+      <div class="scroll"><div id="rule-body"></div></div></div>`;
+    const cnt = document.getElementById('rule-cnt'), body = document.getElementById('rule-body');
+    draw('');
+    document.getElementById('rule-q').addEventListener('input', e => draw(e.target.value.trim().toLowerCase()));
+  }
+
+  function sequences() {
+    const s = T.sequences || [];
+    document.getElementById('seq-b').innerHTML = `<div class="block"><table>
+      <thead><tr><th>Name</th><th>Präfix</th><th>Stellen</th></tr></thead><tbody>
+      ${s.map(x => `<tr><td>${esc(x.name)}</td><td class="mono">${esc(x.prefix || '')}</td><td>${x.padding ?? ''}</td></tr>`).join('')}
+      </tbody></table></div>`;
+  }
+
+  function findings() {
+    const F = [], add = (l, t) => F.push({ l, t });
+    const cf = T.custom_fields || [];
+    const noHelp = cf.filter(f => !f.help);
+    if (noHelp.length) add('warn', `<b>${noHelp.length} von ${cf.length} Custom-Feldern ohne Hilfetext</b> – erschwert Wartung & Übergabe. Hilfetexte in Studio nachpflegen.`);
+    const sa = T.server_actions || {};
+    if ((sa.custom || []).length) add('info', `${sa.custom.length} eigene Server-Aktion(en), davon mit Python-Code – bei Migration und Updates gesondert prüfen.`);
+    const codeN = (sa.by_type || {}).code || 0;
+    if (codeN > 50) add('info', `${codeN} Server-Aktionen vom Typ <b>Code</b> (meist Standard) – Python-Logik ist updateempfindlich.`);
+    const r = T.record_rules || [];
+    const glob = r.filter(x => x.global).length;
+    if (glob) add('info', `${glob} <b>globale</b> Datensatzregeln (gelten für alle Benutzer) – die zentrale Sicherheitsschicht; bei Anpassungen vorsichtig sein.`);
+    const cm = T.custom_models || [];
+    if (cm.length) add('info', `Eigene Modelle: ${cm.map(m => `<b>${esc(m.model)}</b>`).join(', ')} – Kern des Customizings, bei Replikation zuerst übertragen.`);
+    const seqNames = (T.sequences || []).map(s => (s.name || '').toLowerCase());
+    if (seqNames.length !== new Set(seqNames).size) add('info', 'Sequenzen mit gleichem Namen – typisch für Multi-Company.');
+    if (!F.length) add('info', 'Keine Auffälligkeiten in dieser Regel-Schicht.');
+    document.getElementById('hin-b').innerHTML = F.map(x =>
+      `<div class="finding ${x.l}"><span class="lvl">${x.l === 'warn' ? 'Hinweis' : 'Info'}</span><span class="txt">${x.t}</span></div>`).join('');
+  }
+
+  function setupNav() {
+    const links = [...document.querySelectorAll('nav.side a')], map = {};
+    links.forEach(l => { map[l.getAttribute('href').slice(1)] = l; });
+    const obs = new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting) { links.forEach(l => l.classList.remove('active')); if (map[e.target.id]) map[e.target.id].classList.add('active'); }
+    }), { rootMargin: '-15% 0px -75% 0px' });
+    document.querySelectorAll('main section').forEach(s => obs.observe(s));
+  }
+
+  if (!T) {
+    document.querySelector('main').innerHTML = '<div class="block">Keine technischen Daten gefunden – bitte <code>python3 odoo/extract_technical.py</code> ausführen.</div>';
+  } else {
+    head(); overview(); studio(); models(); fields(); actions(); rules(); sequences(); findings(); setupNav();
+  }
+</script>
+</body>
+</html>

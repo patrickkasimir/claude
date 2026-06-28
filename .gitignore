@@ -12,3 +12,5 @@ odoo/report/data.js
 odoo/report/analysis.json
 odoo/report/processes.js
 odoo/report/processes.json
+odoo/report/technical.js
+odoo/report/technical.json
