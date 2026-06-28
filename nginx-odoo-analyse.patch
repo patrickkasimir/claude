@@ -1,0 +1,39 @@
+# Odoo-Analyse-Report unter /claudeapps/odoo-analyse/  – geschützt per HTTP Basic Auth
+# (serverseitiger Schutz: nginx verlangt Login, bevor IRGENDeine Datei ausgeliefert wird)
+#
+# WICHTIG – Reihenfolge: erst Auth aktivieren, DANN die Dateien deployen,
+# sonst sind die Instanzdaten kurzzeitig öffentlich erreichbar.
+#
+# ── 1) Passwort-Hash anlegen (Klartext bleibt bei dir) ─────────────────────
+#   Mit apache2-utils:
+#     sudo htpasswd -c /etc/nginx/.htpasswd-odoo odoo      # fragt PW interaktiv ab
+#     # falls htpasswd fehlt:  sudo apt-get install -y apache2-utils
+#   ODER ohne apache2-utils (openssl):
+#     printf "odoo:$(openssl passwd -apr1)\n" | sudo tee /etc/nginx/.htpasswd-odoo
+#   Rechte setzen:
+#     sudo chown root:www-data /etc/nginx/.htpasswd-odoo && sudo chmod 640 /etc/nginx/.htpasswd-odoo
+#
+# ── 2) In /etc/nginx/sites-available/codetalk einfügen ─────────────────────
+#   In den Block  "server { listen 443 ssl; server_name backend.kasimir.info; }"
+#   VOR der Zeile  "location /claudeapps/ {"  einfügen
+#   (längeres Prefix gewinnt -> diese Location greift für den Unterpfad):
+
+    location /claudeapps/odoo-analyse/ {
+        alias /var/www/html/claudeapps/odoo-analyse/;
+        index index.html;
+
+        auth_basic "Odoo-Analyse - Login";
+        auth_basic_user_file /etc/nginx/.htpasswd-odoo;
+
+        add_header X-Robots-Tag "noindex, nofollow" always;
+    }
+
+# ── 3) Testen & neu laden ──────────────────────────────────────────────────
+#   sudo nginx -t && sudo systemctl reload nginx
+#   (bei Fehler NICHT reloaden, Backup zurück:
+#    sudo cp /etc/nginx/sites-available/codetalk.bak.* /etc/nginx/sites-available/codetalk )
+#
+# ── 4) Erst JETZT die Report-Dateien deployen (macht Claude, kein sudo nötig) ─
+#   Verzeichnis /var/www/html/claudeapps/ gehört bereits dem User -> kein sudo.
+#
+# Danach erreichbar (nur mit Login):  https://backend.kasimir.info/claudeapps/odoo-analyse/
