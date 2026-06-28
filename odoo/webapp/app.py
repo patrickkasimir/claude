@@ -35,6 +35,7 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http.cookies import SimpleCookie
 from urllib.parse import urlparse, parse_qs, quote
+import xmlrpc.client
 
 from jinja2 import Environment
 
@@ -265,6 +266,37 @@ def send_verify(uid, email):
 
 
 # ───────── Analyse (Key transient) ─────────
+def test_connection(inst, api_key):
+    url = inst["url"].rstrip("/")
+    steps = []
+    try:
+        common = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common", allow_none=True)
+        version = common.version()
+        steps.append(("Server erreichbar", True, f"Odoo {version.get('server_version', '?')}"))
+    except Exception as e:
+        steps.append(("Server erreichbar", False, str(e)[:200]))
+        return {"ok": False, "steps": steps}
+    uid = None
+    try:
+        uid = common.authenticate(inst["db"], inst["login"], api_key, {})
+        if uid:
+            steps.append(("Authentifizierung", True, f"UID {uid}"))
+        else:
+            steps.append(("Authentifizierung", False, "Falsche Datenbank, Login oder API-Key"))
+            return {"ok": False, "steps": steps}
+    except Exception as e:
+        steps.append(("Authentifizierung", False, str(e)[:200]))
+        return {"ok": False, "steps": steps}
+    try:
+        models = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/object", allow_none=True)
+        me = models.execute_kw(inst["db"], uid, api_key, "res.users", "read", [[uid]], {"fields": ["name", "login"]})
+        steps.append(("API-Zugriff", True, f"Angemeldet als {me[0]['name']} ({me[0]['login']})"))
+        return {"ok": True, "steps": steps}
+    except Exception as e:
+        steps.append(("API-Zugriff", False, str(e)[:200]))
+        return {"ok": False, "steps": steps}
+
+
 def run_analysis(inst_id, api_key):
     with db() as con:
         row = con.execute("SELECT * FROM instances WHERE id=?", (inst_id,)).fetchone()
@@ -369,7 +401,7 @@ DASH_TPL = JENV.from_string("""
 {% for r in rows %}<tr>
   <td><b>{{ r.name }}</b><div class="muted">{{ r.login }}</div></td><td class="mono">{{ r.db }}</td><td>{{ r.last_run or "–" }}</td>
   <td>{% set s = r.last_status or "" %}<span class="st {{ 'ok' if s=='ok' else 'run' if 'läuft' in s else 'err' if s else '' }}">{{ s or "neu" }}</span></td>
-  <td><form class="aform" method="post" action="/analyze"><input type="hidden" name="id" value="{{ r.id }}"><input type="password" name="key" placeholder="API-Key" required autocomplete="off"><button class="btn p">Analysieren</button></form></td>
+  <td><form class="aform" method="post" action="/analyze"><input type="hidden" name="id" value="{{ r.id }}"><input type="password" name="key" placeholder="API-Key" required autocomplete="off"><button class="btn s" formaction="/test">Testen</button><button class="btn p">Analysieren</button></form></td>
   <td style="white-space:nowrap;text-align:right">{% if r.has_report %}<a class="btn s" href="/i/{{ r.id }}/" target="_blank">Öffnen</a>{% endif %}
     <a class="btn s" href="/edit?id={{ r.id }}">Bearbeiten</a>
     <form method="post" action="/delete" style="display:inline" onsubmit="return confirm('Instanz löschen?')"><input type="hidden" name="id" value="{{ r.id }}"><button class="btn d">Löschen</button></form></td>
@@ -380,6 +412,20 @@ DASH_TPL = JENV.from_string("""
     <div><label>Datenbank</label><input name="db" required></div><div><label>Login</label><input name="login" required></div>
     <div><button class="btn p" style="width:100%">Speichern</button></div></form>
   <div class="muted" style="margin-top:10px">Kein API-Key hier – der wird erst beim Analysieren eingegeben (und nicht gespeichert).</div></div>""")
+
+TEST_RESULT_TPL = JENV.from_string("""<div class="card"><h2>Verbindungstest: {{ inst.name }}</h2>
+  <p class="muted" style="margin-bottom:16px">{{ inst.url }} · {{ inst.db }} · {{ inst.login }}</p>
+  {% for label, ok, detail in result.steps %}
+  <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
+    <span style="color:{{ '#2f8f63' if ok else '#b14' }};font-size:1.15rem;flex-shrink:0;line-height:1.4">{{ '✓' if ok else '✗' }}</span>
+    <div><b>{{ label }}</b>{% if detail %}<div class="muted" style="font-size:.82rem;margin-top:2px">{{ detail }}</div>{% endif %}</div>
+  </div>
+  {% endfor %}
+  <div class="msg {{ 'i' if result.ok else 'e' }}" style="margin-top:16px">
+    {{ 'Verbindung erfolgreich – Analyse kann gestartet werden.' if result.ok else 'Verbindung fehlgeschlagen – URL, Datenbank, Login oder API-Key prüfen.' }}
+  </div>
+  <p style="margin-top:16px"><a class="btn s" href="/">Zurück</a></p>
+</div>""")
 
 LANDING = JENV.from_string("""<div class="card"><div class="hero">
   <h1>Odoo-Analyzer</h1>
@@ -839,6 +885,15 @@ class H(BaseHTTPRequestHandler):
                 con.execute("UPDATE instances SET name=?,url=?,db=?,login=? WHERE id=? AND user_id=?",
                             (form["name"].strip(), form["url"].strip().rstrip("/"), form["db"].strip(), form["login"].strip(), form["id"], user["id"]))
             return self._redirect("/")
+        if path == "/test":
+            iid, key = form.get("id", ""), form.get("key", "")
+            with db() as con:
+                row = con.execute("SELECT * FROM instances WHERE id=? AND user_id=?", (iid, user["id"])).fetchone()
+            if not row or not key:
+                return self._send(400, error_page("Fehler", "Instanz oder API-Key fehlt."))
+            result = test_connection(dict(row), key)
+            key = None
+            return self._send(200, shell("Verbindungstest", TEST_RESULT_TPL.render(inst=dict(row), result=result), user))
         if path == "/analyze":
             iid, key = int(form["id"]), form.get("key", "")
             with db() as con:
