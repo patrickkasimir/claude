@@ -68,6 +68,7 @@
     .grow.open > .caret { transform: rotate(90deg); }
     .grow > .leaf { width: 14px; flex: 0 0 auto; color: var(--border); text-align: center; }
     .grow .gname { font-size: 0.87rem; font-weight: 500; }
+    .grow .gpriv { font-size: 0.84rem; color: var(--muted); font-weight: 400; }
     .badge { font-size: 0.66rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
     .badge.catb { background: var(--accent-soft); color: var(--accent); }
     .badge.std { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
@@ -203,7 +204,7 @@
       return `<div class="gn">
         <div class="grow ${kids.length ? 'clk' : ''}" data-id="${id}" data-fn="${escA(fn)}" data-path="${escA(path.join('||'))}">
           ${caret}
-          <span class="gname">${esc(g.name)}</span>
+          ${g.privilege && g.privilege !== g.category && g.privilege !== g.name ? `<span class="gpriv">${esc(g.privilege)} / </span>` : ''}<span class="gname">${esc(g.name)}</span>
           <span class="badge catb">${esc(g.category)}</span>
           ${badge}
           <span class="badge usr ${ub ? 'has' : ''}">${g.users_effective} User</span>
