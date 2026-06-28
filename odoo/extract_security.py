@@ -91,6 +91,24 @@ def main() -> int:
         grp_modules[r["res_id"]] = r.get("module")
     STUDIO_MODULES = ("studio_customization", "__custom__", "__export__")
 
+    # ---- Zugriffsrechte je Gruppe (für App-Detailseite) ----
+    access_by_gid = {}
+    for rec in sread("ir.model.access", [["group_id", "!=", False]],
+                     fields=["model_id", "group_id", "perm_read", "perm_write", "perm_create", "perm_unlink"]):
+        gid = rec["group_id"][0]
+        mid = rec.get("model_id")
+        if not mid:
+            continue
+        access_by_gid.setdefault(gid, []).append({
+            "model": mid[1],
+            "r": 1 if rec["perm_read"] else 0,
+            "w": 1 if rec["perm_write"] else 0,
+            "c": 1 if rec["perm_create"] else 0,
+            "d": 1 if rec["perm_unlink"] else 0,
+        })
+    for gid in access_by_gid:
+        access_by_gid[gid].sort(key=lambda x: x["model"].lower())
+
     # ---- Gruppen (für Tree + Analyse) ----
     grp_recs = pick("res.groups", [], ["name", "full_name", "privilege_id", "category_id", "implied_ids", "comment", "user_ids", "all_user_ids"], order="id")
     id2name = {g["id"]: (g.get("full_name") or g.get("name")) for g in grp_recs}
@@ -122,6 +140,7 @@ def main() -> int:
             "users_effective": len(g.get("all_user_ids") or []),
             "module": mod or "",
             "custom": custom,
+            "rights": access_by_gid.get(g["id"], []),
         })
 
     # ---- Privilegierte Benutzer ----

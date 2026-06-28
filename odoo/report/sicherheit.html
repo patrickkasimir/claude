@@ -77,6 +77,28 @@
     .badge.usr.has { background: #e6f4ec; color: var(--ok); }
     .children { margin-left: 15px; border-left: 2px solid var(--accent-soft); padding-left: 4px; }
 
+    /* App-Detailseite */
+    .role-card { border-bottom: 1px solid var(--border); }
+    .role-card:last-child { border-bottom: none; }
+    .role-h { display: flex; align-items: center; gap: 8px; padding: 10px 8px; flex-wrap: wrap; cursor: pointer; border-radius: 8px; }
+    .role-h:hover { background: var(--surface2); }
+    .role-h .caret { flex: 0 0 auto; color: var(--muted); font-size: .72rem; transition: transform .15s; }
+    .role-h.open .caret { transform: rotate(90deg); }
+    .role-name { font-size: .87rem; font-weight: 500; }
+    .role-body { padding: 4px 8px 14px 22px; }
+    .role-implies { margin-top: 8px; font-size: .8rem; }
+    .rights-wrap { overflow-x: auto; margin-top: 6px; max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .rights-tbl { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    .rights-tbl thead { position: sticky; top: 0; background: var(--surface2); z-index: 1; }
+    .rights-tbl th { text-align: left; color: var(--muted); font-weight: 500; font-size: .7rem; text-transform: uppercase; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+    .rights-tbl th:not(:first-child) { text-align: center; width: 42px; }
+    .rights-tbl td { padding: 5px 10px; border-bottom: 1px solid #00000006; }
+    .rights-tbl td:not(:first-child) { text-align: center; color: var(--muted); }
+    .rights-tbl td.ok { color: var(--ok); font-weight: 600; }
+    .rights-tbl td.del { color: var(--warn); font-weight: 600; }
+    .rights-tbl tr:last-child td { border-bottom: none; }
+    .rights-tbl tr:hover td { background: var(--surface2); }
+
     .finding { display: flex; gap: 10px; padding: 11px 14px; border-radius: 10px; margin-bottom: 8px; font-size: 0.88rem; border: 1px solid var(--border); background: var(--surface); }
     .finding .lvl { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 999px; height: fit-content; white-space: nowrap; }
     .finding.warn .lvl { background: #fbf0dc; color: var(--warn); }
@@ -109,6 +131,7 @@
     <a href="#ueberblick" class="active">Überblick</a>
     <a href="#priv">Privilegierte Benutzer</a>
     <a href="#tree">Gruppen-Baum (App-Bezug)</a>
+    <a href="#apps">Applikationen &amp; Rollen</a>
     <a href="#rules">Datensatzregeln</a>
     <a href="#hinweise">Fallstricke</a>
   </nav>
@@ -135,6 +158,10 @@
         </div>
       </div>
       <div id="tree-b"></div></section>
+    <section id="apps"><h2>Applikationen &amp; Rollen</h2>
+      <div class="desc">Je Applikation: welche Rollen definiert sind und welche direkten Zugriffsrechte sie besitzen (ohne vererbte Rechte). L = Lesen · Ä = Ändern · E = Erstellen · ✕ = Löschen.</div>
+      <div id="apps-b"></div>
+    </section>
     <section id="rules"><h2>Datensatzregeln</h2><div class="desc">Sichtbarkeits-/Änderungsregeln auf Datenebene.</div><div id="rules-b"></div></section>
     <section id="hinweise"><h2>Sicherheits-Fallstricke</h2><div class="desc">Automatisch erkannte Auffälligkeiten.</div><div id="hin-b"></div></section>
   </main>
@@ -286,6 +313,62 @@
     });
   }
 
+  function appDetail() {
+    const groups = S.groups || [];
+    const bizGroups = groups.filter(g => !TECH_CATS.includes(g.category));
+    const byCat = {};
+    bizGroups.forEach(g => (byCat[g.category] = byCat[g.category] || []).push(g));
+    const cats = [...new Set([...CAT_ORDER, ...Object.keys(byCat)])].filter(c => byCat[c]);
+
+    function roleCard(g) {
+      const rights = g.rights || [];
+      const badge = g.custom ? '<span class="badge cust">Custom</span>' : '<span class="badge std">Standard</span>';
+      const userBadge = `<span class="badge usr ${g.users_effective > 0 ? 'has' : ''}">${g.users_effective} Benutzer</span>`;
+      const hint = `<span class="muted" style="font-size:.76rem;margin-left:auto">${rights.length ? rights.length + ' Rechte' : 'nur Vererbung'}${(g.implies||[]).length ? ' · inkl. ' + g.implies.length + ' Gruppen' : ''}</span>`;
+      const rightsHtml = rights.length
+        ? `<div class="rights-wrap"><table class="rights-tbl">
+            <thead><tr><th>Objekt</th><th title="Lesen">L</th><th title="Ändern">Ä</th><th title="Erstellen">E</th><th title="Löschen">✕</th></tr></thead>
+            <tbody>${rights.map(r =>
+              `<tr><td>${esc(r.model)}</td>
+               <td class="${r.r ? 'ok' : ''}">${r.r ? '✓' : '–'}</td>
+               <td class="${r.w ? 'ok' : ''}">${r.w ? '✓' : '–'}</td>
+               <td class="${r.c ? 'ok' : ''}">${r.c ? '✓' : '–'}</td>
+               <td class="${r.d ? 'del' : ''}">${r.d ? '✓' : '–'}</td></tr>`
+            ).join('')}</tbody></table></div>`
+        : `<p class="muted" style="font-size:.82rem;padding:6px 0">Keine direkten Zugriffsrechte – Berechtigungen kommen ausschließlich über vererbte Gruppen.</p>`;
+      const impliesHtml = (g.implies || []).length
+        ? `<div class="role-implies"><span class="muted">Beinhaltet: </span>${g.implies.map(n => `<span class="tag">${esc(n)}</span>`).join('')}</div>`
+        : '';
+      return `<div class="role-card">
+        <div class="role-h">${'<span class="caret">▶</span>'}
+          <span class="role-name">${esc(g.full_name || g.name)}</span>
+          ${badge} ${userBadge} ${hint}
+        </div>
+        <div class="role-body" style="display:none">${rightsHtml}${impliesHtml}</div>
+      </div>`;
+    }
+
+    const el = document.getElementById('apps-b');
+    el.innerHTML = cats.map((cat, ci) => {
+      const gs = [...(byCat[cat] || [])].sort((a, b) => b.users_effective - a.users_effective || a.name.localeCompare(b.name));
+      return `<div class="cat${ci > 0 ? ' collapsed' : ''}">
+        <div class="cat-h"><span class="caret">▾</span> ${esc(cat)} <span class="n">· ${gs.length} Rollen</span></div>
+        <div class="cat-body" style="padding:0 4px 8px">${gs.map(roleCard).join('')}</div>
+      </div>`;
+    }).join('');
+
+    el.onclick = ev => {
+      const ch = ev.target.closest('.cat-h');
+      if (ch) { ch.parentElement.classList.toggle('collapsed'); return; }
+      const rh = ev.target.closest('.role-h');
+      if (!rh) return;
+      const body = rh.nextElementSibling;
+      const open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : 'block';
+      rh.classList.toggle('open', !open);
+    };
+  }
+
   function rules() {
     const r = S.rules || {};
     let html = `<div class="block"><h3>Übersicht</h3>
@@ -334,7 +417,7 @@
   if (!S) {
     document.querySelector('main').innerHTML = '<div class="block">Keine Sicherheitsdaten gefunden – bitte <code>python3 odoo/extract_security.py</code> ausführen.</div>';
   } else {
-    head(); overview(); privileged(); tree(); setupDirToggle(); setupFilterToggle(); rules(); findings(); setupNav();
+    head(); overview(); privileged(); tree(); setupDirToggle(); setupFilterToggle(); appDetail(); rules(); findings(); setupNav();
   }
 </script>
 </body>
