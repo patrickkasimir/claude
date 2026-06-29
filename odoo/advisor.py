@@ -22,8 +22,8 @@ REPORT = Path(os.environ.get("ODOO_OUT_DIR") or (HERE / "report"))
 SEV_WEIGHT = {"critical": 15, "warning": 6, "info": 1}
 SEV_RANK = {"critical": 0, "warning": 1, "info": 2}
 # Sicherheit wiegt schwerer, Datenqualität leichter (für den Gesamt-Score)
-CAT_WEIGHT = {"Sicherheit": 1.5, "Upgradefähigkeit": 1.2,
-              "Wartbarkeit": 1.0, "Konfiguration": 1.0, "Datenqualität": 0.6}
+CAT_WEIGHT = {"Sicherheit": 1.5, "Wartbarkeit": 1.0, "Konfiguration": 1.0,
+              "Datenqualität": 0.6, "Upgradefähigkeit": 0.2}
 
 
 def load(name):
@@ -173,28 +173,11 @@ def main() -> int:
             "Selten genutzte Vorlagen aufräumen, um Übersicht zu behalten.")
 
     # ───────────────── Upgradefähigkeit (aus upgrade.json) ─────────────────
-    # Einzelbefunde landen im eigenen Reiter; hier nur ein zusammengefasster
-    # Indikator, damit der Gesamt-Score nicht unverhältnismäßig belastet wird.
-    upg_score = U.get("score")
-    if upg_score is not None:
-        upg_crit = U.get("by_severity", {}).get("critical", 0)
-        upg_warn = U.get("by_severity", {}).get("warning", 0)
-        upg_info = U.get("by_severity", {}).get("info", 0)
-        detail = (f"Upgrade-Score: {upg_score}/100 · "
-                  f"{upg_crit} kritisch, {upg_warn} Warnungen, {upg_info} Infos. "
-                  "Details im Reiter Upgradefähigkeit.")
-        if upg_score < 50:
-            add("UPG-RISK", "critical", "Upgradefähigkeit",
-                "Hohes Upgrade-Risiko – sofortiger Handlungsbedarf",
-                detail, "Kritische Befunde im Upgradefähigkeit-Reiter prüfen und bereinigen.")
-        elif upg_score < 70:
-            add("UPG-RISK", "warning", "Upgradefähigkeit",
-                "Mittleres Upgrade-Risiko",
-                detail, "Warnungen im Upgradefähigkeit-Reiter vor dem nächsten Upgrade adressieren.")
-        elif upg_score < 85:
-            add("UPG-RISK", "info", "Upgradefähigkeit",
-                "Geringes Upgrade-Risiko",
-                detail, "Info-Befunde im Upgradefähigkeit-Reiter sichten; kein sofortiger Handlungsbedarf.")
+    # Alle Einzelbefunde direkt einbinden – CAT_WEIGHT 0.2 verhindert,
+    # dass statische Risiko-Indikatoren den Gesamt-Score unverhältnismäßig belasten.
+    for i, f in enumerate(U.get("findings", [])):
+        add(f"UPG-{i}", f["severity"], "Upgradefähigkeit",
+            f["title"], f["detail"], f["recommendation"])
 
     # ───────────────── Score & Aggregation ─────────────────
     def grade_of(sc):
