@@ -1,0 +1,8 @@
+# Zugangsdaten (zusätzlich zur globalen Regel)
+.env
+
+# Generierte Artefakte
+__pycache__/
+templates/
+seed_ids.json
+seed_order_ids.json
