@@ -58,8 +58,8 @@ BASE_URL = os.environ.get("APP_BASE_URL", "https://backend.kasimir.info/analyzer
 BASE = os.environ.get("BASE_PATH", "").rstrip("/")   # nginx-Unterpfad, z.B. /analyzer (für ausgehende Links)
 
 SCRIPTS = ["analyze.py", "extract_processes.py", "extract_technical.py",
-           "extract_security.py", "extract_modules.py", "advisor.py"]
-PAGES = ["index.html", "technik.html", "prozesse.html", "sicherheit.html", "advisor.html"]
+           "extract_security.py", "extract_modules.py", "extract_upgrade.py", "advisor.py"]
+PAGES = ["index.html", "technik.html", "prozesse.html", "sicherheit.html", "advisor.html", "upgrade.html"]
 CTYPE = {".html": "text/html; charset=utf-8", ".js": "application/javascript; charset=utf-8",
          ".json": "application/json; charset=utf-8", ".css": "text/css"}
 SESSION_MAX_AGE = 14 * 86400
