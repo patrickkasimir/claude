@@ -82,6 +82,11 @@ strenger validiert werden. Behandelt:
    bewusst KEIN generischer Domain-Parser (der löst Werte-Tupel wie
    `('out_invoice','out_refund')` fälschlich als Felder aus und würde Standard-Regeln
    deaktivieren).
+7. **Studio-View „res.partner.form customization"** (alle Kontakt-Tabs) upgrade-fest:
+   brüchige Manipulationen am Kern-Element `vat_vies_container` (move/hide) entfernt und
+   das 19.3-entfernte Kernfeld `company_type` in Modifikatoren auf `is_company`
+   umgestellt. Sonst verwirft das Upgrade die GANZE View → alle 9 Custom-Tabs weg.
+   (Daten bleiben erhalten – nur das Layout war betroffen.)
 
 Vor dem Lauf auf der Arbeitsinstanz immer erst auf der Upgrade-Test-DB verifizieren
 (Inline-Override) – genau so wurde der vi2va-`ir.rule`-Fall gefunden.

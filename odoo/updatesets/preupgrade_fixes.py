@@ -150,6 +150,32 @@ def main() -> int:
     if not fixed:
         print("  keine verwaiste Regel")
 
+    print("\n=== 7) Kontakt-Tabs: Studio res.partner-View upgrade-fest machen ===")
+    sv = c.find_one("ir.ui.view", [("model", "=", "res.partner"),
+                    ("name", "=", "Odoo Studio: res.partner.form customization")],
+                    fields=["id", "arch"])
+    if not sv:
+        print("  Studio-res.partner-View nicht vorhanden (übersprungen)")
+    else:
+        a = orig = sv["arch"]
+        # brüchige Manipulationen am Kern-Element vat_vies_container raus (move/hide)
+        a = re.sub(r"<xpath\b[^>]*?vat_vies_container[^>]*?>.*?</xpath>", "", a, flags=re.DOTALL)
+        a = re.sub(r"<xpath\b[^>]*?vat_vies_container[^>]*?/>", "", a)
+
+        # 19.3-entferntes Kernfeld company_type -> is_company in Modifikatoren
+        def _ct(m):
+            op, val = m.group(1), m.group(3)
+            if op == "==":
+                return "is_company" if val == "company" else "not is_company"
+            return "not is_company" if val == "company" else "is_company"
+        a = re.sub(r"""company_type\s*(==|!=)\s*(&quot;|['"])(company|person)\2""", _ct, a)
+
+        if a != orig:
+            c.write("ir.ui.view", [sv["id"]], {"arch": a})
+            print("  bereinigt: vat_vies_container-XPaths entfernt, company_type->is_company ✓")
+        else:
+            print("  bereits upgrade-fest")
+
     print("\nPre-Upgrade-Härtung abgeschlossen ✓")
     return 0
 
