@@ -11,7 +11,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 DST=/var/www/html/claudeapps/odoo-analyse
 
 echo "== 1/2: Daten aus Odoo extrahieren =="
-for s in analyze.py extract_processes.py extract_technical.py extract_security.py extract_modules.py advisor.py; do
+for s in analyze.py extract_processes.py extract_technical.py extract_security.py extract_modules.py extract_upgrade.py advisor.py; do
   echo "  → $s"
   python3 "$HERE/$s" >/dev/null || { echo "  FEHLER in $s"; exit 1; }
 done

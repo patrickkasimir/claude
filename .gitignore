@@ -20,6 +20,8 @@ odoo/report/advisor.js
 odoo/report/advisor.json
 odoo/report/modules.js
 odoo/report/modules.json
+odoo/report/upgrade.js
+odoo/report/upgrade.json
 
 # Web-App-Daten (Secret-Key, DB, gespeicherte Instanzen + generierte Reports)
 odoo/webapp/data/

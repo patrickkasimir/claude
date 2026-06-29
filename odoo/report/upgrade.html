@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Odoo – Advisor &amp; Health-Score</title>
+  <title>Odoo – Upgradefähigkeit</title>
   <style>
     :root {
       --bg: #f4f3f7; --surface: #ffffff; --surface2: #faf9fc; --text: #2b2733;
@@ -13,7 +13,6 @@
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.5; font-size: 15px; }
-
     header.top { background: linear-gradient(120deg, var(--accent), var(--accent2)); color: #fff; padding: 30px 28px; }
     header.top .wrap { max-width: 1000px; margin: 0 auto; }
     header.top h1 { font-size: 1.6rem; font-weight: 600; }
@@ -21,10 +20,8 @@
     header.top .nav { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
     header.top .nav a { color: #fff; text-decoration: none; font-size: 0.82rem; background: #ffffff22; border: 1px solid #ffffff55; padding: 4px 12px; border-radius: 999px; }
     header.top .nav a.cur { background: #fff; color: var(--accent); }
-
     main { max-width: 1000px; margin: 0 auto; padding: 28px; }
-
-    .hero { display: flex; align-items: center; gap: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px 28px; box-shadow: var(--shadow); margin-bottom: 22px; flex-wrap: wrap; }
+    .hero { display: flex; align-items: center; gap: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px 28px; box-shadow: var(--shadow); margin-bottom: 16px; flex-wrap: wrap; }
     .score-num { font-size: 3.6rem; font-weight: 700; line-height: 1; }
     .score-num small { font-size: 1.2rem; color: var(--muted); font-weight: 400; }
     .score-meta { flex: 1; min-width: 240px; }
@@ -32,23 +29,20 @@
     .score-bar { height: 12px; border-radius: 999px; background: var(--surface2); overflow: hidden; margin-top: 10px; border: 1px solid var(--border); }
     .score-fill { height: 100%; border-radius: 999px; transition: width .4s; }
     .score-hint { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
-
+    .note { background: #fff8ee; border: 1px solid #f0d9b5; border-left: 4px solid var(--warn); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.86rem; color: #6b5836; }
+    .note b { color: var(--warn); }
     .catscores { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
     .cscore { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; box-shadow: var(--shadow); }
     .cscore .cc { display: flex; justify-content: space-between; align-items: baseline; }
     .cscore .cn { font-size: 0.86rem; font-weight: 600; }
-    .cscore .cv { font-size: 1.3rem; font-weight: 700; }
-    .cscore .cbar { height: 7px; border-radius: 999px; background: var(--surface2); overflow: hidden; margin-top: 8px; border: 1px solid var(--border); }
-    .cscore .cfill { height: 100%; border-radius: 999px; }
+    .cscore .cv { font-size: 1.6rem; font-weight: 700; }
     .cscore .ccnt { font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
-
     .filters { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
     .fgroup { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .fgroup .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-right: 2px; }
     .chip-f { cursor: pointer; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 13px; font-size: 0.82rem; color: var(--muted); user-select: none; }
     .chip-f:hover { border-color: var(--accent2); }
     .chip-f.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
-
     .fnd { border: 1px solid var(--border); border-left-width: 4px; border-radius: 10px; padding: 13px 16px; margin-bottom: 10px; background: var(--surface); box-shadow: var(--shadow); }
     .fnd.critical { border-left-color: var(--crit); }
     .fnd.warning { border-left-color: var(--warn); }
@@ -58,13 +52,12 @@
     .fnd.critical .sev { background: #fbeaea; color: var(--crit); }
     .fnd.warning .sev { background: #fbf0dc; color: var(--warn); }
     .fnd.info .sev { background: #e7f0fa; color: var(--info); }
-    .fnd .cat { font-size: 0.72rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
+    .fnd .kind { font-size: 0.72rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
     .fnd .title { font-weight: 600; font-size: 0.95rem; }
-    .fnd .detail { color: var(--text); font-size: 0.88rem; margin-top: 6px; }
+    .fnd .detail { font-size: 0.88rem; margin-top: 6px; }
     .fnd .rec { font-size: 0.85rem; margin-top: 6px; color: var(--muted); }
     .fnd .rec b { color: var(--accent); }
     .empty { color: var(--muted); padding: 20px; text-align: center; }
-
     footer { max-width: 1000px; margin: 0 auto; padding: 16px 28px 50px; color: var(--muted); font-size: 0.8rem; }
   </style>
 </head>
@@ -72,35 +65,41 @@
 
 <header class="top">
   <div class="wrap">
-    <h1>Advisor &amp; Health-Score</h1>
+    <h1>Upgradefähigkeit</h1>
     <div class="sub" id="head-sub"></div>
     <div class="nav">
       <a href="index.html">Überblick</a>
       <a href="technik.html">Technik</a>
       <a href="prozesse.html">Prozesse</a>
       <a href="sicherheit.html">Sicherheit</a>
-      <a href="advisor.html" class="cur">Advisor</a>
-      <a href="upgrade.html">Upgradefähigkeit</a>
+      <a href="advisor.html">Advisor</a>
+      <a href="upgrade.html" class="cur">Upgradefähigkeit</a>
     </div>
   </div>
 </header>
 
 <main>
   <div class="hero" id="hero"></div>
-  <div class="catscores" id="cats"></div>
+  <div class="note">
+    <b>Statisches Upgrade-Risiko</b> – findet tote Referenzen sicher, Fragiles als Review.
+    Versionsspezifische Feld-Entfernungen und „stilles Verschwinden" (verworfene Views/Tabs)
+    sieht erst der Vergleich gegen die hochgezogene Upgrade-Test-DB (geplant). Kein Ersatz dafür, keine Garantie.
+  </div>
+  <div class="catscores" id="counts"></div>
   <div class="filters" id="filters"></div>
   <div id="findings"></div>
 </main>
 
 <footer id="footer"></footer>
 
-<script src="advisor.js"></script>
+<script src="upgrade.js"></script>
 <script>
-  const D = window.ODOO_ADVISOR;
+  const D = window.ODOO_UPGRADE;
   const esc = s => (s == null ? '' : String(s)).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   const SEV_LABEL = { critical: 'Kritisch', warning: 'Warnung', info: 'Info' };
   const SEV_ORDER = ['critical', 'warning', 'info'];
-  let fSev = new Set(), fCat = new Set();
+  const KIND_LABEL = { dead_ref: 'Tote Referenz', fragile_view: 'Fragile View', core_ref: 'Kernfeld-Bezug' };
+  let fSev = new Set(), fKind = new Set();
 
   function scoreColor(s) { return s >= 85 ? 'var(--ok)' : s >= 70 ? '#5aa17a' : s >= 50 ? 'var(--warn)' : 'var(--crit)'; }
 
@@ -119,28 +118,31 @@
       </div>`;
   }
 
-  function categories() {
-    document.getElementById('cats').innerHTML = Object.entries(D.by_category).map(([c, v]) => {
-      const col = scoreColor(v.score);
-      return `<div class="cscore">
-        <div class="cc"><span class="cn">${esc(c)}</span><span class="cv" style="color:${col}">${v.score}</span></div>
-        <div class="cbar"><div class="cfill" style="width:${v.score}%;background:${col}"></div></div>
-        <div class="ccnt">${v.count} Befund${v.count === 1 ? '' : 'e'} · ${esc(v.grade)}</div>
-      </div>`;
-    }).join('');
+  function counts() {
+    const C = D.counts || {};
+    const cards = [
+      ['dead_ref', 'Tote Referenzen', C.dead_ref || 0],
+      ['fragile_view', 'Fragile Views', C.fragile_view || 0],
+      ['core_ref', 'Kernfeld-Bezüge', C.core_ref || 0],
+    ];
+    document.getElementById('counts').innerHTML = cards.map(([k, n, v]) =>
+      `<div class="cscore"><div class="cc"><span class="cn">${n}</span><span class="cv">${v}</span></div>
+       <div class="ccnt">${esc(KIND_LABEL[k])}</div></div>`).join('');
   }
 
   function filters() {
     const sevChips = SEV_ORDER.filter(s => D.by_severity[s]).map(s =>
       `<span class="chip-f" data-t="sev" data-v="${s}">${SEV_LABEL[s]} <b>${D.by_severity[s]}</b></span>`).join('');
-    const catChips = Object.entries(D.by_category).map(([c, n]) =>
-      `<span class="chip-f" data-t="cat" data-v="${esc(c)}">${esc(c)} <b>${n.count}</b></span>`).join('');
+    const kinds = {};
+    D.findings.forEach(f => kinds[f.kind] = (kinds[f.kind] || 0) + 1);
+    const kindChips = Object.entries(kinds).map(([k, n]) =>
+      `<span class="chip-f" data-t="kind" data-v="${k}">${esc(KIND_LABEL[k] || k)} <b>${n}</b></span>`).join('');
     document.getElementById('filters').innerHTML =
       `<div class="fgroup"><span class="lbl">Schweregrad</span>${sevChips}</div>` +
-      `<div class="fgroup"><span class="lbl">Kategorie</span>${catChips}</div>`;
+      `<div class="fgroup"><span class="lbl">Art</span>${kindChips}</div>`;
     document.getElementById('filters').addEventListener('click', e => {
       const c = e.target.closest('.chip-f'); if (!c) return;
-      const set = c.dataset.t === 'sev' ? fSev : fCat;
+      const set = c.dataset.t === 'sev' ? fSev : fKind;
       const v = c.dataset.v;
       set.has(v) ? set.delete(v) : set.add(v);
       c.classList.toggle('on');
@@ -150,14 +152,14 @@
 
   function renderFindings() {
     const list = D.findings.filter(f =>
-      (!fSev.size || fSev.has(f.severity)) && (!fCat.size || fCat.has(f.category)));
+      (!fSev.size || fSev.has(f.severity)) && (!fKind.size || fKind.has(f.kind)));
     const el = document.getElementById('findings');
     if (!list.length) { el.innerHTML = '<div class="empty">Keine Befunde für diese Filter.</div>'; return; }
     el.innerHTML = list.map(f => `
       <div class="fnd ${f.severity}">
         <div class="ft">
           <span class="sev">${SEV_LABEL[f.severity]}</span>
-          <span class="cat">${esc(f.category)}</span>
+          <span class="kind">${esc(KIND_LABEL[f.kind] || f.kind)}</span>
           <span class="title">${esc(f.title)}</span>
         </div>
         <div class="detail">${esc(f.detail)}</div>
@@ -166,9 +168,9 @@
   }
 
   if (!D) {
-    document.querySelector('main').innerHTML = '<div class="empty">Keine Advisor-Daten gefunden – bitte <code>python3 odoo/advisor.py</code> ausführen (nach den Extraktoren).</div>';
+    document.querySelector('main').innerHTML = '<div class="empty">Keine Upgrade-Daten gefunden – bitte <code>python3 odoo/extract_upgrade.py</code> ausführen.</div>';
   } else {
-    hero(); categories(); filters(); renderFindings();
+    hero(); counts(); filters(); renderFindings();
   }
 </script>
 </body>
