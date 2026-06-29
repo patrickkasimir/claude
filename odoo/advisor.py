@@ -23,7 +23,7 @@ SEV_WEIGHT = {"critical": 15, "warning": 6, "info": 1}
 SEV_RANK = {"critical": 0, "warning": 1, "info": 2}
 # Sicherheit wiegt schwerer, Datenqualität leichter (für den Gesamt-Score)
 CAT_WEIGHT = {"Sicherheit": 1.5, "Wartbarkeit": 1.0, "Konfiguration": 1.0,
-              "Datenqualität": 0.6, "Upgradefähigkeit": 0.2}
+              "Datenqualität": 0.6, "Upgradefähigkeit": 0.5}
 
 
 def load(name):
@@ -200,6 +200,11 @@ def main() -> int:
 
     by_cat = {c: {"count": sum(1 for f in findings if f["category"] == c),
                   "score": cat_score(c), "grade": grade_of(cat_score(c))} for c in cats}
+    # Upgradefähigkeit-Teil-Score direkt aus upgrade.json übernehmen (eigene Skala)
+    if "Upgradefähigkeit" in by_cat and U.get("score") is not None:
+        upg_sc = U["score"]
+        by_cat["Upgradefähigkeit"]["score"] = upg_sc
+        by_cat["Upgradefähigkeit"]["grade"] = grade_of(upg_sc)
     findings.sort(key=lambda f: (SEV_RANK.get(f["severity"], 9), f["category"]))
 
     data = {
