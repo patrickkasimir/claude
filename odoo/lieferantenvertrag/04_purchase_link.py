@@ -12,7 +12,7 @@ from odoo_client import OdooClient
 
 CONTRACT_MODEL = "x_lieferantenvertrag"
 FIELD_NAME = "x_studio_lieferantenvertrag_id"
-PO_FORM_VIEW_ID = 3128            # purchase.purchase_order_form
+PO_FORM_XMLID = "purchase.purchase_order_form"   # zur Laufzeit per c.ref aufgeloest
 INHERITED_VIEW_NAME = "purchase.order.form.lieferantenvertrag"
 
 FORM_PATCH = """<data>
@@ -62,7 +62,7 @@ def main() -> int:
             "name": INHERITED_VIEW_NAME,
             "model": "purchase.order",
             "type": "form",
-            "inherit_id": PO_FORM_VIEW_ID,
+            "inherit_id": c.ref(PO_FORM_XMLID),
             "arch": FORM_PATCH,
         })
         print(f"Bestellformular-Patch angelegt (id={vid}).")

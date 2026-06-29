@@ -16,7 +16,7 @@ from odoo_client import OdooClient
 
 MODEL = "x_lieferantenvertrag"
 ORDERS_PER_CONTRACT = 2
-PRODUCTS = [166, 33, 235, 123, 182]   # kaufbare Beispielprodukte
+# kaufbare Produkte werden zur Laufzeit ermittelt (instanzunabhaengig)
 PRICES = [250.0, 480.0, 1200.0, 95.0, 640.0]
 QTYS = [1, 2, 3, 5, 10]
 
@@ -30,6 +30,10 @@ def main() -> int:
     uom_field = "product_uom" if "product_uom" in pol else (
         "product_uom_id" if "product_uom_id" in pol else None)
 
+    PRODUCTS = c.search("product.product", [("purchase_ok", "=", True)],
+                        limit=5, order="id")
+    if not PRODUCTS:
+        raise SystemExit("Keine kaufbaren Produkte gefunden – Bestellungen brauchen Produkte.")
     prod_info = {p["id"]: p for p in c.read(
         "product.product", PRODUCTS, ["name", "uom_id"])}
 

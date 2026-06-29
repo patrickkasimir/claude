@@ -14,7 +14,7 @@ Idempotent (Automationen werden ueber den Namen erkannt).
 from odoo_client import OdooClient
 
 CONTRACT_MODEL = "x_lieferantenvertrag"
-TODO_ACTIVITY_TYPE_ID = 4           # mail.mail_activity_data_todo
+TODO_ACTIVITY_XMLID = "mail.mail_activity_data_todo"  # zur Laufzeit per c.ref
 REMINDER_DAYS_BEFORE = 30
 
 AUTO1_NAME = "LV: Bestellung mit Vertrag verknüpfen"
@@ -114,7 +114,7 @@ def main() -> int:
             "model_id": contract_model_id,
             "state": "next_activity",
             "usage": "base_automation",
-            "activity_type_id": TODO_ACTIVITY_TYPE_ID,
+            "activity_type_id": c.ref(TODO_ACTIVITY_XMLID),
             "activity_summary": "Vertrag läuft aus – Verlängerung/Kündigung prüfen",
             "activity_note": "Das Enddatum dieses Lieferantenvertrags rückt näher. "
                              "Bitte Verlängerung oder Kündigung prüfen.",

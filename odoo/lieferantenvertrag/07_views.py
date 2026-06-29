@@ -12,8 +12,8 @@ Idempotent (Suche ueber Namen).
 from odoo_client import OdooClient
 
 MODEL = "x_lieferantenvertrag"
-PARTNER_FORM_VIEW_ID = 126          # base.view_partner_form
-PURCHASE_ROOT_MENU_ID = 645         # purchase.menu_purchase_root
+PARTNER_FORM_XMLID = "base.view_partner_form"        # zur Laufzeit per c.ref
+PURCHASE_ROOT_MENU_XMLID = "purchase.menu_purchase_root"
 
 LIST_ARCH = """<list>
   <field name="x_name" string="Bezeichnung"/>
@@ -139,6 +139,8 @@ def ensure_view(c, name, model, vtype, arch, inherit_id=None):
 def main() -> int:
     c = OdooClient.from_env()
     c.connect()
+    PARTNER_FORM_VIEW_ID = c.ref(PARTNER_FORM_XMLID)
+    PURCHASE_ROOT_MENU_ID = c.ref(PURCHASE_ROOT_MENU_XMLID)
 
     print("=== inverse one2many auf res.partner ===")
     fid, created = ensure_field(c, "res.partner", {

@@ -13,7 +13,7 @@ Idempotent.
 from odoo_client import OdooClient
 
 MODEL = "x_lieferantenvertrag"
-PARTNER_FORM_VIEW_ID = 126
+PARTNER_FORM_XMLID = "base.view_partner_form"   # zur Laufzeit per c.ref
 INHERITED_VIEW_NAME = "res.partner.form.lieferantenvertraege"
 
 COMPUTE = (
@@ -49,6 +49,7 @@ ARCH_TPL = """<data>
 def main() -> int:
     c = OdooClient.from_env()
     c.connect()
+    PARTNER_FORM_VIEW_ID = c.ref(PARTNER_FORM_XMLID)
     langs = [l["code"] for l in
              c.search_read("res.lang", [("active", "=", True)], fields=["code"])]
 

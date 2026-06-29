@@ -15,10 +15,7 @@ from odoo_client import OdooClient
 MODEL = "x_lieferantenvertrag"
 MODEL_LABEL = "Lieferantenvertrag"
 
-# Gruppen-IDs (aus Discovery): base.group_user / purchase_user / purchase_manager
-GROUP_USER = 1
-GROUP_PURCHASE_USER = 107
-GROUP_PURCHASE_MANAGER = 108
+# Zugriffsrechte-Gruppen werden zur Laufzeit per xml_id aufgeloest (instanzunabhaengig).
 
 VERTRAGSTYP = [
     ("avv", "AVV"),
@@ -141,11 +138,12 @@ def main() -> int:
         print("  Hinweis: Default konnte nicht gesetzt werden:", e)
 
     print("\n=== Zugriffsrechte ===")
-    for gid, perms, suffix in [
-        (GROUP_USER, (1, 0, 0, 0), "user"),
-        (GROUP_PURCHASE_USER, (1, 1, 1, 0), "purchase_user"),
-        (GROUP_PURCHASE_MANAGER, (1, 1, 1, 1), "purchase_manager"),
+    for xmlid, perms, suffix in [
+        ("base.group_user", (1, 0, 0, 0), "user"),
+        ("purchase.group_purchase_user", (1, 1, 1, 0), "purchase_user"),
+        ("purchase.group_purchase_manager", (1, 1, 1, 1), "purchase_manager"),
     ]:
+        gid = c.ref(xmlid)
         aid, created = ensure_access(c, model_id, gid, perms, suffix)
         print(f"  group {gid:<4} perms={perms} {'angelegt' if created else 'aktualisiert'} (id={aid})")
 
