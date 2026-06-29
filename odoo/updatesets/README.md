@@ -66,6 +66,26 @@ Prüft genau die Klassen, an denen Odoo-Upgrades scheitern – über die GANZE I
 So wird „Update für Update technisch-fachlich" geprüft – reproduzierbar und mit
 klarer Diff zur Baseline.
 
+## `preupgrade_fixes.py` – Pre-Upgrade-Härtung (SOLVVision-Altlasten)
+```bash
+python3 preupgrade_fixes.py            # gegen .env (19.0-Quelle)
+```
+Idempotente Behebung **vorhandener** Studio-Anpassungen (nicht von uns), die das
+19.0→19.3-Upgrade brechen, weil sie 19.3-entfernte Felder referenzieren / von 19.3
+strenger validiert werden. Behandelt:
+1.–3. Compute-Felder `x_studio_error` / `x_studio_invoiced` / `x_studio_provisionrelevant`
+   → `'<feld>' in self.env['<model>'].fields_get()`-Guard vor dem Zugriff.
+4. `sale.order.line.x_studio_project` (war related `order_id.project_id`) → geschütztes Compute.
+5. `x_vi2va_products` Default-Views → dangling `<field name="x_studio_company_id">` entfernt.
+6. Verwaiste **Multi-Company-`ir.rule`** (referenziert `x_studio_company_id` auf einem
+   Modell ohne dieses Feld) → deaktiviert. **Eng begrenzt** auf genau dieses Muster –
+   bewusst KEIN generischer Domain-Parser (der löst Werte-Tupel wie
+   `('out_invoice','out_refund')` fälschlich als Felder aus und würde Standard-Regeln
+   deaktivieren).
+
+Vor dem Lauf auf der Arbeitsinstanz immer erst auf der Upgrade-Test-DB verifizieren
+(Inline-Override) – genau so wurde der vi2va-`ir.rule`-Fall gefunden.
+
 ## Bei FAIL eines Changesets
 Betroffenes Changeset `apply` (idempotent), ggf. XPath/Code anpassen, dann erneut
 `test`. Da die Skripte die Quelle der Wahrheit sind, ist alles reproduzier- und reparierbar.
