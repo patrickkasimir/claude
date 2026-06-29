@@ -66,17 +66,29 @@ def run(c):
             continue
         miss = sorted(x for x in _domain_fields(r["domain_force"]) if x not in f)
         if miss:
-            add("critical", "dead_ref", "Datensatzregel referenziert fehlende Felder",
-                f"Regel '{r['name']}' ({tech}) nutzt {miss} – existiert nicht auf dem Modell.",
-                "Domain bereinigen oder Regel deaktivieren (bricht beim Upgrade/Zugriff).",
+            # OOTB-Regeln (Standard-Modell + keine Custom-Felder im miss) → Info statt Critical
+            is_custom = tech.startswith("x_") or any(m.startswith("x_") for m in miss)
+            sev = "critical" if is_custom else "info"
+            note = "" if is_custom else " (Standard-Odoo-Regel – Odoo-Verantwortung)"
+            add(sev, "dead_ref", "Datensatzregel referenziert fehlende Felder",
+                f"Regel '{r['name']}' ({tech}) nutzt {miss} – existiert nicht auf dem Modell.{note}",
+                "Domain bereinigen oder Regel deaktivieren (bricht beim Upgrade/Zugriff)."
+                if is_custom else
+                "Standard-Regel prüfen; wird durch Odoo-Upgrade i.d.R. automatisch korrigiert.",
                 f"ir.rule:{tech}")
 
     for fr in c.search_read("ir.model.fields", [("domain", "!=", False), ("domain", "!=", "[]")],
-                            fields=["model", "name", "domain"]):
-        f = flds(fr["model"])
+                            fields=["model", "name", "domain", "ttype", "relation"]):
+        dom_fields = _domain_fields(fr["domain"])
+        if not dom_fields:
+            continue
+        # Domain auf relational fields filtert die *related* Modell-Records
+        check_model = (fr["relation"] if fr.get("ttype") in ("many2one", "many2many", "one2many")
+                       and fr.get("relation") else fr["model"])
+        f = flds(check_model)
         if not f:
             continue
-        miss = sorted(x for x in _domain_fields(fr["domain"]) if x not in f)
+        miss = sorted(x for x in dom_fields if x not in f)
         if miss:
             add("critical", "dead_ref", "Feld-Domain referenziert fehlende Felder",
                 f"{fr['model']}.{fr['name']}: {miss}",
