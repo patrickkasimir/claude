@@ -1,2 +1,4 @@
 .env
 __pycache__/
+snapshot.json
+snapshot*.json

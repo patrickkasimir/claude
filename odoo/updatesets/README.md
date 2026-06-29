@@ -51,6 +51,25 @@ Prüft genau die Klassen, an denen Odoo-Upgrades scheitern – über die GANZE I
    gebrochene XPath/Arch nach Strukturänderungen im Kern.
 3. **Übersicht**: Anzahl aktiver Automationen / Server-Aktionen / Custom-Berichte.
 
+## Plattformweites Vor-Upgrade-Audit: `lint` / `snapshot` / `diff`
+```bash
+python3 run.py lint                 # proaktiv auf der Live-/alten Version
+python3 run.py snapshot             # Baseline (snapshot.json) auf der alten Version
+python3 run.py diff                 # gegen die hochgezogene Test-DB (Inline-ODOO_* / .env)
+```
+- **`lint`** (kein Zielsystem nötig): findet
+  1. **tote Feld-Referenzen** in `ir.rule`/Feld-Domains/`ir.filters` (sicher problematisch –
+     präzises Domain-Parsing: nur echte Leaves, 2. Token = Operator, daher keine Werte-Tupel-Fehlalarme),
+  2. **Studio-Views mit Anker an Kern-Layout-Containern** `div[@name='…']` (z. B. `vat_vies_container`) – Review,
+  3. **manuelle Compute-/Related-Felder mit Kernfeld-Bezug** – Review.
+  Findet NICHT: versionsspezifische Feld-Entfernungen (z. B. `company_type`) → dafür `diff`.
+- **`snapshot`** hält je Modell Tabs/Felder/aktive vererbte Views fest (`snapshot.json`, gitignored).
+- **`diff`** vergleicht die Baseline mit der hochgezogenen Test-DB und meldet **stille Verluste**:
+  verworfene **Studio-Views**, fehlende **Tabs**, fehlende **x_-Felder**. Reine Kern-Änderungen
+  (umbenannte Standardfelder/Modul-Views) werden nur **gezählt**, nicht gelistet.
+  → genau das, was die verschwundenen Kontakt-Tabs aufgedeckt hätte (und zeigt, dass auch
+  project.project/hr.leave/planning.slot/crm.lead/spreadsheet betroffen sind).
+
 ## Methodik: Erfolg nach einem Odoo-Upgrade testen
 1. **Baseline (auf der alten Version)**: `python3 run.py audit` + `python3 run.py test all`
    → muss grün sein (festhalten).

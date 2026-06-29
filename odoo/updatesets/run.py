@@ -19,7 +19,9 @@ Nach einem Odoo-Upgrade:  python3 run.py test all
 Zugangsdaten: ./.env (gitignored). Steuert auch die Build-Skripte (Subprozesse
 erben die ODOO_*-Variablen), d.h. EINE .env für den ganzen Workflow.
 """
+import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -385,6 +387,192 @@ def cmd_audit():
     return 1 if fails else 0
 
 
+# --------------------------------------------------------------------------- #
+# Pre-Upgrade-Lint + Snapshot/Diff (plattformweites Vor-Upgrade-Audit)
+# --------------------------------------------------------------------------- #
+DOMAIN_OPS = {"=", "!=", ">", ">=", "<", "<=", "=?", "like", "not like", "=like",
+              "ilike", "not ilike", "=ilike", "in", "not in", "child_of",
+              "parent_of", "any", "not any"}
+_DOM_RE = re.compile(r"""\(\s*['"]([\w.]+)['"]\s*,\s*['"]([^'"]+)['"]\s*,""")
+SNAPSHOT_DEFAULT = HERE / "snapshot.json"
+
+
+def _domain_fields(s):
+    """Top-Level-Felder aus einer Domain (nur echte Leaves: 2. Token ist Operator)."""
+    return {m.group(1).split(".")[0] for m in _DOM_RE.finditer(s or "")
+            if m.group(2) in DOMAIN_OPS}
+
+
+def _fields_cache(c):
+    cache = {}
+    def get(model):
+        if model not in cache:
+            try:
+                cache[model] = set(c.fields_get(model).keys())
+            except Exception:
+                cache[model] = None
+        return cache[model]
+    return get
+
+
+def _audit_models(c):
+    """Modelle mit eigenen Anpassungen (manuelle x_-Felder oder Studio-Views)."""
+    m = {f["model"] for f in c.search_read(
+        "ir.model.fields", [("state", "=", "manual"), ("name", "like", "x_%")],
+        fields=["model"])}
+    m |= {v["model"] for v in c.search_read(
+        "ir.ui.view", [("inherit_id", "!=", False), ("name", "like", "%Studio%")],
+        fields=["model"])}
+    return sorted(m)
+
+
+def _form_metrics(c, model):
+    arch = c.execute(model, "get_view", view_type="form")["arch"]
+    tabs = re.findall(r'<page[^>]*\bstring="([^"]*)"', arch)
+    fields = sorted(set(re.findall(r'<field name="([\w]+)"', arch)))
+    views = sorted(v["name"] for v in c.search_read(
+        "ir.ui.view", [("model", "=", model), ("inherit_id", "!=", False),
+                       ("active", "=", True)], fields=["name"]))
+    return {"tabs": tabs, "fields": fields, "views": views}
+
+
+def cmd_lint():
+    c = OdooClient.from_env(); c.connect()
+    print("Ziel:", c.url, "| Version:", c.version.get("server_version"))
+    flds = _fields_cache(c)
+    hard, review = 0, 0
+
+    print("\n=== LINT 1: Tote Feld-Referenzen in Domains (sicher problematisch) ===")
+    # ir.rule
+    rules = c.search_read("ir.rule", [("domain_force", "!=", False)],
+                          fields=["name", "model_id", "domain_force"])
+    rule_models = {m["id"]: m["model"] for m in c.read(
+        "ir.model", list({r["model_id"][0] for r in rules if r["model_id"]}), ["model"])}
+    for r in rules:
+        tech = rule_models.get(r["model_id"][0]) if r["model_id"] else None
+        f = flds(tech) if tech else None
+        if not f:
+            continue
+        miss = sorted(x for x in _domain_fields(r["domain_force"]) if x not in f)
+        if miss:
+            hard += 1
+            print(f"  [ir.rule] {r['name']} ({tech}): fehlt {miss}")
+    # ir.model.fields.domain
+    for fr in c.search_read("ir.model.fields", [("domain", "!=", False), ("domain", "!=", "[]")],
+                            fields=["model", "name", "domain"]):
+        f = flds(fr["model"])
+        if not f:
+            continue
+        miss = sorted(x for x in _domain_fields(fr["domain"]) if x not in f)
+        if miss:
+            hard += 1
+            print(f"  [field.domain] {fr['model']}.{fr['name']}: fehlt {miss}")
+    # ir.filters
+    for fl in c.search_read("ir.filters", [("domain", "!=", False), ("domain", "!=", "[]")],
+                            fields=["name", "model_id", "domain"]):
+        tech = fl["model_id"] if isinstance(fl["model_id"], str) else None
+        f = flds(tech) if tech else None
+        if not f:
+            continue
+        miss = sorted(x for x in _domain_fields(fl["domain"]) if x not in f)
+        if miss:
+            hard += 1
+            print(f"  [ir.filters] {fl['name']} ({tech}): fehlt {miss}")
+    if hard == 0:
+        print("  keine toten Referenzen gefunden")
+
+    # Echtes Risiko: Anker an Kern-LAYOUT-Containern div[@name='X'] (X kein studio_/x_).
+    # Genau das (z.B. vat_vies_container) hat die Partner-View beim Upgrade zerlegt.
+    # Feldnamen-Anker (partner_id …) und eigene studio_group_* sind robust -> ignoriert.
+    print("\n=== LINT 2: Studio-Views mit Anker an Kern-Layout-Containern (Review) ===")
+    n2 = 0
+    for v in c.search_read("ir.ui.view", [("inherit_id", "!=", False), ("name", "like", "%Studio%")],
+                           fields=["name", "model", "arch"]):
+        containers = set(re.findall(r"div\[@name='([^']+)'\]", v["arch"] or ""))
+        risky = sorted(x for x in containers if not (x.startswith("studio_") or x.startswith("x_")))
+        if risky:
+            n2 += 1
+            review += 1
+            print(f"  {v['name']} ({v['model']}): Container-Anker {risky}")
+    if n2 == 0:
+        print("  keine riskanten Container-Anker")
+
+    print("\n=== LINT 3: Manuelle Compute-/Related-Felder mit Kernfeld-Bezug (Review) ===")
+    for fr in c.search_read("ir.model.fields",
+                            ["&", ("state", "=", "manual"), "|", ("compute", "!=", False), ("related", "!=", False)],
+                            fields=["model", "name", "compute", "related"]):
+        refs = set()
+        if fr["related"]:
+            refs.add(fr["related"].split(".")[0])
+        if fr["compute"]:
+            refs |= set(re.findall(r"record\.([a-z]\w+)", fr["compute"]))
+        core = sorted(r for r in refs if not r.startswith("x_") and r != "id")
+        if core:
+            review += 1
+            print(f"  {fr['model']}.{fr['name']}: Kernfeld-Bezug {core}")
+
+    print(f"\n==================== LINT: {hard} sichere Probleme, {review} Review-Punkte ====================")
+    print("Hinweis: versionsspezifische Feld-Entfernungen (z.B. company_type in 19.3) sieht erst")
+    print("der Test-DB-Schritt (audit + diff). Lint findet tote Refs sicher, Fragiles als Review.")
+    return 1 if hard else 0
+
+
+def cmd_snapshot(path):
+    path = Path(path or SNAPSHOT_DEFAULT)
+    c = OdooClient.from_env(); c.connect()
+    models = _audit_models(c)
+    print(f"Snapshot @ {c.url} ({c.version.get('server_version')}) – {len(models)} Modelle")
+    snap = {"_url": c.url, "_version": c.version.get("server_version"), "models": {}}
+    for m in models:
+        try:
+            snap["models"][m] = _form_metrics(c, m)
+        except Exception as e:
+            snap["models"][m] = {"error": str(e).splitlines()[-1][:80]}
+    path.write_text(json.dumps(snap, ensure_ascii=False, indent=1))
+    print(f"Gespeichert: {path}  ({len(snap['models'])} Modelle)")
+    return 0
+
+
+def cmd_diff(path):
+    path = Path(path or SNAPSHOT_DEFAULT)
+    if not path.exists():
+        raise SystemExit(f"Keine Baseline: {path} – zuerst 'snapshot' auf der alten Version.")
+    base = json.loads(path.read_text())
+    c = OdooClient.from_env(); c.connect()
+    print(f"Diff: Baseline {base.get('_version')} ({base.get('_url')})")
+    print(f"      gegen   {c.version.get('server_version')} ({c.url})\n")
+    problems, studio_lost, core_suppressed = 0, 0, 0
+    for m, b in sorted(base.get("models", {}).items()):
+        if "error" in b:
+            continue
+        try:
+            cur = _form_metrics(c, m)
+        except Exception as e:
+            problems += 1
+            print(f"  [{m}] Formular rendert NICHT mehr: {str(e).splitlines()[-1][:70]}")
+            continue
+        lost_tabs = [t for t in b["tabs"] if t not in cur["tabs"]]
+        lost_studio = [v for v in b["views"] if v not in cur["views"] and "Studio" in v]
+        lost_xf = [f for f in b["fields"] if f not in cur["fields"] and f.startswith("x_")]
+        # Kern-Rauschen (umbenannte/verschobene Standardfelder & Modul-Views) nur zählen
+        core_suppressed += len([v for v in b["views"] if v not in cur["views"] and "Studio" not in v])
+        core_suppressed += len([f for f in b["fields"] if f not in cur["fields"] and not f.startswith("x_")])
+        if lost_tabs or lost_studio or lost_xf:
+            problems += 1
+            studio_lost += len(lost_studio)
+            print(f"  [{m}]")
+            if lost_studio:
+                print(f"      verworfene Studio-Anpassung: {lost_studio}")
+            if lost_tabs:
+                print(f"      fehlende Tabs:   {lost_tabs}")
+            if lost_xf:
+                print(f"      fehlende Custom-Felder (x_): {lost_xf[:12]}"
+                      + (" …" if len(lost_xf) > 12 else ""))
+    print(f"\n==================== DIFF: {problems} Modell(e) mit Custom-Verlusten, "
+          f"{studio_lost} verworfene Studio-Views | {core_suppressed} Kern-Änderungen unterdrückt ====================")
+    return 1 if problems else 0
+
+
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "list"
     target = sys.argv[2] if len(sys.argv) > 2 else "all"
@@ -396,10 +584,17 @@ def main():
         return cmd_test(None if cmd == "verify" else target)
     if cmd == "audit":
         return cmd_audit()
+    if cmd == "lint":
+        return cmd_lint()
+    if cmd == "snapshot":
+        return cmd_snapshot(sys.argv[2] if len(sys.argv) > 2 else None)
+    if cmd == "diff":
+        return cmd_diff(sys.argv[2] if len(sys.argv) > 2 else None)
     if cmd == "apply-test":
         cmd_apply(target)
         return cmd_test(target)
-    raise SystemExit(f"Unbekanntes Kommando: {cmd}. Nutze: list|apply|test|apply-test|verify")
+    raise SystemExit(f"Unbekanntes Kommando: {cmd}. "
+                     "Nutze: list|apply|test|apply-test|verify|audit|lint|snapshot|diff")
 
 
 if __name__ == "__main__":
