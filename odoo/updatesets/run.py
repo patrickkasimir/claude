@@ -306,6 +306,85 @@ def cmd_test(target):
     return 0 if passed == len(sets) else 1
 
 
+AUDIT_COMPUTE_CODE = """
+res = []
+for f in env['ir.model.fields'].search([('state','=','manual'),('compute','!=',False)]):
+    if f.model not in env:
+        continue
+    Model = env[f.model]
+    field = Model._fields.get(f.name)
+    if field is None:
+        continue
+    recs = Model.search([], limit=300)
+    if not recs:
+        res.append(f.model + '.' + f.name + ' :LEER')
+        continue
+    try:
+        if field.store:
+            env.add_to_compute(field, recs)   # gespeichert: Recompute erzwingen
+            env.flush_all()
+        else:
+            recs.invalidate_recordset([f.name])   # nicht gespeichert: bei Lesen neu berechnen
+            recs.mapped(f.name)
+        res.append(f.model + '.' + f.name + ' :OK (%d)' % len(recs))
+    except Exception as e:
+        res.append(f.model + '.' + f.name + ' :FEHLER ' + str(e)[:160])
+env['ir.config_parameter'].sudo().set_param('x_audit_compute', chr(10).join(res))
+"""
+
+
+def cmd_audit():
+    """Instanzweiter Upgrade-Check: Recompute aller manuellen Rechenfelder +
+    Rendern aller (angepassten) Formulare. Genau die Klassen, die Upgrades brechen."""
+    c = OdooClient.from_env(); c.connect()
+    fails = 0
+
+    print("=== AUDIT 1/3: manuelle Rechenfelder – erzwungener Recompute ===")
+    pm = c.find_one("ir.model", [("model", "=", "res.partner")], fields=["id"])["id"]
+    sa = c.create("ir.actions.server", {"name": "TMP audit compute", "model_id": pm,
+                                        "state": "code", "code": AUDIT_COMPUTE_CODE})
+    try:
+        try:
+            c.execute("ir.actions.server", "run", [sa])
+        except Exception:
+            pass
+        out = c.execute("ir.config_parameter", "get_param", "x_audit_compute") or ""
+    finally:
+        c.unlink("ir.actions.server", [sa])
+    for line in (out.splitlines() or ["(keine manuellen Rechenfelder)"]):
+        bad = ":FEHLER" in line
+        fails += 1 if bad else 0
+        print(f"  [{'✗' if bad else '✓'}] {line}")
+
+    print("\n=== AUDIT 2/3: Formulare rendern (XPath/Arch) ===")
+    models = {f["model"] for f in c.search_read("ir.model.fields",
+              [("state", "=", "manual"), ("name", "like", "x_studio_%")], fields=["model"])}
+    models |= {"x_lieferantenvertrag", "res.partner", "purchase.order", "project.project",
+               "account.analytic.line", "sale.order", "crm.lead"}
+    for model in sorted(models):
+        try:
+            c.execute(model, "get_view", view_type="form")
+            print(f"  [✓] {model} (form)")
+        except Exception as e:
+            fails += 1
+            print(f"  [✗] {model} (form) -> {str(e).splitlines()[-1][:90]}")
+    for vt in ("list", "search"):
+        try:
+            c.execute("x_lieferantenvertrag", "get_view", view_type=vt)
+            print(f"  [✓] x_lieferantenvertrag ({vt})")
+        except Exception as e:
+            fails += 1
+            print(f"  [✗] x_lieferantenvertrag ({vt}) -> {str(e).splitlines()[-1][:90]}")
+
+    print("\n=== AUDIT 3/3: Übersicht (informativ) ===")
+    print("  Aktive Automationen          :", c.search_count("base.automation", [("active", "=", True)]))
+    print("  Server-Aktionen (state=code) :", c.search_count("ir.actions.server", [("state", "=", "code")]))
+    print("  Custom-Berichte (x_*)        :", c.search_count("ir.actions.report", [("report_name", "like", "x_%")]))
+
+    print(f"\n==================== AUDIT: {('%d PROBLEM(E) ✗' % fails) if fails else 'alles grün ✓'} ====================")
+    return 1 if fails else 0
+
+
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "list"
     target = sys.argv[2] if len(sys.argv) > 2 else "all"
@@ -315,6 +394,8 @@ def main():
         cmd_apply(target); return 0
     if cmd in ("test", "verify"):
         return cmd_test(None if cmd == "verify" else target)
+    if cmd == "audit":
+        return cmd_audit()
     if cmd == "apply-test":
         cmd_apply(target)
         return cmd_test(target)

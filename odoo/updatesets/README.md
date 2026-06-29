@@ -39,13 +39,36 @@ python3 run.py verify               # = test all
   - PP-01: Server-Action berechnet Geometrie; **Bericht wird serverseitig zu HTML
     gerendert** und auf `article`-Div + Charset geprüft (fängt das Umlaut-/Layout-Regressionsrisiko)
 
-## Nach einem Odoo-Upgrade
+## `audit` – instanzweiter Upgrade-Check (auch fremde Anpassungen)
 ```bash
-python3 run.py test all
+python3 run.py audit
 ```
-Zeigt je Changeset PASS/FAIL. Bei FAIL: betroffenes Changeset `apply` (idempotent),
-ggf. einen XPath/Code anpassen, dann erneut `test`. Da die Skripte die Quelle der
-Wahrheit sind, ist alles reproduzier- und reparierbar.
+Prüft genau die Klassen, an denen Odoo-Upgrades scheitern – über die GANZE Instanz:
+1. **Manuelle Rechenfelder**: erzwingt den Recompute jedes `state=manual`-Compute-Feldes
+   (gespeichert via `add_to_compute`+flush, sonst via invalidate+read) – **repliziert
+   exakt den Upgrade-Fehlermodus** (z. B. „`sale.order.line` has no attribute `project_id`").
+2. **Formulare**: rendert die Formulare aller angepassten Modelle (`get_view`) → fängt
+   gebrochene XPath/Arch nach Strukturänderungen im Kern.
+3. **Übersicht**: Anzahl aktiver Automationen / Server-Aktionen / Custom-Berichte.
+
+## Methodik: Erfolg nach einem Odoo-Upgrade testen
+1. **Baseline (auf der alten Version)**: `python3 run.py audit` + `python3 run.py test all`
+   → muss grün sein (festhalten).
+2. **Bekannte Blocker fixen** (z. B. Compute-Felder, die entfernte Kernfelder nutzen).
+3. **Upgrade anfordern** → Odoo liefert eine **separate, hochgezogene Test-DB** (neue URL).
+4. **`.env` auf die neue (z. B. 19.3) URL/DB/Key umstellen**, dann dort:
+   `python3 run.py audit`  und  `python3 run.py test all`.
+5. **Vergleichen** mit der Baseline. Grün = Erfolg. Rot = exakte Liste der Brüche →
+   `apply <ID>` bzw. Compute/XPath anpassen, erneut prüfen.
+6. **Manueller Smoke-Test** der wenigen UI-Punkte, die Automatik nicht beurteilt
+   (optisches PDF-Layout, Bedienfluss).
+
+So wird „Update für Update technisch-fachlich" geprüft – reproduzierbar und mit
+klarer Diff zur Baseline.
+
+## Bei FAIL eines Changesets
+Betroffenes Changeset `apply` (idempotent), ggf. XPath/Code anpassen, dann erneut
+`test`. Da die Skripte die Quelle der Wahrheit sind, ist alles reproduzier- und reparierbar.
 
 ## Neues Changeset hinzufügen
 1. Build-Skript schreiben (idempotent), wie die bestehenden `NN_*.py`.
