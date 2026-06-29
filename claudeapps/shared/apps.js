@@ -79,4 +79,12 @@ export const APPS = [
     description: "Technische & fachliche Analyse der Odoo-Instanz – Login erforderlich",
     category: "Tools",
   },
+  {
+    id: "odoo-lieferantenvertrag",
+    title: "LV-ERLÄUTERUNG",
+    icon: "📑",
+    path: "/claudeapps/odoo-lieferantenvertrag/",
+    description: "Lieferantenvertragsmanagement in Odoo 19 – Architektur, Workflow & Besonderheiten",
+    category: "Erläuterungen",
+  },
 ];

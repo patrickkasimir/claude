@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lieferantenvertragsmanagement – Erläuterung</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --green: #4ade80;
+      --text: #d7dee8;
+      --muted: #8aa0b6;
+      --line: #ffffff14;
+      --teal: #2dd4bf;
+      --purple: #a78bfa;
+    }
+
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: var(--text);
+      line-height: 1.7;
+      padding: 56px 20px 80px;
+    }
+
+    .wrap { max-width: 920px; margin: 0 auto; }
+
+    header.hero { text-align: center; margin-bottom: 56px; }
+    header.hero h1 {
+      font-size: 2.4rem; letter-spacing: 3px; color: var(--green);
+      text-shadow: 0 0 30px #4ade8055; line-height: 1.2;
+    }
+    header.hero p { margin-top: 12px; color: var(--muted); letter-spacing: 2px; font-size: 0.95rem; }
+
+    section {
+      background: var(--panel);
+      border: 1px solid #4ade8022;
+      border-radius: 14px;
+      padding: 32px 30px;
+      margin-bottom: 28px;
+    }
+
+    h2 {
+      color: var(--green); font-size: 1.3rem; letter-spacing: 1px;
+      margin-bottom: 16px; font-weight: 600;
+    }
+    h3 { color: #cfe9d6; font-size: 1.02rem; margin: 18px 0 8px; font-weight: 600; }
+    p { margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+    a { color: var(--green); }
+
+    code {
+      background: #0e1730; border: 1px solid var(--line); border-radius: 5px;
+      padding: 1px 6px; font-family: 'Consolas', monospace; font-size: 0.86em; color: #b8e3c6;
+    }
+
+    ul { list-style: none; margin: 6px 0 0; }
+    ul li { position: relative; padding-left: 22px; margin-bottom: 9px; }
+    ul li::before {
+      content: "▸"; position: absolute; left: 0; color: var(--green); font-size: 0.9em;
+    }
+
+    .diagram { width: 100%; height: auto; display: block; margin: 6px 0 4px; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; font-size: 0.82rem; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 7px; }
+    .dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid; }
+    .dot.t { background: #143630; border-color: var(--teal); }
+    .dot.p { background: #241b3a; border-color: var(--purple); }
+
+    /* feature grid */
+    .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 6px; }
+    .feat { background: #0e1730; border: 1px solid var(--line); border-radius: 10px; padding: 16px 16px; }
+    .feat .ico { font-size: 1.5rem; }
+    .feat h4 { color: #e8eef5; font-size: 0.98rem; margin: 6px 0 4px; font-weight: 600; }
+    .feat p { color: var(--muted); font-size: 0.85rem; margin: 0; }
+
+    /* table */
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--green); font-weight: 600; letter-spacing: 0.5px; }
+    td code { white-space: nowrap; }
+    .note { color: var(--muted); font-size: 0.85rem; margin-top: 14px; border-left: 2px solid #4ade8055; padding-left: 12px; }
+
+    /* SVG diagram styling */
+    svg .t  { font: 500 14px 'Segoe UI', sans-serif; fill: #e8eef5; }
+    svg .ts { font: 400 12px 'Segoe UI', sans-serif; fill: #9fb3c8; }
+    svg .zl-linux { font: 500 14px 'Segoe UI', sans-serif; fill: #5eead4; }
+    svg .zl-odoo  { font: 500 14px 'Segoe UI', sans-serif; fill: #c4b5fd; }
+    svg .n-teal   { fill: #143630; stroke: var(--teal);   stroke-width: 1; }
+    svg .n-purple { fill: #241b3a; stroke: var(--purple); stroke-width: 1; }
+    svg .n-gray   { fill: #1e293b; stroke: #64748b;       stroke-width: 1; }
+    svg .zone-linux { fill: none; stroke: var(--teal);   stroke-width: 1.5; opacity: 0.7; }
+    svg .zone-odoo  { fill: none; stroke: var(--purple); stroke-width: 1.5; opacity: 0.7; }
+
+    footer { text-align: center; color: #44506a; font-size: 0.8rem; letter-spacing: 1px; margin-top: 50px; }
+
+    @media (max-width: 560px) {
+      header.hero h1 { font-size: 1.7rem; }
+      section { padding: 24px 18px; }
+    }
+  </style>
+</head>
+<body>
+<script src="/claudeapps/shared/back-button.js"></script>
+
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Lieferantenvertrags&shy;management</h1>
+    <p>Odoo 19 · Customizing über die External API (XML-RPC) · SOLVVision</p>
+  </header>
+
+  <section>
+    <h2>Worum geht es?</h2>
+    <p>
+      Für die SOLVVision-Odoo-Instanz (Odoo 19, Online/SaaS) wurde ein
+      Studio-kompatibles Datenmodell für <strong>Lieferantenverträge</strong>
+      aufgebaut – Vertragsarten <em>AVV, NDA, Rahmenvertrag</em> und
+      <em>Einzelvereinbarung</em>, mehrsprachig, mit Verknüpfung zum Einkauf,
+      Automationen und PDF-Vorlagen.
+    </p>
+    <p>
+      Das Besondere: Bei Odoo Online gibt es <strong>keinen Server-Zugriff</strong>
+      und man kann <strong>kein eigenes Python-Modul</strong> installieren. Alles
+      wurde daher rein über die Standard-Schnittstelle <code>XML-RPC</code> von außen
+      konfiguriert – wiederholbar über nummerierte, idempotente Skripte.
+    </p>
+  </section>
+
+  <section>
+    <h2>Architektur &amp; Datenfluss</h2>
+    <p>Wie das Zusammenspiel von Steuerung, Linux-Server und Odoo-Instanz funktioniert:</p>
+
+    <svg class="diagram" viewBox="0 0 680 300" role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>Architektur: Claude Code auf dem Linux-Server steuert per XML-RPC die Odoo-Instanz</title>
+      <desc>Patrick gibt einen Auftrag an Claude Code auf dem Linux-Server. Claude Code führt per Bash Python-Skripte aus, die Zugangsdaten aus der .env lesen und PDF-Vorlagen erzeugen, und ruft über XML-RPC per HTTPS die Odoo-Instanz auf, in der Datenmodell, Views, Automationen und Daten entstehen.</desc>
+      <defs>
+        <marker id="ae" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#64748b"/>
+        </marker>
+        <marker id="ab" markerWidth="10" markerHeight="10" refX="7.5" refY="4" orient="auto-start-reverse">
+          <path d="M0,0 L9,4 L0,8 z" fill="#4ade80"/>
+        </marker>
+      </defs>
+
+      <!-- Patrick -->
+      <rect class="n-gray" x="70" y="36" width="180" height="40" rx="8"/>
+      <text class="t"  x="160" y="57" text-anchor="middle">Patrick (Mac)</text>
+      <text class="ts" x="160" y="71" text-anchor="middle">Prompt / Auftrag</text>
+      <line x1="160" y1="76" x2="160" y2="120" stroke="#64748b" stroke-width="2" marker-end="url(#ae)"/>
+      <text class="ts" x="168" y="100" text-anchor="start">steuert</text>
+
+      <!-- Linux zone -->
+      <rect class="zone-linux" x="40" y="96" width="300" height="180" rx="12"/>
+      <text class="zl-linux" x="55" y="114" text-anchor="start">Linux-Server</text>
+
+      <rect class="n-teal" x="55" y="122" width="270" height="40" rx="8"/>
+      <text class="t"  x="190" y="140" text-anchor="middle">Claude Code</text>
+      <text class="ts" x="190" y="154" text-anchor="middle">Agent (dieser Chat)</text>
+      <line x1="190" y1="162" x2="190" y2="172" stroke="#64748b" stroke-width="2" marker-end="url(#ae)"/>
+      <text class="ts" x="198" y="171" text-anchor="start">Bash</text>
+
+      <rect class="n-teal" x="55" y="174" width="270" height="44" rx="8"/>
+      <text class="t"  x="190" y="192" text-anchor="middle">Python-Skripte 01–14</text>
+      <text class="ts" x="190" y="207" text-anchor="middle">odoo_client.py (XML-RPC)</text>
+
+      <rect class="n-gray" x="55" y="230" width="128" height="36" rx="8"/>
+      <text class="t"  x="119" y="247" text-anchor="middle">.env</text>
+      <text class="ts" x="119" y="260" text-anchor="middle">Zugangsdaten</text>
+      <rect class="n-gray" x="197" y="230" width="128" height="36" rx="8"/>
+      <text class="t"  x="261" y="247" text-anchor="middle">pdf_gen.py</text>
+      <text class="ts" x="261" y="260" text-anchor="middle">PDF-Vorlagen</text>
+      <line x1="110" y1="218" x2="110" y2="229" stroke="#64748b" stroke-width="2" marker-end="url(#ae)"/>
+      <text class="ts" x="116" y="227" text-anchor="start">liest</text>
+      <line x1="261" y1="229" x2="261" y2="218" stroke="#64748b" stroke-width="2" marker-end="url(#ae)"/>
+      <text class="ts" x="267" y="227" text-anchor="start">PDF</text>
+
+      <!-- Odoo zone -->
+      <rect class="zone-odoo" x="370" y="96" width="270" height="180" rx="12"/>
+      <text class="zl-odoo" x="384" y="114" text-anchor="start">SOLVVision · Odoo 19</text>
+
+      <rect class="n-purple" x="384" y="122" width="242" height="40" rx="8"/>
+      <text class="t"  x="505" y="140" text-anchor="middle">Datenmodell + Views</text>
+      <text class="ts" x="505" y="154" text-anchor="middle">x_lieferantenvertrag, Menü</text>
+
+      <rect class="n-purple" x="384" y="174" width="242" height="44" rx="8"/>
+      <text class="t"  x="505" y="192" text-anchor="middle">XML-RPC API</text>
+      <text class="ts" x="505" y="207" text-anchor="middle">/xmlrpc/2 · execute_kw</text>
+
+      <rect class="n-purple" x="384" y="230" width="242" height="36" rx="8"/>
+      <text class="t"  x="505" y="247" text-anchor="middle">Automationen + Daten</text>
+      <text class="ts" x="505" y="260" text-anchor="middle">Erinnerung · 100 Verträge · 52 Best.</text>
+
+      <!-- cross connection -->
+      <line x1="325" y1="196" x2="384" y2="196" stroke="#4ade80" stroke-width="2.5" marker-start="url(#ab)" marker-end="url(#ab)"/>
+      <text class="ts" x="354" y="189" text-anchor="middle" fill="#4ade80">XML-RPC</text>
+      <text class="ts" x="354" y="211" text-anchor="middle" fill="#4ade80">HTTPS</text>
+    </svg>
+
+    <div class="legend">
+      <span><i class="dot t"></i> Linux-Server (mein Backend)</span>
+      <span><i class="dot p"></i> Odoo-Instanz (SOLVVision)</span>
+    </div>
+
+    <h3>So läuft es Schritt für Schritt</h3>
+    <ul>
+      <li><strong>Auftrag:</strong> Du gibst im Chat eine Anweisung (vom Mac aus).</li>
+      <li><strong>Claude Code</strong> läuft auf dem <strong>Linux-Server</strong> (nicht auf dem Mac) und steuert alles von dort.</li>
+      <li>Über das <strong>Bash-Tool</strong> führt es die <strong>Python-Skripte</strong> aus; gemeinsamer Kern ist <code>odoo_client.py</code>.</li>
+      <li>Die Skripte lesen die Zugangsdaten aus <code>.env</code> (nie im Git, verlässt den Server nicht); <code>pdf_gen.py</code> erzeugt die PDF-Vorlagen lokal.</li>
+      <li>Per <strong>XML-RPC über HTTPS</strong> (<code>authenticate</code> + <code>execute_kw</code>) wird die Odoo-Instanz angesprochen – schreiben <em>und</em> zurücklesen zur Prüfung.</li>
+      <li>In Odoo entstehen <strong>Datenmodell, Felder, Views, Menü, Automationen</strong> und die <strong>Daten</strong>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Zusammenspiel: Vertrag &harr; Bestellung</h2>
+    <p>
+      Eine Einzelvereinbarung legt <strong>keine</strong> Bestellung an – die Beziehung
+      läuft andersherum: Die <strong>Bestellung verweist auf den Vertrag</strong>, eine
+      Automation trägt sie dann im Vertrag ein.
+    </p>
+
+    <svg class="diagram" viewBox="0 0 680 230" role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>Zusammenspiel Lieferantenvertrag und Bestellung</title>
+      <desc>Eine Bestellung wird im Einkauf angelegt, dort wird der Vertrag ausgewählt, und eine Automation zeigt die Bestellung anschließend im Vertrag an. Ein Vertrag legt selbst keine Bestellung an.</desc>
+      <defs>
+        <marker id="ae2" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#64748b"/>
+        </marker>
+      </defs>
+      <text class="ts" x="235" y="62" text-anchor="middle">du wählst</text>
+      <text class="ts" x="445" y="62" text-anchor="middle">Automation</text>
+
+      <rect class="n-purple" x="40" y="70" width="180" height="64" rx="10"/>
+      <text class="t"  x="130" y="99"  text-anchor="middle">Bestellung anlegen</text>
+      <text class="ts" x="130" y="119" text-anchor="middle">im Einkauf, wie gewohnt</text>
+
+      <rect class="n-purple" x="250" y="70" width="180" height="64" rx="10"/>
+      <text class="t"  x="340" y="99"  text-anchor="middle">Vertrag auswählen</text>
+      <text class="ts" x="340" y="119" text-anchor="middle">Feld „Lieferantenvertrag“</text>
+
+      <rect class="n-teal" x="460" y="70" width="180" height="64" rx="10"/>
+      <text class="t"  x="550" y="99"  text-anchor="middle">Im Vertrag sichtbar</text>
+      <text class="ts" x="550" y="119" text-anchor="middle">Tab „Bestellungen“</text>
+
+      <line x1="222" y1="102" x2="247" y2="102" stroke="#64748b" stroke-width="2" marker-end="url(#ae2)"/>
+      <line x1="432" y1="102" x2="457" y2="102" stroke="#64748b" stroke-width="2" marker-end="url(#ae2)"/>
+
+      <rect class="n-gray" x="40" y="158" width="600" height="52" rx="10"/>
+      <text class="ts" x="60" y="182" text-anchor="start">Wichtig: Ein Vertrag (z. B. Einzelvereinbarung) legt selbst keine Bestellung an.</text>
+      <text class="ts" x="60" y="200" text-anchor="start">Bestellungen entstehen im Einkauf; die Verknüpfung zum Vertrag ist optional.</text>
+    </svg>
+
+    <p class="note">
+      Eine zweite Automation erinnert 30 Tage vor Vertragsende per Aktivität an den
+      Verantwortlichen – auch sie erzeugt keine Bestellung.
+    </p>
+  </section>
+
+  <section>
+    <h2>Umgesetzte Funktionen</h2>
+    <div class="features">
+      <div class="feat"><div class="ico">🗂️</div><h4>Datenmodell</h4><p>x_lieferantenvertrag mit allen Feldern, Statusbar, Zugriffsrechten</p></div>
+      <div class="feat"><div class="ico">🌐</div><h4>Mehrsprachig</h4><p>Beschriftungen &amp; Auswahlwerte in Deutsch und Englisch</p></div>
+      <div class="feat"><div class="ico">🛒</div><h4>Einkauf-Verknüpfung</h4><p>Feld auf der Bestellung, gefiltert auf den jeweiligen Lieferanten</p></div>
+      <div class="feat"><div class="ico">⚙️</div><h4>Automationen</h4><p>Bestellung↔Vertrag verknüpfen &amp; Erinnerung vor Vertragsende</p></div>
+      <div class="feat"><div class="ico">🖥️</div><h4>Oberfläche</h4><p>Listen-/Formular-/Suchansicht, Menü, Partner-Tab + Smart-Button</p></div>
+      <div class="feat"><div class="ico">📄</div><h4>PDF-Vorlagen</h4><p>Generische Vorlage je Vertragsart, eingebettete Vorschau</p></div>
+      <div class="feat"><div class="ico">🏢</div><h4>Demo-Daten</h4><p>100 Verträge auf 25 Firmen, 52 Bestellungen auf Rahmenverträgen</p></div>
+      <div class="feat"><div class="ico">🔁</div><h4>Idempotent</h4><p>Nummerierte Skripte, mehrfach ausführbar ohne Duplikate</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Besonderheiten in Odoo 19 (verifiziert)</h2>
+    <ul>
+      <li><code>translate</code> ist jetzt ein Auswahlwert (<code>standard</code>/<code>html_translate</code>/<code>xml_translate</code>), kein Ja/Nein mehr.</li>
+      <li>Übersetzbare Felder immer mit explizitem Sprach-Kontext (<code>context={'lang': …}</code>) lesen/schreiben.</li>
+      <li>Pflicht-Beziehungsfelder brauchen <code>on_delete='restrict'</code> (nicht „auf null setzen“).</li>
+      <li>Code in Automationen darf keine Attribute direkt setzen – <code>rec.write({…})</code> statt <code>rec.feld = …</code>.</li>
+      <li>Listen heißen <code>&lt;list&gt;</code> (nicht mehr <code>&lt;tree&gt;</code>); Chatter via <code>&lt;chatter/&gt;</code>.</li>
+      <li>Eigene Felder müssen mit <code>x_</code> beginnen – deshalb ist die Rechnungs-PDF-Vorschau (rechts) auf einem Studio-Modell nicht möglich; Ersatz ist das <code>pdf_viewer</code>-Widget.</li>
+      <li>Eine Bestellung im Status „Entwurf“ ist eine Angebotsanfrage; das Menü „Bestellungen“ zeigt nur bestätigte – daher werden Demo-Bestellungen bestätigt.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Die Skripte</h2>
+    <table>
+      <tr><th>Skript</th><th>Zweck</th></tr>
+      <tr><td><code>odoo_client.py</code></td><td>Wiederverwendbarer XML-RPC-Client (Sprach-Kontext, idempotente Helfer)</td></tr>
+      <tr><td><code>01_discovery</code></td><td>Sprachen, Modul-Check, Kollisionsprüfung</td></tr>
+      <tr><td><code>02_translate_probe</code></td><td>Verifiziert das neue translate-Verhalten</td></tr>
+      <tr><td><code>03_model</code></td><td>Modell, Felder, Auswahlwerte, Rechte</td></tr>
+      <tr><td><code>04_purchase_link</code></td><td>Feld auf der Bestellung + Einbau ins Formular</td></tr>
+      <tr><td><code>05_translations</code></td><td>Beschriftungen &amp; Auswahlwerte de/en</td></tr>
+      <tr><td><code>06_mail_and_automations</code></td><td>Chatter/Aktivitäten + beide Automationen</td></tr>
+      <tr><td><code>07_views</code></td><td>Views, Menü, Partner-Tab</td></tr>
+      <tr><td><code>10_smart_button</code></td><td>Smart-Button „Verträge“ (Anzahl) am Lieferanten</td></tr>
+      <tr><td><code>11_seed_contracts</code></td><td>100 Demo-Verträge auf 25 Firmen, je mit PDF</td></tr>
+      <tr><td><code>13_seed_orders</code> / <code>14_confirm_orders</code></td><td>2 Bestellungen je Rahmenvertrag, anschließend bestätigt</td></tr>
+      <tr><td><code>08</code> / <code>09</code> / <code>12</code></td><td>Validierung &amp; Aufräum-Skripte (Test- und Demo-Daten)</td></tr>
+    </table>
+    <p class="note">Aufbau in einem Rutsch über <code>run_all.sh</code>. Zugangsdaten liegen
+      ausschließlich lokal in einer <code>.env</code> (nicht im Git).</p>
+  </section>
+
+  <footer>Erstellt mit Claude Code</footer>
+
+</div>
+</body>
+</html>
