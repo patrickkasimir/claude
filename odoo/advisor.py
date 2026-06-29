@@ -22,7 +22,8 @@ REPORT = Path(os.environ.get("ODOO_OUT_DIR") or (HERE / "report"))
 SEV_WEIGHT = {"critical": 15, "warning": 6, "info": 1}
 SEV_RANK = {"critical": 0, "warning": 1, "info": 2}
 # Sicherheit wiegt schwerer, Datenqualität leichter (für den Gesamt-Score)
-CAT_WEIGHT = {"Sicherheit": 1.5, "Wartbarkeit": 1.0, "Konfiguration": 1.0, "Datenqualität": 0.6}
+CAT_WEIGHT = {"Sicherheit": 1.5, "Upgradefähigkeit": 1.2,
+              "Wartbarkeit": 1.0, "Konfiguration": 1.0, "Datenqualität": 0.6}
 
 
 def load(name):
@@ -38,6 +39,7 @@ def main() -> int:
     P = load("processes.json")
     T = load("technical.json")
     S = load("security.json")
+    U = load("upgrade.json")
     if not any([A, P, T, S]):
         print("Keine Analyse-Daten gefunden – zuerst die Extraktoren laufen lassen.")
         return 1
@@ -169,6 +171,11 @@ def main() -> int:
         add("DQ-MAILVOL", "info", "Datenqualität", "Viele Mail-Vorlagen",
             f"{total_mails} aktive Mail-Vorlagen.",
             "Selten genutzte Vorlagen aufräumen, um Übersicht zu behalten.")
+
+    # ───────────────── Upgradefähigkeit (aus upgrade.json) ─────────────────
+    for i, f in enumerate(U.get("findings", [])):
+        add(f"UPG-{i}", f["severity"], "Upgradefähigkeit",
+            f["title"], f["detail"], f["recommendation"])
 
     # ───────────────── Score & Aggregation ─────────────────
     def grade_of(sc):
