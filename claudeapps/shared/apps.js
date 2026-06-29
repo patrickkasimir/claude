@@ -80,6 +80,14 @@ export const APPS = [
     category: "Tools",
   },
   {
+    id: "claude-memory",
+    title: "CLAUDE MEMORY",
+    icon: "🧠",
+    path: "/claudeapps/claude-memory/",
+    description: "Sessionübergreifendes Gedächtnis – wie Claude sich zwischen Sessions, Rechnern und GitHub-Repos erinnert",
+    category: "Erläuterungen",
+  },
+  {
     id: "odoo-lieferantenvertrag",
     title: "LV-ERLÄUTERUNG",
     icon: "📑",
