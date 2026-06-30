@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lieferantenmanagement – Dokumentation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --green: #4ade80;
+      --text: #d7dee8;
+      --muted: #8aa0b6;
+      --line: #ffffff14;
+      --teal: #2dd4bf;
+      --purple: #a78bfa;
+      --coral: #fb7185;
+    }
+
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: var(--text);
+      line-height: 1.7;
+      padding: 56px 20px 80px;
+    }
+
+    .wrap { max-width: 920px; margin: 0 auto; }
+
+    header.hero { text-align: center; margin-bottom: 28px; }
+    header.hero h1 {
+      font-size: 2.4rem; letter-spacing: 3px; color: var(--green);
+      text-shadow: 0 0 30px #4ade8055; line-height: 1.2;
+    }
+    header.hero p { margin-top: 12px; color: var(--muted); letter-spacing: 2px; font-size: 0.95rem; }
+
+    /* Doc-Umschalter */
+    .docnav { display: flex; justify-content: center; gap: 10px; margin: 0 auto 40px; flex-wrap: wrap; }
+    .docbtn {
+      background: #0e1730; color: var(--muted); border: 1px solid var(--line);
+      border-radius: 999px; padding: 9px 22px; font-size: 0.92rem; cursor: pointer;
+      letter-spacing: 0.5px; transition: all .15s;
+    }
+    .docbtn:hover { color: var(--text); border-color: #4ade8055; }
+    .docbtn.active { background: #14302a; color: var(--green); border-color: var(--green); }
+    .docpane { display: none; }
+    .docpane.active { display: block; }
+
+    section {
+      background: var(--panel);
+      border: 1px solid #4ade8022;
+      border-radius: 14px;
+      padding: 32px 30px;
+      margin-bottom: 28px;
+    }
+
+    h2 {
+      color: var(--green); font-size: 1.3rem; letter-spacing: 1px;
+      margin-bottom: 16px; font-weight: 600;
+    }
+    h3 { color: #cfe9d6; font-size: 1.02rem; margin: 18px 0 8px; font-weight: 600; }
+    p { margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+    a { color: var(--green); }
+
+    code {
+      background: #0e1730; border: 1px solid var(--line); border-radius: 5px;
+      padding: 1px 6px; font-family: 'Consolas', monospace; font-size: 0.86em; color: #b8e3c6;
+    }
+
+    ul, ol { margin: 6px 0 0 0; }
+    ul { list-style: none; }
+    ul li { position: relative; padding-left: 22px; margin-bottom: 9px; }
+    ul li::before { content: "▸"; position: absolute; left: 0; color: var(--green); font-size: 0.9em; }
+    ol { padding-left: 22px; }
+    ol li { margin-bottom: 9px; }
+    ol li::marker { color: var(--green); font-weight: 600; }
+
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li { position: relative; padding: 0 0 16px 46px; margin: 0; }
+    .steps li::before {
+      counter-increment: step; content: counter(step);
+      position: absolute; left: 0; top: 0; width: 30px; height: 30px;
+      background: #14302a; color: var(--green); border: 1px solid var(--green);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.9rem;
+    }
+    .steps li:not(:last-child)::after {
+      content: ""; position: absolute; left: 15px; top: 32px; bottom: 4px;
+      width: 1px; background: #4ade8033;
+    }
+
+    .diagram { width: 100%; height: auto; display: block; margin: 6px 0 4px; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; font-size: 0.82rem; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 7px; }
+    .dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid; }
+    .dot.t { background: #143630; border-color: var(--teal); }
+    .dot.p { background: #241b3a; border-color: var(--purple); }
+    .dot.c { background: #3a1b24; border-color: var(--coral); }
+    .dot.g { background: #1e293b; border-color: #64748b; }
+
+    .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 6px; }
+    .feat { background: #0e1730; border: 1px solid var(--line); border-radius: 10px; padding: 16px 16px; }
+    .feat .ico { font-size: 1.5rem; }
+    .feat h4 { color: #e8eef5; font-size: 0.98rem; margin: 6px 0 4px; font-weight: 600; }
+    .feat p { color: var(--muted); font-size: 0.85rem; margin: 0; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--green); font-weight: 600; letter-spacing: 0.5px; }
+    td code { white-space: nowrap; }
+    td.w { text-align: right; color: #cfe9d6; white-space: nowrap; }
+    .note { color: var(--muted); font-size: 0.85rem; margin-top: 14px; border-left: 2px solid #4ade8055; padding-left: 12px; }
+    .calc { background: #0e1730; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 12px; font-size: 0.9rem; }
+    .calc b { color: #cfe9d6; }
+    .pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 0.8rem; border: 1px solid; margin: 2px 2px 0 0; }
+    .pill.lo { color: #86efac; border-color: #4ade8066; }
+    .pill.mid { color: #fcd34d; border-color: #f59e0b66; }
+    .pill.hi { color: #fda4af; border-color: #fb718566; }
+
+    svg .t  { font: 500 14px 'Segoe UI', sans-serif; fill: #e8eef5; }
+    svg .ts { font: 400 12px 'Segoe UI', sans-serif; fill: #9fb3c8; }
+    svg .zl-linux { font: 500 14px 'Segoe UI', sans-serif; fill: #5eead4; }
+    svg .zl-odoo  { font: 500 14px 'Segoe UI', sans-serif; fill: #c4b5fd; }
+    svg .n-teal   { fill: #143630; stroke: var(--teal);   stroke-width: 1; }
+    svg .n-purple { fill: #241b3a; stroke: var(--purple); stroke-width: 1; }
+    svg .n-coral  { fill: #3a1b24; stroke: var(--coral);  stroke-width: 1; }
+    svg .n-gray   { fill: #1e293b; stroke: #64748b;       stroke-width: 1; }
+    svg .zone-linux { fill: none; stroke: var(--teal);   stroke-width: 1.5; opacity: 0.7; }
+    svg .zone-odoo  { fill: none; stroke: var(--purple); stroke-width: 1.5; opacity: 0.7; }
+
+    footer { text-align: center; color: #44506a; font-size: 0.8rem; letter-spacing: 1px; margin-top: 50px; }
+
+    @media (max-width: 560px) {
+      header.hero h1 { font-size: 1.7rem; }
+      section { padding: 24px 18px; }
+    }
+  </style>
+</head>
+<body>
+<script src="/claudeapps/shared/back-button.js"></script>
+
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Lieferanten&shy;management</h1>
+    <p>Odoo 19.3 · SOLVVision</p>
+  </header>
+
+  <nav class="docnav">
+    <button class="docbtn active" data-target="doc-user">📘 Nutzerdokumentation</button>
+    <button class="docbtn" data-target="doc-tech">🛠️ Technische Dokumentation</button>
+  </nav>
+
+  <!-- ===================== NUTZERDOKUMENTATION ===================== -->
+  <div id="doc-user" class="docpane active">
+
+    <section>
+      <h2>Wofür ist das Lieferantenmanagement?</h2>
+      <p>
+        Die App bündelt alles rund um die Bewertung und Verwaltung von Lieferanten an einem Ort:
+        <strong>Verträge</strong>, eine <strong>Wesentlichkeitsbeurteilung</strong> nach ISO 27001
+        (wie kritisch ist ein Lieferant für die Informationssicherheit?), eine
+        <strong>Qualitätsbewertung</strong> (wie gut liefert er?) und ein <strong>Risikoregister</strong>.
+        Zuvor lief das in einer Excel-Tabelle – jetzt strukturiert in Odoo, mit automatischen
+        Erinnerungen und nachvollziehbarer Historie.
+      </p>
+    </section>
+
+    <section>
+      <h2>So läuft der Prozess (Use-Cases)</h2>
+
+      <h3>1. Einen Lieferanten ins Management aufnehmen</h3>
+      <ul class="steps">
+        <li>In <strong>Kontakte</strong> den Lieferanten suchen oder neu anlegen.</li>
+        <li>Im Tab <strong>„Lieferantenmanagement"</strong> die <strong>Kategorie</strong> setzen
+            (Strategisch oder Operativ/Transaktional) und – nach Bedarf – Bereich, Owner,
+            Datenschutz-Klasse, Zertifikate.</li>
+        <li>Sobald die Kategorie gesetzt ist, erscheint der Lieferant automatisch im Menü
+            <strong>„Lieferanten"</strong>. Das ist dieselbe Kontakt-Akte, nur gefiltert
+            dargestellt – nichts wird kopiert.</li>
+      </ul>
+
+      <h3>2. Regelmäßig bewerten lassen</h3>
+      <ul class="steps">
+        <li>Eine <strong>Bewertungsaufforderung</strong> anlegen: Typ (Wesentlichkeit oder
+            Qualität), <strong>Turnus</strong> (jährlich / halbjährlich / quartalsweise oder
+            <strong>einmalig</strong>) und den Geltungsbereich (einzelne Lieferanten zum Testen
+            oder ein Filter).</li>
+        <li>Oben am Datensatz steht die <strong>Phase</strong> als Statusleiste:
+            <strong>Entwurf → Aktiv → Inaktiv</strong>. Erst wenn die Phase auf <strong>Aktiv</strong>
+            gesetzt wird, wird ausgelöst – so kann man eine Aufforderung in Ruhe als Entwurf
+            vorbereiten.</li>
+        <li>Bei <strong>wiederkehrendem</strong> Turnus erzeugt das System zur Fälligkeit für jeden
+            betroffenen Lieferanten eine <strong>Bewertung</strong> und legt dem
+            <strong>Owner eine Aufgabe</strong> an; danach rückt die nächste Fälligkeit um den Turnus
+            weiter. Bei <strong>einmalig</strong> geschieht das genau einmal direkt beim Aktivieren.
+            Zum sofortigen Anstoßen gibt es zusätzlich den Button <strong>„Jetzt auslösen"</strong>.</li>
+        <li>Der Owner öffnet die Bewertung, wählt je Kriterium einen Wert (0–3) – <strong>Score und
+            Einstufung berechnen sich automatisch</strong>.</li>
+      </ul>
+
+      <h3>3. Risiken behandeln</h3>
+      <ul class="steps">
+        <li>Fällt eine Bewertung hoch aus, kann sie per Button
+            <strong>„In Risikoregister überführen"</strong> übernommen werden.</li>
+        <li>Im <strong>Risikoregister</strong> werden Ursache, Maßnahmen und Überwachung gepflegt –
+            entkoppelt von der einzelnen Bewertung.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Wie wird gerechnet?</h2>
+      <p>
+        Jedes Kriterium bekommt <strong>0–3 Punkte</strong>. Jeder Punkt wird mit einem
+        <strong>Gewicht</strong> multipliziert; die Summe ist der <strong>Gesamtscore</strong> (0–3),
+        der automatisch zu einer Einstufung führt.
+      </p>
+
+      <h3>Wesentlichkeitsbeurteilung (ISO 27001)</h3>
+      <table>
+        <tr><th>Kriterium</th><th class="w">Gewicht</th></tr>
+        <tr><td>Zugriff auf vertrauliche Daten</td><td class="w">25 %</td></tr>
+        <tr><td>Kritikalität für Geschäftsprozesse</td><td class="w">20 %</td></tr>
+        <tr><td>IT-Sicherheit &amp; Compliance</td><td class="w">20 %</td></tr>
+        <tr><td>Standort &amp; rechtliche Rahmenbedingungen</td><td class="w">15 %</td></tr>
+        <tr><td>Historie &amp; Zuverlässigkeit</td><td class="w">10 %</td></tr>
+        <tr><td>Vertragsgestaltung</td><td class="w">10 %</td></tr>
+      </table>
+      <p style="margin-top:10px">Einstufung:
+        <span class="pill lo">&lt; 1,0 nicht wesentlich</span>
+        <span class="pill mid">1,0 – 1,9 mittel</span>
+        <span class="pill hi">≥ 2,0 wesentlich / hoch</span>
+      </p>
+      <div class="calc">
+        <b>Beispiel:</b> Punkte 3 / 3 / 2 / 1 / 1 / 1 →
+        3·0,25 + 3·0,20 + 2·0,20 + 1·0,15 + 1·0,10 + 1·0,10 =
+        <b>2,10</b> → <span class="pill hi">wesentlich / hoch</span>
+      </div>
+
+      <h3>Qualitätsbewertung</h3>
+      <table>
+        <tr><th>Kriterium</th><th class="w">Gewicht</th></tr>
+        <tr><td>Qualität</td><td class="w">25 %</td></tr>
+        <tr><td>Zuverlässigkeit</td><td class="w">25 %</td></tr>
+        <tr><td>Lieferfähigkeit</td><td class="w">25 %</td></tr>
+        <tr><td>Service / Kundenorientierung</td><td class="w">15 %</td></tr>
+        <tr><td>Kosten</td><td class="w">10 %</td></tr>
+      </table>
+      <p style="margin-top:10px">Einstufung:
+        <span class="pill lo">≤ 2,0 gering</span>
+        <span class="pill mid">2,1 – 2,3 mittel</span>
+        <span class="pill hi">&gt; 2,3 hoch</span>
+      </p>
+      <p class="note">Hinweis: Bei den Qualitätskriterien bedeutet ein höherer Punktwert ein
+        größeres Risiko (3 = „unter der Anforderung").</p>
+    </section>
+
+    <section>
+      <h2>Wo finde ich was?</h2>
+      <div class="features">
+        <div class="feat"><div class="ico">🤝</div><h4>Lieferanten</h4><p>Alle Unternehmen mit gesetzter Kategorie – Spalten ein-/ausblendbar</p></div>
+        <div class="feat"><div class="ico">📑</div><h4>Lieferantenverträge</h4><p>AVV, NDA, Rahmen- &amp; Einzelvereinbarung mit PDF</p></div>
+        <div class="feat"><div class="ico">📨</div><h4>Bewertungsaufforderungen</h4><p>Typ, Turnus (auch einmalig), Phase, Geltungsbereich, „Jetzt auslösen"</p></div>
+        <div class="feat"><div class="ico">🛡️</div><h4>Wesentlichkeitsbeurteilungen</h4><p>ISO-27001-Bewertungen mit Score &amp; Einstufung</p></div>
+        <div class="feat"><div class="ico">⭐</div><h4>Qualitätsbewertungen</h4><p>Lieferantenbeurteilungen je Kriterium</p></div>
+        <div class="feat"><div class="ico">⚠️</div><h4>Risikoregister</h4><p>Ursache, Maßnahmen, Überwachung</p></div>
+      </div>
+      <p class="note">Am Kontakt selbst gibt es den Tab „Lieferantenmanagement" (Klassifizierung,
+        Verträge, Bewertungen) und den Smart-Button „Verträge".</p>
+    </section>
+
+  </div>
+
+  <!-- ===================== TECHNISCHE DOKUMENTATION ===================== -->
+  <div id="doc-tech" class="docpane">
+
+    <section>
+      <h2>Überblick &amp; Vorgehen</h2>
+      <p>
+        Bei Odoo Online gibt es <strong>keinen Server-Zugriff</strong> und man kann
+        <strong>kein eigenes Python-Modul</strong> installieren. Die gesamte App wurde daher rein
+        über die Standard-Schnittstelle <code>XML-RPC</code> von außen konfiguriert – Studio-kompatibel
+        (Felder mit <code>x_</code>-Präfix), wiederholbar über nummerierte, idempotente Python-Skripte,
+        zweisprachig DE/EN.
+      </p>
+    </section>
+
+    <section>
+      <h2>Architektur &amp; Datenfluss</h2>
+      <svg class="diagram" viewBox="0 0 680 300" role="img" xmlns="http://www.w3.org/2000/svg">
+        <title>Architektur: Claude Code auf dem Linux-Server steuert per XML-RPC die Odoo-Instanz</title>
+        <desc>Patrick gibt einen Auftrag an Claude Code auf dem Linux-Server. Claude Code führt per Bash idempotente Python-Skripte aus, die Zugangsdaten aus der .env lesen, und ruft über XML-RPC per HTTPS die Odoo-Instanz auf, in der die App Lieferantenmanagement entsteht.</desc>
+        <defs>
+          <marker id="ae" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#64748b"/></marker>
+          <marker id="ab" markerWidth="10" markerHeight="10" refX="7.5" refY="4" orient="auto-start-reverse"><path d="M0,0 L9,4 L0,8 z" fill="#4ade80"/></marker>
+        </defs>
+        <rect class="n-gray" x="70" y="36" width="180" height="40" rx="8"/>
+        <text class="t"  x="160" y="57" text-anchor="middle">Patrick (Mac)</text>
+        <text class="ts" x="160" y="71" text-anchor="middle">Prompt / Auftrag</text>
+        <line x1="160" y1="76" x2="160" y2="120" stroke="#64748b" stroke-width="2" marker-end="url(#ae)"/>
+        <text class="ts" x="168" y="100" text-anchor="start">steuert</text>
+        <rect class="zone-linux" x="40" y="96" width="300" height="180" rx="12"/>
+        <text class="zl-linux" x="55" y="114" text-anchor="start">Linux-Server</text>
+        <rect class="n-teal" x="55" y="122" width="270" height="40" rx="8"/>
+        <text class="t"  x="190" y="140" text-anchor="middle">Claude Code</text>
+        <text class="ts" x="190" y="154" text-anchor="middle">Agent (dieser Chat)</text>
+        <line x1="190" y1="162" x2="190" y2="172" stroke="#64748b" stroke-width="2" marker-end="url(#ae)"/>
+        <text class="ts" x="198" y="171" text-anchor="start">Bash</text>
+        <rect class="n-teal" x="55" y="174" width="270" height="44" rx="8"/>
+        <text class="t"  x="190" y="192" text-anchor="middle">Python-Skripte 01–10</text>
+        <text class="ts" x="190" y="207" text-anchor="middle">odoo_client.py (XML-RPC)</text>
+        <rect class="n-gray" x="55" y="230" width="270" height="36" rx="8"/>
+        <text class="t"  x="190" y="247" text-anchor="middle">.env</text>
+        <text class="ts" x="190" y="260" text-anchor="middle">Zugangsdaten (nie im Git)</text>
+        <rect class="zone-odoo" x="370" y="96" width="270" height="180" rx="12"/>
+        <text class="zl-odoo" x="384" y="114" text-anchor="start">SOLVVision · Odoo 19.3</text>
+        <rect class="n-purple" x="384" y="122" width="242" height="40" rx="8"/>
+        <text class="t"  x="505" y="140" text-anchor="middle">App Lieferantenmanagement</text>
+        <text class="ts" x="505" y="154" text-anchor="middle">4 Modelle, Views, Menü</text>
+        <rect class="n-purple" x="384" y="174" width="242" height="44" rx="8"/>
+        <text class="t"  x="505" y="192" text-anchor="middle">XML-RPC API</text>
+        <text class="ts" x="505" y="207" text-anchor="middle">/xmlrpc/2 · execute_kw</text>
+        <rect class="n-purple" x="384" y="230" width="242" height="36" rx="8"/>
+        <text class="t"  x="505" y="247" text-anchor="middle">Cron + Automationen</text>
+        <text class="ts" x="505" y="260" text-anchor="middle">Bewertungen · Aktivitäten</text>
+        <line x1="325" y1="196" x2="384" y2="196" stroke="#4ade80" stroke-width="2.5" marker-start="url(#ab)" marker-end="url(#ab)"/>
+        <text class="ts" x="354" y="189" text-anchor="middle" fill="#4ade80">XML-RPC</text>
+        <text class="ts" x="354" y="211" text-anchor="middle" fill="#4ade80">HTTPS</text>
+      </svg>
+      <div class="legend">
+        <span><i class="dot t"></i> Linux-Server (Backend)</span>
+        <span><i class="dot p"></i> Odoo-Instanz (SOLVVision)</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Datenmodell</h2>
+      <svg class="diagram" viewBox="0 0 680 300" role="img" xmlns="http://www.w3.org/2000/svg">
+        <title>Datenmodell der App Lieferantenmanagement</title>
+        <desc>Der Lieferant (res.partner mit neuem Tab) und ein Cron speisen die Bewertungsaufforderung, die Wesentlichkeits- und Qualitätsbewertungen erzeugt. Aus diesen entstehen Einträge im entkoppelten Risikoregister. Verträge hängen ebenfalls am Lieferanten.</desc>
+        <defs><marker id="ad" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#64748b"/></marker></defs>
+        <g stroke="#64748b" stroke-width="1.6" fill="none">
+          <line x1="115" y1="66" x2="120" y2="116" marker-end="url(#ad)"/>
+          <path d="M252,57 C220,80 210,98 202,116" marker-end="url(#ad)"/>
+          <line x1="220" y1="140" x2="250" y2="143" marker-end="url(#ad)"/>
+          <path d="M220,162 C238,195 240,205 250,224" marker-end="url(#ad)"/>
+          <path d="M440,147 C458,175 460,198 468,222" marker-end="url(#ad)"/>
+          <line x1="440" y1="235" x2="466" y2="238" marker-end="url(#ad)"/>
+          <path d="M430,52 C452,80 458,100 468,118" marker-end="url(#ad)"/>
+        </g>
+        <text class="ts" x="86"  y="98"  text-anchor="start">täglich</text>
+        <text class="ts" x="230" y="134" text-anchor="middle">erzeugt</text>
+        <text class="ts" x="206" y="200" text-anchor="middle">erzeugt</text>
+        <text class="ts" x="454" y="190" text-anchor="middle">überführt</text>
+        <text class="ts" x="150" y="90"  text-anchor="middle">partner_id</text>
+        <text class="ts" x="452" y="90"  text-anchor="middle">partner_id</text>
+        <rect class="n-purple" x="250" y="20" width="180" height="46" rx="8"/>
+        <text class="t"  x="340" y="40" text-anchor="middle">Lieferant</text>
+        <text class="ts" x="340" y="56" text-anchor="middle">res.partner + Tab</text>
+        <rect class="n-gray" x="40" y="20" width="150" height="46" rx="8"/>
+        <text class="t"  x="115" y="40" text-anchor="middle">Cron</text>
+        <text class="ts" x="115" y="56" text-anchor="middle">prüft Fälligkeit</text>
+        <rect class="n-teal" x="40" y="116" width="180" height="54" rx="8"/>
+        <text class="t"  x="130" y="139" text-anchor="middle">Bewertungsaufforderung</text>
+        <text class="ts" x="130" y="157" text-anchor="middle">Typ · Turnus · Phase</text>
+        <rect class="n-teal" x="250" y="116" width="190" height="50" rx="8"/>
+        <text class="t"  x="345" y="137" text-anchor="middle">Wesentlichkeit</text>
+        <text class="ts" x="345" y="155" text-anchor="middle">ISO 27001 · 6 Kriterien</text>
+        <rect class="n-teal" x="250" y="203" width="190" height="50" rx="8"/>
+        <text class="t"  x="345" y="224" text-anchor="middle">Qualitätsbewertung</text>
+        <text class="ts" x="345" y="242" text-anchor="middle">5 Kriterien → Score</text>
+        <rect class="n-gray" x="470" y="116" width="170" height="46" rx="8"/>
+        <text class="t"  x="555" y="136" text-anchor="middle">Lieferantenvertrag</text>
+        <text class="ts" x="555" y="152" text-anchor="middle">AVV · NDA · Rahmen</text>
+        <rect class="n-coral" x="470" y="203" width="170" height="54" rx="8"/>
+        <text class="t"  x="555" y="226" text-anchor="middle">Risikoregister</text>
+        <text class="ts" x="555" y="244" text-anchor="middle">entkoppelt</text>
+      </svg>
+      <div class="legend">
+        <span><i class="dot p"></i> Lieferant (res.partner)</span>
+        <span><i class="dot t"></i> Steuerung &amp; Bewertungen</span>
+        <span><i class="dot c"></i> Risiko</span>
+        <span><i class="dot g"></i> Cron / Vertrag</span>
+      </div>
+      <p class="note">Die „Lieferanten"-Sicht ist eine reine, gefilterte Ansicht auf
+        <code>res.partner</code> (Domain <code>is_company = True</code> und Kategorie gesetzt) –
+        keine Datenkopie. Klassifizierungsfelder (<code>x_studio_lm_*</code>) liegen direkt am Kontakt.</p>
+    </section>
+
+    <section>
+      <h2>Berechnung, Cron &amp; Server-Actions</h2>
+      <ul>
+        <li><strong>Score/Einstufung</strong> als manuelles Compute-Field (Code in
+            <code>ir.model.fields.compute</code>, Item-Zuweisung <code>record['x_feld'] = …</code>);
+            Gewichte/Schwellen wie in der Nutzerdoku.</li>
+        <li><strong>Phase</strong> der Aufforderung (Entwurf / Aktiv / Inaktiv, klickbare Statusbar):
+            ausgelöst wird nur bei <code>Phase = Aktiv</code>.</li>
+        <li><strong>Cron</strong> „LM: Bewertungen auslösen" (täglich): findet <em>wiederkehrende</em>
+            Aufforderungen mit <code>Phase = Aktiv</code> und <code>nächste Fälligkeit ≤ heute</code>,
+            legt je Lieferant eine Bewertung an, erzeugt die To-Do-Activity und schiebt die Fälligkeit
+            um den Turnus weiter (gerechnet ab der bisherigen Fälligkeit).</li>
+        <li><strong>Einmalig</strong>: eine <code>base.automation</code> löst beim Setzen der Phase auf
+            Aktiv genau einmal aus (Guard über <code>letzter Lauf</code>); der tägliche Cron lässt
+            einmalige Aufforderungen aus.</li>
+        <li><strong>„Jetzt auslösen"</strong> (Server-Action am Aufforderungs-Formular): dieselbe Logik
+            sofort, ohne Fälligkeitsprüfung und ohne den Turnus zu verschieben.</li>
+        <li><strong>Zielmenge</strong>: ist das M2M-Feld <code>x_studio_filter_partner_ids</code> gesetzt,
+            werden genau diese Lieferanten bewertet (übersteuert Kategorie/Bereich/„nur wesentliche").</li>
+        <li><strong>„In Risikoregister überführen"</strong>: Server-Action legt einen Risikoeintrag an und
+            verlinkt ihn; Einstufung wird gemappt.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Besonderheiten in Odoo 19.3 (verifiziert)</h2>
+      <ul>
+        <li>Eigene Felder müssen mit <code>x_</code> beginnen; Auswahlwerte als Selection mit Sequenz.</li>
+        <li>Übersetzbare Felder immer mit explizitem Sprach-Kontext (<code>context={'lang': …}</code>).</li>
+        <li><code>ir.cron</code> kennt das Feld <code>numbercall</code> in 19.3 nicht mehr – weglassen.</li>
+        <li>Im Code von <strong>Server-Actions</strong> ist <code>fields</code> nicht verfügbar (anders als
+            bei Compute-Feldern) → <code>datetime.date.today()</code> statt <code>fields.Date.today()</code>.</li>
+        <li>Menü-/Action-Namen sind übersetzbar: für idempotente Skripte müssen Suche und Schreiben im
+            <code>de_DE</code>-Kontext erfolgen, sonst entstehen Duplikate.</li>
+        <li>Chatter/Aktivitäten via <code>is_mail_thread</code> / <code>is_mail_activity</code>;
+            Listen heißen <code>&lt;list&gt;</code>, Chatter <code>&lt;chatter/&gt;</code>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Die Skripte</h2>
+      <table>
+        <tr><th>Skript</th><th>Zweck</th></tr>
+        <tr><td><code>odoo_client.py</code></td><td>Wiederverwendbarer XML-RPC-Client</td></tr>
+        <tr><td><code>01_partner_fields</code></td><td>Lieferanten-Felder am Kontakt</td></tr>
+        <tr><td><code>02_models</code></td><td>Modelle Aufforderung, Wesentlichkeit, Qualität, Risikoregister</td></tr>
+        <tr><td><code>03_compute_scores</code></td><td>Score &amp; Einstufung (berechnet)</td></tr>
+        <tr><td><code>04_partner_tab</code></td><td>Konsolidierter Kontakt-Tab + Verträge-Smart-Button</td></tr>
+        <tr><td><code>05_views_menu</code></td><td>Views, App-Menü, „Lieferanten"-Sicht, Vertragsmenü</td></tr>
+        <tr><td><code>06_automation_cron</code></td><td>Cron, „Jetzt auslösen", Risiko-Überführung</td></tr>
+        <tr><td><code>07_validate</code> / <code>08_cleanup</code></td><td>End-to-End-Test &amp; Aufräumen</td></tr>
+        <tr><td><code>09_seed_demo</code> / <code>10_cleanup_demo</code></td><td>Fiktive Demo-Daten an/aus</td></tr>
+      </table>
+      <p class="note">Aufbau in einem Rutsch über <code>run_all.sh</code>. Die Verträge stammen aus dem
+        Schwesterprojekt <code>lieferantenvertrag/</code> und sind in die App eingehängt; das
+        Partner-Formular wird allein vom LM-Projekt verwaltet.</p>
+    </section>
+
+  </div>
+
+  <footer>Erstellt mit Claude Code</footer>
+
+</div>
+
+<script>
+  document.querySelectorAll('.docbtn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.docbtn').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.docpane').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.target).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>

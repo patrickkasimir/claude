@@ -88,11 +88,11 @@ export const APPS = [
     category: "Erläuterungen",
   },
   {
-    id: "odoo-lieferantenvertrag",
-    title: "LV-ERLÄUTERUNG",
-    icon: "📑",
-    path: "/claudeapps/odoo-lieferantenvertrag/",
-    description: "Lieferantenvertragsmanagement in Odoo 19 – Architektur, Workflow & Besonderheiten",
+    id: "odoo-lieferantenmanagement",
+    title: "LIEFERANTENMGMT",
+    icon: "🤝",
+    path: "/claudeapps/odoo-lieferantenmanagement/",
+    description: "Lieferantenmanagement in Odoo 19.3 – Nutzer- & Technik-Doku: Verträge, Wesentlichkeits- & Qualitätsbewertung, Risikoregister, Cron",
     category: "Erläuterungen",
   },
 ];
