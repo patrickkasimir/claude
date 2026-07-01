@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Strategizer – Konzept</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --accent: #a78bfa;   /* Violett – Leitfarbe */
+      --blue: #60a5fa;
+      --teal: #2dd4bf;
+      --green: #4ade80;
+      --gold: #fbbf24;
+      --coral: #fb7185;
+      --text: #d7dee8;
+      --muted: #8aa0b6;
+      --line: #ffffff14;
+    }
+
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: var(--text);
+      line-height: 1.7;
+      padding: 56px 20px 80px;
+    }
+
+    .wrap { max-width: 920px; margin: 0 auto; }
+
+    header.hero { text-align: center; margin-bottom: 28px; }
+    header.hero h1 {
+      font-size: 2.4rem; letter-spacing: 3px; color: var(--accent);
+      text-shadow: 0 0 30px #a78bfa55; line-height: 1.2;
+    }
+    header.hero p { margin-top: 12px; color: var(--muted); letter-spacing: 2px; font-size: 0.95rem; }
+    header.hero .tag {
+      display: inline-block; margin-top: 14px; padding: 3px 14px; border-radius: 999px;
+      font-size: 0.78rem; letter-spacing: 1px; color: var(--accent);
+      background: #241b3a; border: 1px solid #a78bfa66;
+    }
+    header.hero .cta {
+      display: inline-block; text-decoration: none; font-weight: 600; letter-spacing: 0.5px;
+      color: #0e1024; background: linear-gradient(90deg, var(--blue), var(--accent));
+      padding: 12px 28px; border-radius: 999px; font-size: 0.98rem;
+      box-shadow: 0 6px 24px #a78bfa33; transition: transform .12s, box-shadow .12s;
+    }
+    header.hero .cta:hover { transform: translateY(-2px); box-shadow: 0 10px 30px #a78bfa55; }
+
+    /* Doc-Umschalter */
+    .docnav { display: flex; justify-content: center; gap: 10px; margin: 22px auto 40px; flex-wrap: wrap; }
+    .docbtn {
+      background: #0e1730; color: var(--muted); border: 1px solid var(--line);
+      border-radius: 999px; padding: 9px 22px; font-size: 0.92rem; cursor: pointer;
+      letter-spacing: 0.5px; transition: all .15s;
+    }
+    .docbtn:hover { color: var(--text); border-color: #a78bfa55; }
+    .docbtn.active { background: #241b3a; color: var(--accent); border-color: var(--accent); }
+    .docpane { display: none; }
+    .docpane.active { display: block; }
+
+    section {
+      background: var(--panel);
+      border: 1px solid #a78bfa22;
+      border-radius: 14px;
+      padding: 32px 30px;
+      margin-bottom: 28px;
+    }
+
+    h2 {
+      color: var(--accent); font-size: 1.3rem; letter-spacing: 1px;
+      margin-bottom: 16px; font-weight: 600;
+    }
+    h3 { color: #d8ccf7; font-size: 1.02rem; margin: 18px 0 8px; font-weight: 600; }
+    p { margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+    a { color: var(--accent); }
+    strong { color: #e8eef5; }
+
+    code {
+      background: #0e1730; border: 1px solid var(--line); border-radius: 5px;
+      padding: 1px 6px; font-family: 'Consolas', monospace; font-size: 0.86em; color: #cbb9f6;
+    }
+
+    ul, ol { margin: 6px 0 0 0; }
+    ul { list-style: none; }
+    ul li { position: relative; padding-left: 22px; margin-bottom: 9px; }
+    ul li::before { content: "▸"; position: absolute; left: 0; color: var(--accent); font-size: 0.9em; }
+    ol { padding-left: 22px; }
+    ol li { margin-bottom: 9px; }
+    ol li::marker { color: var(--accent); font-weight: 600; }
+
+    /* nummerierte Schritte */
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li { position: relative; padding: 0 0 16px 46px; margin: 0; }
+    .steps li::before {
+      counter-increment: step; content: counter(step);
+      position: absolute; left: 0; top: 0; width: 30px; height: 30px;
+      background: #241b3a; color: var(--accent); border: 1px solid var(--accent);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.9rem;
+    }
+    .steps li:not(:last-child)::after {
+      content: ""; position: absolute; left: 15px; top: 32px; bottom: 4px;
+      width: 1px; background: #a78bfa33;
+    }
+
+    .lead { font-size: 1.05rem; color: #e8eef5; }
+    .diagram { width: 100%; height: auto; display: block; margin: 8px 0 6px; }
+
+    /* Feature-Karten */
+    .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 6px; }
+    .feat { background: #0e1730; border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+    .feat .ico { font-size: 1.5rem; }
+    .feat h4 { color: #e8eef5; font-size: 0.98rem; margin: 6px 0 4px; font-weight: 600; }
+    .feat p { color: var(--muted); font-size: 0.85rem; margin: 0; }
+
+    /* Tabelle */
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--accent); font-weight: 600; letter-spacing: 0.5px; }
+    td.w { text-align: right; color: #d8ccf7; white-space: nowrap; }
+
+    .note { color: var(--muted); font-size: 0.85rem; margin-top: 14px; border-left: 2px solid #a78bfa55; padding-left: 12px; }
+    .calc { background: #0e1730; border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-top: 14px; font-size: 0.9rem; }
+    .calc b { color: #d8ccf7; }
+
+    .pill { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 0.8rem; border: 1px solid; margin: 2px 4px 0 0; }
+    .pill.lo  { color: #86efac; border-color: #4ade8066; }
+    .pill.mid { color: #fcd34d; border-color: #f59e0b66; }
+    .pill.hi  { color: #fda4af; border-color: #fb718566; }
+    .pill.ac  { color: var(--accent); border-color: #a78bfa66; }
+
+    /* Statusfluss */
+    .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+    .flow .st {
+      padding: 6px 14px; border-radius: 8px; font-size: 0.85rem;
+      background: #0e1730; border: 1px solid var(--line); color: #d8ccf7;
+    }
+    .flow .arr { color: var(--muted); }
+
+    /* Idee-Detail Mockup */
+    .mock { background: #0e1730; border: 1px solid #a78bfa33; border-radius: 12px; overflow: hidden; margin-top: 6px; }
+    .mock .bar { background: #241b3a; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .mock .bar .t { color: #e8eef5; font-weight: 600; }
+    .mock .body { padding: 16px; display: grid; gap: 14px; }
+    .mock .block { border-left: 2px solid #a78bfa55; padding-left: 12px; }
+    .mock .block .lbl { font-size: 0.72rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+    .mock .block .val { font-size: 0.9rem; color: var(--text); }
+    .mock .block .val.faint { color: var(--muted); font-style: italic; }
+
+    /* Score-Balken */
+    .scores { display: grid; gap: 7px; }
+    .srow { display: grid; grid-template-columns: 190px 1fr 34px; align-items: center; gap: 10px; font-size: 0.82rem; }
+    .srow .name { color: var(--muted); }
+    .srow .track { background: #1a2540; border-radius: 999px; height: 8px; overflow: hidden; }
+    .srow .fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--blue), var(--accent)); }
+    .srow .num { text-align: right; color: #d8ccf7; }
+    @media (max-width: 560px) { .srow { grid-template-columns: 130px 1fr 30px; } }
+
+    footer { text-align: center; color: #44506a; font-size: 0.8rem; letter-spacing: 1px; margin-top: 50px; }
+
+    @media (max-width: 560px) {
+      header.hero h1 { font-size: 1.7rem; }
+      section { padding: 24px 18px; }
+    }
+  </style>
+</head>
+<body>
+<script src="/claudeapps/shared/back-button.js"></script>
+
+<div class="wrap">
+
+  <header class="hero">
+    <h1>STRATEGIZER</h1>
+    <p>VON DER IDEE ZUR BELASTBAREN ENTSCHEIDUNG</p>
+    <span class="tag">Phase 1 · Portal live (geschützter Bereich)</span>
+    <div style="margin-top:20px">
+      <a href="/claudeapps/strategizer/app/" class="cta">🚀 Portal öffnen</a>
+    </div>
+  </header>
+
+  <nav class="docnav">
+    <button class="docbtn active" data-target="doc-vision">🎯 Vision &amp; Funktionen</button>
+    <button class="docbtn" data-target="doc-build">🛠️ So wird es gebaut</button>
+  </nav>
+
+  <!-- ===================== VISION & FUNKTIONEN ===================== -->
+  <div id="doc-vision" class="docpane active">
+
+    <section>
+      <h2>Das Problem</h2>
+      <p class="lead">Zu viele Ideen – und nichts wird fertig.</p>
+      <p>
+        Wer nach neuen Betätigungsfeldern sucht, hat selten zu wenige Einfälle, sondern zu viele.
+        Man fängt eine Idee an, und noch während der Umsetzung wächst die nächste nach.
+        Was fehlt, ist nicht Kreativität, sondern <strong>Struktur und eine ehrliche Bewertung</strong>:
+        Welche Idee lohnt sich wirklich? Womit lässt sich Geld verdienen? Was steigert Effizienz –
+        für mich oder für andere? Und woran arbeite ich gerade eigentlich?
+      </p>
+      <p>
+        Der <strong>Strategizer</strong> ist genau dafür da: ein Ort, an dem Ideen eingefangen,
+        automatisch zu einem Konzept ausgearbeitet, transparent bewertet und über einen klaren
+        Status strukturiert werden. Damit man sich jederzeit auf das Wesentliche besinnen kann.
+      </p>
+    </section>
+
+    <section>
+      <h2>Wie der Strategizer arbeitet</h2>
+      <p>
+        Der Ablauf ist bewusst dreistufig: <strong>Idee → Konzept → Bewertung</strong>.
+        Aus einer kurz notierten Idee wird zuerst ein <strong>ausgearbeitetes Konzept</strong> –
+        und <strong>erst dieses Konzept</strong> wird anschließend bewertet und bepunktet.
+        Das Scoring bezieht sich also nicht auf die Roh-Notiz, sondern auf die durchdachte Variante.
+      </p>
+
+      <svg class="diagram" viewBox="0 0 900 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ablauf: Idee, Konzept, Marktbewertung, Scoring, Status, mit Reevaluierungs-Schleife">
+        <defs>
+          <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L7,3 L0,6 Z" fill="#8aa0b6"/>
+          </marker>
+          <marker id="ahv" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L7,3 L0,6 Z" fill="#a78bfa"/>
+          </marker>
+        </defs>
+
+        <!-- Reihe 1 -->
+        <g>
+          <rect x="14"  y="40" width="150" height="56" rx="10" fill="#1e293b" stroke="#64748b"/>
+          <text x="89"  y="64" text-anchor="middle" fill="#e8eef5" font-family="Segoe UI" font-size="14" font-weight="600">Idee einkippen</text>
+          <text x="89"  y="83" text-anchor="middle" fill="#9fb3c8" font-family="Segoe UI" font-size="11">kurze Notiz / Prompt</text>
+
+          <rect x="204" y="40" width="150" height="56" rx="10" fill="#241b3a" stroke="#a78bfa"/>
+          <text x="279" y="64" text-anchor="middle" fill="#e8eef5" font-family="Segoe UI" font-size="14" font-weight="600">Konzept</text>
+          <text x="279" y="83" text-anchor="middle" fill="#c4b5fd" font-family="Segoe UI" font-size="11">automatisch ausgearbeitet</text>
+
+          <rect x="394" y="40" width="150" height="56" rx="10" fill="#143630" stroke="#2dd4bf"/>
+          <text x="469" y="64" text-anchor="middle" fill="#e8eef5" font-family="Segoe UI" font-size="14" font-weight="600">Marktbewertung</text>
+          <text x="469" y="83" text-anchor="middle" fill="#5eead4" font-family="Segoe UI" font-size="11">Nachfrage · Verkaufbarkeit</text>
+
+          <rect x="584" y="40" width="150" height="56" rx="10" fill="#1e2b1e" stroke="#4ade80"/>
+          <text x="659" y="64" text-anchor="middle" fill="#e8eef5" font-family="Segoe UI" font-size="14" font-weight="600">Scoring</text>
+          <text x="659" y="83" text-anchor="middle" fill="#86efac" font-family="Segoe UI" font-size="11">mit Begründung</text>
+
+          <rect x="760" y="40" width="126" height="56" rx="10" fill="#3a2e10" stroke="#fbbf24"/>
+          <text x="823" y="64" text-anchor="middle" fill="#e8eef5" font-family="Segoe UI" font-size="14" font-weight="600">Priorisieren</text>
+          <text x="823" y="83" text-anchor="middle" fill="#fcd34d" font-family="Segoe UI" font-size="11">Rangliste</text>
+        </g>
+
+        <!-- Pfeile Reihe 1 -->
+        <line x1="166" y1="68" x2="200" y2="68" stroke="#8aa0b6" stroke-width="1.5" marker-end="url(#ah)"/>
+        <line x1="356" y1="68" x2="390" y2="68" stroke="#8aa0b6" stroke-width="1.5" marker-end="url(#ah)"/>
+        <line x1="546" y1="68" x2="580" y2="68" stroke="#8aa0b6" stroke-width="1.5" marker-end="url(#ah)"/>
+        <line x1="736" y1="68" x2="758" y2="68" stroke="#8aa0b6" stroke-width="1.5" marker-end="url(#ah)"/>
+
+        <!-- Übergang nach unten -->
+        <path d="M823,96 L823,150" stroke="#8aa0b6" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+
+        <!-- Reihe 2: Status -->
+        <rect x="584" y="150" width="302" height="56" rx="10" fill="#0e1730" stroke="#60a5fa"/>
+        <text x="735" y="174" text-anchor="middle" fill="#e8eef5" font-family="Segoe UI" font-size="14" font-weight="600">Status setzen</text>
+        <text x="735" y="193" text-anchor="middle" fill="#93c5fd" font-family="Segoe UI" font-size="11">In Umsetzung · geparkt · verworfen</text>
+
+        <!-- Reevaluierungs-Schleife -->
+        <path d="M584,178 L279,178 L279,100" stroke="#a78bfa" stroke-width="1.5" fill="none" stroke-dasharray="5 4" marker-end="url(#ahv)"/>
+        <text x="430" y="172" text-anchor="middle" fill="#c4b5fd" font-family="Segoe UI" font-size="11.5">↻ nachschärfen → Konzept &amp; Scoring neu</text>
+      </svg>
+
+      <p class="note">
+        Jede spätere Anforderung oder Anpassung löst eine <strong>Reevaluierung</strong> aus:
+        Konzept und Bewertung werden neu erzeugt – die vorherige Version bleibt als Historie erhalten.
+      </p>
+    </section>
+
+    <section>
+      <h2>Kernfunktionen</h2>
+      <div class="features">
+        <div class="feat">
+          <div class="ico">📥</div>
+          <h4>Idee einkippen</h4>
+          <p>Einfache Eingabemaske bzw. Prompt – ein Satz genügt, um eine Idee festzuhalten.</p>
+        </div>
+        <div class="feat">
+          <div class="ico">📄</div>
+          <h4>Auto-Konzept</h4>
+          <p>Im Hintergrund wird ein strukturiertes Konzept ausgearbeitet und an der Idee dokumentiert.</p>
+        </div>
+        <div class="feat">
+          <div class="ico">📊</div>
+          <h4>Marktbewertung</h4>
+          <p>Verkaufbarkeit und geschäftliche Relevanz werden auf Basis des Konzepts geprüft.</p>
+        </div>
+        <div class="feat">
+          <div class="ico">🎯</div>
+          <h4>Transparentes Scoring</h4>
+          <p>Mehrere Wertdimensionen, jede mit Begründung – sichtbar, wie die Bewertung entsteht.</p>
+        </div>
+        <div class="feat">
+          <div class="ico">🔁</div>
+          <h4>Nachschärfen</h4>
+          <p>Weitere Anforderungen eingeben → automatische Reevaluierung mit Versionshistorie.</p>
+        </div>
+        <div class="feat">
+          <div class="ico">🗂️</div>
+          <h4>Portfolio-Steuerung</h4>
+          <p>Idee als „in Umsetzung" markieren oder verwerfen – die Arbeit bleibt strukturiert.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Idee → Konzept → Scoring im Detail</h2>
+      <ul class="steps">
+        <li><strong>Idee einkippen.</strong> Du notierst die Idee frei formuliert – so knapp oder
+            ausführlich, wie sie dir gerade einfällt.</li>
+        <li><strong>Konzept ausarbeiten.</strong> Der Strategizer erzeugt daraus ein strukturiertes
+            Konzept: <em>Problem, Lösung, Zielgruppe, Nutzenversprechen, Umsetzungsskizze,
+            Geschäftsmodell</em>. Das Konzept wird als lesbare Doku <strong>an der Idee</strong> hinterlegt.</li>
+        <li><strong>Bewerten &amp; bepunkten.</strong> Auf Basis des Konzepts entstehen Marktbewertung
+            und ein Scoring über mehrere Wertdimensionen – jeweils mit kurzer Begründung.</li>
+        <li><strong>Vergleichen &amp; entscheiden.</strong> Alle Ideen erscheinen in einer Rangliste;
+            du siehst sofort, was potenzialträchtiger ist als anderes.</li>
+        <li><strong>Nachschärfen.</strong> Ergänzt du eine Anforderung, werden Konzept und Scoring
+            neu erzeugt – die Historie zeigt, wie sich die Bewertung verändert hat.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>So sieht eine Idee im Portal aus</h2>
+      <p>An jeder Idee liegen Konzept und Bewertung direkt beieinander – auf einen Blick nachvollziehbar:</p>
+      <div class="mock">
+        <div class="bar">
+          <span class="t">💡 Idee&nbsp;#12 · „Angebots-Assistent für Handwerker"</span>
+          <span class="pill ac">In Umsetzung</span>
+        </div>
+        <div class="body">
+          <div class="block">
+            <div class="lbl">Original-Eingabe</div>
+            <div class="val faint">„Tool, das aus einem kurzen Kundengespräch automatisch ein sauberes Angebot erstellt."</div>
+          </div>
+          <div class="block">
+            <div class="lbl">Ausgearbeitetes Konzept</div>
+            <div class="val">Problem · Lösung · Zielgruppe (Handwerksbetriebe) · Nutzenversprechen · Umsetzungsskizze · Geschäftsmodell (SaaS, monatlich) — als Doku hinterlegt.</div>
+          </div>
+          <div class="block">
+            <div class="lbl">Marktbewertung</div>
+            <div class="val">Klarer Bedarf, überschaubarer Wettbewerb im Nischensegment; Zahlungsbereitschaft vorhanden.</div>
+          </div>
+          <div class="block">
+            <div class="lbl">Scoring (gewichtet)</div>
+            <div class="scores" style="margin-top:6px">
+              <div class="srow"><span class="name">Geschäftl. Relevanz</span><span class="track"><span class="fill" style="width:80%"></span></span><span class="num">8.0</span></div>
+              <div class="srow"><span class="name">Umsetzbarkeit</span><span class="track"><span class="fill" style="width:70%"></span></span><span class="num">7.0</span></div>
+              <div class="srow"><span class="name">Nutzen für andere</span><span class="track"><span class="fill" style="width:90%"></span></span><span class="num">9.0</span></div>
+              <div class="srow"><span class="name">Skalierbarkeit</span><span class="track"><span class="fill" style="width:75%"></span></span><span class="num">7.5</span></div>
+            </div>
+            <div style="margin-top:8px"><span class="pill hi">Gesamt 7.8 / 10 · Hohes Potenzial</span></div>
+          </div>
+          <div class="block">
+            <div class="lbl">Historie</div>
+            <div class="val faint">v1 6.9 → v2 7.8 (nach Anforderung „Anbindung an gängige Rechnungssoftware")</div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Beispielhafte Darstellung – Werte dienen nur der Veranschaulichung.</p>
+    </section>
+
+    <section>
+      <h2>Das Scoring-Modell</h2>
+      <p>
+        Bewertet wird nicht nur der Geschäftswert. Der Strategizer betrachtet mehrere
+        <strong>Wertdimensionen</strong> – jede 0–10, mit Gewicht und Begründung. Der Gesamt-Score
+        ist die gewichtete Summe; die Gewichte sind anpassbar, je nachdem, worauf es dir gerade ankommt.
+      </p>
+      <table>
+        <thead>
+          <tr><th>Wertdimension</th><th>Was sie misst</th><th class="w">Gewicht</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Geschäftliche Relevanz</td><td>Nachfrage, Zahlungsbereitschaft, Umsatzpotenzial</td><td class="w">20&nbsp;%</td></tr>
+          <tr><td>Umsetzbarkeit</td><td>Aufwand, benötigte Ressourcen, Time-to-MVP</td><td class="w">15&nbsp;%</td></tr>
+          <tr><td>Marktgröße &amp; Wettbewerb</td><td>Marktvolumen, Differenzierung, Sättigung</td><td class="w">12&nbsp;%</td></tr>
+          <tr><td>Persönlicher Effizienzgewinn</td><td>Wie viel Zeit/Arbeit es <em>dir selbst</em> spart</td><td class="w">12&nbsp;%</td></tr>
+          <tr><td>Nutzen für andere</td><td>Effizienz- oder Wertgewinn für Kunden/Dritte</td><td class="w">12&nbsp;%</td></tr>
+          <tr><td>Strategischer Fit</td><td>Passung zu Fähigkeiten, Interessen, Portfolio</td><td class="w">12&nbsp;%</td></tr>
+          <tr><td>Skalierbarkeit</td><td>Einmal bauen, mehrfach verkaufen/nutzen</td><td class="w">12&nbsp;%</td></tr>
+          <tr><td>Risiko &amp; Abhängigkeiten</td><td>Rechtlich, Plattform-, Klumpenrisiko (mindernd)</td><td class="w">5&nbsp;%</td></tr>
+        </tbody>
+      </table>
+      <div class="calc">
+        <b>Transparenz:</b> Zu jeder Dimension zeigt der Strategizer den Teil-Score, eine
+        Ein-Satz-Begründung und welche Konzept-Inhalte ihn getrieben haben. So ist jederzeit
+        nachvollziehbar, <b>wie</b> die Bewertung zustande kommt – und Ideen lassen sich fair vergleichen.
+      </div>
+      <div style="margin-top:12px">
+        <span class="pill lo">0–4 · geringes Potenzial</span>
+        <span class="pill mid">5–7 · prüfen / nachschärfen</span>
+        <span class="pill hi">8–10 · hohes Potenzial</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Lebenszyklus einer Idee</h2>
+      <p>Jede Idee durchläuft einen klaren Status – so bleibt sichtbar, woran gerade gearbeitet wird:</p>
+      <div class="flow">
+        <span class="st">Entwurf</span><span class="arr">→</span>
+        <span class="st">Bewertet</span><span class="arr">→</span>
+        <span class="st">Priorisiert</span><span class="arr">→</span>
+        <span class="st">In Umsetzung</span><span class="arr">→</span>
+        <span class="st">Verworfen / Archiviert</span>
+      </div>
+      <p class="note">Eine Reevaluierung ist in jedem Status möglich; verworfene Ideen bleiben
+        erhalten und können jederzeit reaktiviert werden.</p>
+    </section>
+
+    <section>
+      <h2>Mehrbenutzer &amp; Zugang</h2>
+      <p>
+        Der Strategizer ist nicht nur für eine Person gedacht: Jeder kann sich am Portal
+        <strong>registrieren</strong> und erhält einen <strong>eigenen geschützten Bereich</strong> –
+        eigene Ideen, eigene Konzepte, eigene Bewertungen, für andere nicht sichtbar.
+      </p>
+      <p>Anmeldung wie auf gängigen Portalen üblich:</p>
+      <ul>
+        <li><strong>E-Mail &amp; Passwort</strong> – klassische Registrierung.</li>
+        <li><strong>Google</strong> und <strong>Microsoft / EntraID</strong> – Login per bestehendem Konto <span class="pill ac">geplant</span></li>
+        <li><strong>Apple</strong> – optional als weiterer Anbieter <span class="pill ac">geplant</span></li>
+      </ul>
+      <p class="note">
+        Diese <strong>Konzept-Seite</strong> ist bewusst öffentlich und <strong>ohne Login</strong>
+        einsehbar. Login betrifft erst den geschützten Arbeitsbereich des Portals.
+      </p>
+    </section>
+
+  </div>
+
+  <!-- ===================== SO WIRD ES GEBAUT ===================== -->
+  <div id="doc-build" class="docpane">
+
+    <section>
+      <h2>Architektur im Überblick</h2>
+      <p>Der Strategizer fügt sich in die bestehende ClaudeApps-Landschaft ein und nutzt bewährte Bausteine:</p>
+      <table>
+        <thead>
+          <tr><th>Baustein</th><th>Technik</th><th>Rolle</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Frontend</td><td>statisches HTML/JS</td><td>Eingabemaske, Ideen-Detailansicht, Ranglisten</td></tr>
+          <tr><td>Backend</td><td>Node/Express · <code>Port 3006</code></td><td>API, Geschäftslogik, Scoring</td></tr>
+          <tr><td>Datenbank</td><td>SQLite (<code>better-sqlite3</code>)</td><td>Ideen, Konzepte, Bewertungen, Historie</td></tr>
+          <tr><td>KI-Ausarbeitung</td><td>OpenAI (provider-agnostisch)</td><td>Konzept + Marktbewertung erzeugen</td></tr>
+          <tr><td>Login</td><td>kasimirAuth (SSO)</td><td>Registrierung, Sessions, geschützte Bereiche</td></tr>
+          <tr><td>Auslieferung</td><td>nginx-Proxy</td><td><code>/claudeapps/strategizer/api/</code> → 127.0.0.1:3006</td></tr>
+        </tbody>
+      </table>
+      <p class="note">
+        Die KI-Anbindung startet mit <strong>OpenAI</strong> (sofort einsatzbereit) und ist so gekapselt,
+        dass später auf <strong>Claude</strong> umgestellt werden kann, ohne die übrige Logik zu ändern.
+      </p>
+    </section>
+
+    <section>
+      <h2>Zentrale Anmeldung (kasimirAuth)</h2>
+      <p>
+        Das Login baut auf dem bereits vorhandenen zentralen Auth-Dienst
+        <strong>kasimirAuth</strong> auf – sichere Passwörter (Argon2), Sessions, Rollen je App und
+        ein gemeinsames Anmelde-Cookie über alle <code>kasimir.info</code>-Apps hinweg (Single Sign-On).
+      </p>
+      <p>
+        <strong>E-Mail/Passwort</strong> ist damit sofort verfügbar. Die Anmeldung über
+        <strong>Google, Microsoft/EntraID und Apple</strong> wird als OIDC-Erweiterung dieses
+        zentralen Dienstes ergänzt – davon profitieren dann alle Portale gleichermaßen.
+      </p>
+    </section>
+
+    <section>
+      <h2>Umsetzungs-Fahrplan</h2>
+      <ul class="steps">
+        <li><strong>Phase 0 – Konzept (jetzt).</strong> Diese öffentliche Konzept-Seite unter
+            <code>/claudeapps/strategizer/</code>. ✓</li>
+        <li><strong>Phase 1 – MVP.</strong> Backend + Eingabemaske; Ablauf Idee → Konzept → Scoring
+            mit an der Idee dokumentiertem Konzept, Ideen-Detailansicht, Statusverwaltung. Zunächst
+            nur für den Betreiber.</li>
+        <li><strong>Phase 2 – Reevaluierung &amp; Vergleich.</strong> Nachschärfen mit Versionshistorie,
+            Rangliste über alle Ideen.</li>
+        <li><strong>Phase 3 – Mehrbenutzer.</strong> Anbindung an kasimirAuth (E-Mail/Passwort),
+            pro-Nutzer getrennte, geschützte Bereiche.</li>
+        <li><strong>Phase 4 – Social-Login.</strong> Google, Microsoft/EntraID und optional Apple
+            als OIDC-Erweiterung.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Datenschutz</h2>
+      <p>
+        Ideen und Konzepte sind privat: Jeder Nutzer sieht ausschließlich seine eigenen Inhalte.
+        Zugangsdaten werden sicher gespeichert (Passwort-Hashing über kasimirAuth), die Verarbeitung
+        durch die KI erfolgt ausschließlich serverseitig und ist auf die vom Nutzer selbst
+        eingegebenen Ideen beschränkt.
+      </p>
+    </section>
+
+  </div>
+
+  <footer>Erstellt mit Claude Code</footer>
+
+</div>
+
+<script>
+  // Umschalter zwischen den Doku-Bereichen
+  document.querySelectorAll('.docbtn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.docbtn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.docpane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.target).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+</script>
+
+</body>
+</html>

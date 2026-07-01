@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Strategizer – Portal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #1a1a2e; --panel: #16213e; --panel2: #0e1730;
+      --accent: #a78bfa; --blue: #60a5fa; --teal: #2dd4bf;
+      --green: #4ade80; --gold: #fbbf24; --coral: #fb7185;
+      --text: #d7dee8; --muted: #8aa0b6; --line: #ffffff14;
+    }
+    body { background: var(--bg); min-height: 100vh; font-family: 'Segoe UI', sans-serif; color: var(--text); line-height: 1.6; padding: 56px 18px 70px; }
+    .wrap { max-width: 1120px; margin: 0 auto; }
+    a { color: var(--accent); }
+    button { font-family: inherit; cursor: pointer; }
+
+    /* Kopf */
+    .topbar { text-align: center; margin-bottom: 22px; }
+    .topbar h1 { font-size: 1.8rem; letter-spacing: 3px; color: var(--accent); text-shadow: 0 0 26px #a78bfa55; }
+    .topbar p { color: var(--muted); font-size: 0.86rem; letter-spacing: 1px; margin-top: 6px; }
+    .topbar .links { margin-top: 10px; font-size: 0.82rem; }
+    .topbar .links a { text-decoration: none; }
+    .topbar .links button.linkish { background: none; border: none; color: var(--muted); font-size: 0.82rem; text-decoration: underline; }
+
+    /* Karten allgemein */
+    .card { background: var(--panel); border: 1px solid #a78bfa22; border-radius: 14px; padding: 20px; }
+
+    /* Composer */
+    .composer { margin-bottom: 22px; }
+    .composer h2 { color: var(--accent); font-size: 1.05rem; margin-bottom: 12px; letter-spacing: .5px; }
+    textarea, input[type=text] {
+      width: 100%; background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+      border-radius: 10px; padding: 12px 14px; font-family: inherit; font-size: 0.95rem; resize: vertical;
+    }
+    textarea:focus, input:focus { outline: none; border-color: #a78bfa66; }
+    .composer .row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+    .composer input[type=text] { flex: 1; min-width: 200px; }
+    .btn {
+      background: linear-gradient(90deg, var(--blue), var(--accent)); color: #0e1024; border: none;
+      border-radius: 10px; padding: 11px 20px; font-weight: 600; font-size: 0.92rem; letter-spacing: .3px;
+    }
+    .btn:disabled { opacity: .5; cursor: default; }
+    .btn.ghost { background: none; color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
+    .btn.ghost:hover { color: var(--text); border-color: #a78bfa55; }
+    .btn.danger { background: none; color: var(--coral); border: 1px solid #fb718555; font-weight: 500; }
+
+    /* Layout */
+    .layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 780px) { .layout { grid-template-columns: 1fr; } }
+
+    /* Ideenliste */
+    .list h2 { color: var(--muted); font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+    .idea { background: var(--panel2); border: 1px solid var(--line); border-left: 3px solid #a78bfa55; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: border-color .15s, transform .1s; }
+    .idea:hover { border-color: #a78bfa88; transform: translateY(-1px); }
+    .idea.active { border-color: var(--accent); background: #1c2545; }
+    .idea .t { color: #e8eef5; font-weight: 600; font-size: 0.95rem; margin-bottom: 7px; }
+    .idea .meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .idea .score { font-weight: 700; font-size: 1.05rem; }
+    .idea .track { height: 6px; background: #1a2540; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+    .idea .fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--accent)); border-radius: 999px; }
+    .empty { color: var(--muted); font-size: 0.9rem; padding: 16px; text-align: center; }
+
+    /* Status-Pills */
+    .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.74rem; border: 1px solid; white-space: nowrap; }
+    .st-entwurf     { color: #cbd5e1; border-color: #64748b; }
+    .st-bewertet    { color: #93c5fd; border-color: #60a5fa88; }
+    .st-priorisiert { color: #fcd34d; border-color: #f59e0b88; }
+    .st-in_umsetzung{ color: #86efac; border-color: #4ade8088; }
+    .st-verworfen   { color: #fda4af; border-color: #fb718588; }
+    .r-hoch   { color: var(--green); }
+    .r-mittel { color: var(--gold); }
+    .r-gering { color: var(--coral); }
+
+    /* Detail */
+    .detail .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .detail h2 { color: #e8eef5; font-size: 1.25rem; }
+    .detail .total { text-align: right; }
+    .detail .total .num { font-size: 1.9rem; font-weight: 800; line-height: 1; }
+    .detail .total .lab { font-size: 0.75rem; color: var(--muted); }
+    .statusbar { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0; }
+    .statusbar button { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 5px 12px; font-size: 0.78rem; }
+    .statusbar button.on { border-color: var(--accent); color: var(--accent); background: #241b3a; }
+
+    .block { margin-top: 18px; }
+    .block .lbl { font-size: 0.72rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+    .konzept { display: grid; gap: 10px; }
+    .kf { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+    .kf .k { color: #d8ccf7; font-size: 0.8rem; font-weight: 600; margin-bottom: 3px; }
+    .kf .v { color: var(--text); font-size: 0.9rem; }
+    .market { background: var(--panel2); border-left: 2px solid var(--teal); border-radius: 8px; padding: 12px 14px; font-size: 0.9rem; }
+
+    .scores { display: grid; gap: 9px; }
+    .srow { display: grid; grid-template-columns: 200px 1fr 30px; align-items: center; gap: 10px; }
+    .srow .name { color: var(--muted); font-size: 0.82rem; }
+    .srow .track { height: 8px; background: #1a2540; border-radius: 999px; overflow: hidden; }
+    .srow .fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--accent)); border-radius: 999px; }
+    .srow .num { text-align: right; color: #d8ccf7; font-size: 0.85rem; font-weight: 600; }
+    .srow .why { grid-column: 1 / -1; color: var(--muted); font-size: 0.78rem; margin: -3px 0 4px; padding-left: 2px; }
+    @media (max-width: 560px) { .srow { grid-template-columns: 130px 1fr 28px; } }
+
+    .hist { font-size: 0.82rem; }
+    .hist .hrow { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .hist .hrow .v { color: var(--accent); font-weight: 600; white-space: nowrap; }
+    .hist .hrow .x { color: var(--muted); }
+
+    .summary { background: #241b3a; border: 1px solid #a78bfa33; border-radius: 10px; padding: 12px 14px; font-size: 0.9rem; color: #e8eef5; margin-top: 6px; }
+
+    /* Gate + Overlay */
+    .overlay { position: fixed; inset: 0; background: rgba(10,12,26,.82); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .overlay .box { background: var(--panel); border: 1px solid #a78bfa44; border-radius: 16px; padding: 30px; max-width: 380px; width: 100%; text-align: center; }
+    .overlay h3 { color: var(--accent); margin-bottom: 8px; letter-spacing: 1px; }
+    .overlay p { color: var(--muted); font-size: 0.88rem; margin-bottom: 16px; }
+    .overlay input { text-align: center; margin-bottom: 12px; }
+    .overlay .err { color: var(--coral); font-size: 0.82rem; min-height: 18px; }
+    .spinner { width: 34px; height: 34px; border: 3px solid #a78bfa33; border-top-color: var(--accent); border-radius: 50%; margin: 0 auto 14px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .load-msg { color: var(--text); font-size: 0.95rem; }
+    .hidden { display: none !important; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #241b3a; border: 1px solid #a78bfa55; color: var(--text); padding: 10px 18px; border-radius: 10px; font-size: 0.88rem; z-index: 1200; }
+  </style>
+</head>
+<body>
+<script src="/claudeapps/shared/back-button.js"></script>
+
+<div class="wrap">
+  <div class="topbar">
+    <h1>STRATEGIZER</h1>
+    <p>IDEE → KONZEPT → BEWERTUNG</p>
+    <div class="links">
+      <a href="/claudeapps/strategizer/">← Zur Konzept-Seite</a>
+      &nbsp;·&nbsp;
+      <button class="linkish" id="logout">Zugangscode ändern</button>
+    </div>
+  </div>
+
+  <!-- Neue Idee -->
+  <div class="card composer">
+    <h2>💡 Neue Idee einkippen</h2>
+    <textarea id="ideaInput" rows="3" placeholder="Beschreibe deine Idee – ein, zwei Sätze reichen. Der Strategizer arbeitet daraus automatisch ein Konzept aus und bewertet es."></textarea>
+    <div class="row">
+      <input type="text" id="ideaTitle" placeholder="Optionaler Titel (sonst automatisch)" />
+      <button class="btn" id="submitIdea">Ausarbeiten &amp; bewerten</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Liste -->
+    <div class="card list">
+      <h2>Ideen · Rangliste</h2>
+      <div id="ideaList"><div class="empty">Noch keine Ideen. Kippe oben deine erste Idee ein.</div></div>
+    </div>
+
+    <!-- Detail -->
+    <div class="card detail" id="detail">
+      <div class="empty">Wähle links eine Idee – oder kippe oben eine neue ein.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Ladeoverlay -->
+<div class="overlay hidden" id="loadOverlay">
+  <div class="box">
+    <div class="spinner"></div>
+    <div class="load-msg" id="loadMsg">Konzept wird ausgearbeitet …</div>
+  </div>
+</div>
+
+<!-- Zugangscode-Gate -->
+<div class="overlay hidden" id="gate">
+  <div class="box">
+    <h3>🔒 Strategizer</h3>
+    <p>Dieser Arbeitsbereich ist geschützt. Bitte Zugangscode eingeben.</p>
+    <input type="password" id="gateCode" placeholder="Zugangscode" />
+    <div class="err" id="gateErr"></div>
+    <button class="btn" id="gateSubmit" style="width:100%">Öffnen</button>
+  </div>
+</div>
+
+<script>
+const API = '/claudeapps/strategizer/api';
+const KF_LABELS = { problem:'Problem', loesung:'Lösung', zielgruppe:'Zielgruppe', nutzenversprechen:'Nutzenversprechen', umsetzungsskizze:'Umsetzungsskizze', geschaeftsmodell:'Geschäftsmodell' };
+const ST_LABELS = { entwurf:'Entwurf', bewertet:'Bewertet', priorisiert:'Priorisiert', in_umsetzung:'In Umsetzung', verworfen:'Verworfen' };
+const ST_ORDER = ['bewertet','priorisiert','in_umsetzung','verworfen'];
+
+let code = localStorage.getItem('strategizer_code') || '';
+let selectedId = null;
+
+const $ = id => document.getElementById(id);
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function showGate(msg) { $('gate').classList.remove('hidden'); $('gateErr').textContent = msg || ''; $('gateCode').focus(); }
+function hideGate() { $('gate').classList.add('hidden'); }
+function showLoad(msg) { $('loadMsg').textContent = msg; $('loadOverlay').classList.remove('hidden'); }
+function hideLoad() { $('loadOverlay').classList.add('hidden'); }
+function toast(msg) { const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2600); }
+
+async function api(pathname, opts={}) {
+  const res = await fetch(API + pathname, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', 'x-access-code': code, ...(opts.headers||{}) },
+  });
+  if (res.status === 401) { localStorage.removeItem('strategizer_code'); code=''; showGate('Falscher Zugangscode.'); throw new Error('unauthorized'); }
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) throw new Error(data.error || ('Fehler ' + res.status));
+  return data;
+}
+
+function ratingClass(r) { return 'r-' + (r||'gering'); }
+
+async function loadList() {
+  const ideas = await api('/ideas');
+  const el = $('ideaList');
+  if (!ideas.length) { el.innerHTML = '<div class="empty">Noch keine Ideen. Kippe oben deine erste Idee ein.</div>'; return; }
+  el.innerHTML = ideas.map(i => {
+    const total = (i.total==null) ? '–' : i.total.toFixed(1);
+    const pct = (i.total==null) ? 0 : (i.total*10);
+    return `<div class="idea ${i.id===selectedId?'active':''}" data-id="${i.id}">
+      <div class="t">${esc(i.title)}</div>
+      <div class="meta">
+        <span class="pill st-${i.status}">${ST_LABELS[i.status]||i.status}</span>
+        <span class="score ${ratingClass(i.rating)}">${total}</span>
+      </div>
+      <div class="track"><div class="fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.idea').forEach(d => d.addEventListener('click', () => openIdea(+d.dataset.id)));
+}
+
+async function openIdea(id) {
+  selectedId = id;
+  const idea = await api('/ideas/' + id);
+  renderDetail(idea);
+  document.querySelectorAll('.idea').forEach(d => d.classList.toggle('active', +d.dataset.id===id));
+}
+
+function renderDetail(idea) {
+  const e = idea.latest;
+  const d = $('detail');
+  if (!e) {
+    d.innerHTML = `<div class="head"><h2>${esc(idea.title)}</h2></div>
+      <div class="block"><div class="lbl">Original-Eingabe</div><div class="market">${esc(idea.input)}</div></div>
+      <p class="empty">Noch nicht bewertet. <button class="btn" id="reeval">Jetzt ausarbeiten &amp; bewerten</button></p>`;
+    $('reeval').addEventListener('click', () => refine(idea.id, ''));
+    return;
+  }
+  const scoresHtml = e.scores.map(s => `
+    <div class="srow">
+      <span class="name">${esc(s.label)}</span>
+      <span class="track"><span class="fill" style="width:${s.score*10}%"></span></span>
+      <span class="num">${s.score}</span>
+      <span class="why">${esc(s.begruendung)} <span style="opacity:.6">· Gewicht ${Math.round(s.weight*100)}%</span></span>
+    </div>`).join('');
+
+  const konzeptHtml = Object.keys(KF_LABELS).map(k => e.konzept[k] ? `
+    <div class="kf"><div class="k">${KF_LABELS[k]}</div><div class="v">${esc(e.konzept[k])}</div></div>` : '').join('');
+
+  const statusHtml = ST_ORDER.map(s => `<button class="${idea.status===s?'on':''}" data-status="${s}">${ST_LABELS[s]}</button>`).join('');
+
+  const histHtml = idea.evaluations.map(v => `
+    <div class="hrow"><span class="v">v${v.version} · ${v.total.toFixed(1)}</span>
+    <span class="x">${v.refinement ? 'Nachschärfung: '+esc(v.refinement) : 'Erstbewertung'}</span></div>`).join('');
+
+  d.innerHTML = `
+    <div class="head">
+      <div>
+        <h2>${esc(idea.title)}</h2>
+        <span class="pill st-${idea.status}">${ST_LABELS[idea.status]}</span>
+      </div>
+      <div class="total">
+        <div class="num ${ratingClass(e.rating)}">${e.total.toFixed(1)}</div>
+        <div class="lab">/ 10 · ${e.rating}</div>
+      </div>
+    </div>
+
+    <div class="statusbar">${statusHtml}
+      <button class="danger-btn" id="delIdea" title="Idee löschen" style="background:none;border:1px solid #fb718544;color:var(--coral);border-radius:999px;padding:5px 12px;font-size:.78rem;margin-left:auto">Löschen</button>
+    </div>
+
+    ${e.zusammenfassung ? `<div class="summary">${esc(e.zusammenfassung)}</div>` : ''}
+
+    <div class="block"><div class="lbl">Original-Eingabe</div><div class="market" style="border-left-color:#64748b">${esc(idea.input)}</div></div>
+
+    <div class="block"><div class="lbl">Ausgearbeitetes Konzept</div><div class="konzept">${konzeptHtml}</div></div>
+
+    ${e.marktbewertung ? `<div class="block"><div class="lbl">Marktbewertung</div><div class="market">${esc(e.marktbewertung)}</div></div>` : ''}
+
+    <div class="block"><div class="lbl">Scoring (gewichtet)</div><div class="scores">${scoresHtml}</div></div>
+
+    <div class="block"><div class="lbl">Nachschärfen → Reevaluierung</div>
+      <textarea id="refineInput" rows="2" placeholder="Weitere Anforderung oder Anpassung eingeben – Konzept & Bewertung werden neu erzeugt."></textarea>
+      <div class="row" style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn" id="refineBtn">Neu bewerten</button>
+      </div>
+    </div>
+
+    <div class="block"><div class="lbl">Historie</div><div class="hist">${histHtml}</div></div>
+  `;
+
+  d.querySelectorAll('.statusbar button[data-status]').forEach(b =>
+    b.addEventListener('click', () => setStatus(idea.id, b.dataset.status)));
+  $('delIdea').addEventListener('click', () => delIdea(idea.id, idea.title));
+  $('refineBtn').addEventListener('click', () => {
+    const val = $('refineInput').value.trim();
+    if (!val) { toast('Bitte eine Ergänzung eingeben.'); return; }
+    refine(idea.id, val);
+  });
+}
+
+async function submitIdea() {
+  const input = $('ideaInput').value.trim();
+  const title = $('ideaTitle').value.trim();
+  if (!input) { toast('Bitte eine Idee eingeben.'); return; }
+  $('submitIdea').disabled = true;
+  showLoad('Konzept wird ausgearbeitet und bewertet …');
+  try {
+    const idea = await api('/ideas', { method:'POST', body: JSON.stringify({ input, title }) });
+    $('ideaInput').value = ''; $('ideaTitle').value = '';
+    selectedId = idea.id;
+    await loadList();
+    renderDetail(idea);
+    document.querySelectorAll('.idea').forEach(x => x.classList.toggle('active', +x.dataset.id===idea.id));
+    toast('Idee ausgearbeitet und bewertet.');
+  } catch (err) { if (err.message!=='unauthorized') toast(err.message); }
+  finally { hideLoad(); $('submitIdea').disabled = false; }
+}
+
+async function refine(id, refinement) {
+  showLoad(refinement ? 'Reevaluierung läuft …' : 'Konzept wird ausgearbeitet …');
+  try {
+    const idea = await api('/ideas/'+id+'/refine', { method:'POST', body: JSON.stringify({ refinement }) });
+    await loadList();
+    renderDetail(idea);
+    toast('Neu bewertet.');
+  } catch (err) { if (err.message!=='unauthorized') toast(err.message); }
+  finally { hideLoad(); }
+}
+
+async function setStatus(id, status) {
+  try {
+    const idea = await api('/ideas/'+id+'/status', { method:'PUT', body: JSON.stringify({ status }) });
+    await loadList();
+    renderDetail(idea);
+  } catch (err) { if (err.message!=='unauthorized') toast(err.message); }
+}
+
+async function delIdea(id, title) {
+  if (!confirm('Idee „'+title+'" wirklich löschen?')) return;
+  try {
+    await api('/ideas/'+id, { method:'DELETE' });
+    selectedId = null;
+    $('detail').innerHTML = '<div class="empty">Wähle links eine Idee – oder kippe oben eine neue ein.</div>';
+    await loadList();
+    toast('Idee gelöscht.');
+  } catch (err) { if (err.message!=='unauthorized') toast(err.message); }
+}
+
+// ── Init / Gate ──
+async function boot() {
+  try { await loadList(); hideGate(); }
+  catch (err) { if (err.message==='unauthorized') showGate(); else { toast(err.message); } }
+}
+
+$('gateSubmit').addEventListener('click', () => {
+  const v = $('gateCode').value.trim();
+  if (!v) return;
+  code = v; localStorage.setItem('strategizer_code', v);
+  hideGate(); boot();
+});
+$('gateCode').addEventListener('keydown', e => { if (e.key==='Enter') $('gateSubmit').click(); });
+$('logout').addEventListener('click', () => { localStorage.removeItem('strategizer_code'); code=''; showGate(); });
+$('submitIdea').addEventListener('click', submitIdea);
+
+if (code) boot(); else showGate();
+</script>
+</body>
+</html>

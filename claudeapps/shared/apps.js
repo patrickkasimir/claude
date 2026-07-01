@@ -92,7 +92,15 @@ export const APPS = [
     title: "LIEFERANTENMGMT",
     icon: "🤝",
     path: "/claudeapps/odoo-lieferantenmanagement/",
-    description: "Lieferantenmanagement in Odoo 19.3 – Nutzer- & Technik-Doku: Verträge, Wesentlichkeits- & Qualitätsbewertung, Risikoregister, Cron",
+    description: "Lieferantenmanagement in Odoo 19.3 – Nutzer-Doku, Schritt-für-Schritt-Anleitung & Technik-Doku: Verträge, Bewertungen, Risikoregister, Selbstauskunft",
     category: "Erläuterungen",
+  },
+  {
+    id: "strategizer",
+    title: "STRATEGIZER",
+    icon: "🎯",
+    path: "/claudeapps/strategizer/",
+    description: "Ideen einkippen, automatisch Konzept + Marktbewertung + transparentes Scoring erhalten, nachschärfen und die Umsetzung strukturieren – Mehrbenutzer-Portal (Konzeptphase)",
+    category: "Tools",
   },
 ];
