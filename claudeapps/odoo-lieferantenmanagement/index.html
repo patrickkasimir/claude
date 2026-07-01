@@ -153,6 +153,7 @@
 
   <nav class="docnav">
     <button class="docbtn active" data-target="doc-user">📘 Nutzerdokumentation</button>
+    <button class="docbtn" data-target="doc-guide">📖 Anleitung</button>
     <button class="docbtn" data-target="doc-tech">🛠️ Technische Dokumentation</button>
   </nav>
 
@@ -222,16 +223,20 @@
         <strong>unabhängig von den Bewertungen</strong>.
       </p>
       <ul class="steps">
-        <li>Am Lieferanten den Button <strong>„Selbstauskunft anfordern"</strong> klicken → es entsteht
-            ein <strong>Selbstauskunftsauftrag</strong> und ein <strong>persönlicher Link</strong> zum
-            Fragebogen (am Auftrag hinterlegt; eine Aufgabe erinnert den Owner, den Link zu versenden).</li>
-        <li>Der Lieferant füllt den Fragebogen <strong>ohne Login</strong> aus
-            (Antwort je Frage: Ja / Teilweise / Nein / Nicht zutreffend).</li>
+        <li>Am Lieferanten den Button <strong>„Selbstauskunft anfordern"</strong> klicken. Im
+            <strong>Dialog</strong> die <strong>E-Mail-Adresse</strong> prüfen/eintragen und bestätigen –
+            der Fragebogen-Link wird dem Lieferanten <strong>per E-Mail zugesendet</strong> und am
+            Selbstauskunftsauftrag hinterlegt (eine Aufgabe erinnert zusätzlich den Owner).</li>
+        <li>Der Lieferant füllt den Fragebogen <strong>ohne Login</strong> aus – Seite für Seite je
+            Abschnitt, Antwort je Frage Ja / Teilweise / Nein / Nicht zutreffend, optional mit
+            <strong>Bemerkung</strong>. Zwischendurch schließen und später weitermachen ist möglich;
+            der Fragebogen kann nur <strong>einmal</strong> abgegeben werden.</li>
         <li>Nach dem Absenden wird der Auftrag automatisch <strong>ausgewertet</strong>: Erfüllungsgrad
             gesamt und je Abschnitt, Anzahl „KO mit Nein", <strong>Gesamtbewertung</strong>
             (<span class="pill lo">≥85 % geeignet</span> <span class="pill mid">70–84 % mit Auflagen</span>
             <span class="pill hi">&lt;70 % oder KO-Nein = kritisch</span>) und empfohlene Maßnahme.</li>
-        <li>Bei kritischem Ergebnis kann der Auftrag per Button <strong>ins Risikoregister überführt</strong> werden.</li>
+        <li>Bei kritischem Ergebnis: Button <strong>„In Risikoregister überführen"</strong>. Für Fragen
+            mit erforderlichem Nachweis: Button <strong>„Nachweise anfordern"</strong> beim Lieferanten.</li>
       </ul>
       <p class="note">Punkte: Ja = 2 · Teilweise = 1 · Nein = 0 · „Nicht zutreffend" fällt aus der
         Wertung (zählt nicht zum Maximum). KO-Kriterien sind im Fragebogen gekennzeichnet.</p>
@@ -297,6 +302,68 @@
       </div>
       <p class="note">Am Kontakt selbst gibt es den Tab „Lieferantenmanagement" (Klassifizierung,
         Verträge, Bewertungen) und den Smart-Button „Verträge".</p>
+    </section>
+
+  </div>
+
+  <!-- ===================== ANLEITUNG (SCHRITT FÜR SCHRITT) ===================== -->
+  <div id="doc-guide" class="docpane">
+
+    <section>
+      <h2>Kurzanleitungen zum Durchprobieren</h2>
+      <p>Drei Abläufe, jeweils Schritt für Schritt – genau die Klicks, die du in Odoo machst.</p>
+    </section>
+
+    <section>
+      <h2>A · Einen Lieferanten aufnehmen</h2>
+      <ul class="steps">
+        <li>App <strong>Lieferantenmanagement</strong> öffnen (oder die Standard-App <strong>Kontakte</strong>).</li>
+        <li>Einen <strong>Kontakt als Unternehmen</strong> neu anlegen oder einen bestehenden öffnen.</li>
+        <li>Im Kontakt den Reiter <strong>„Lieferantenmanagement"</strong> öffnen.</li>
+        <li><strong>Kategorie</strong> wählen (Strategisch / Operativ) – optional <strong>Bereich</strong>,
+            <strong>Owner</strong> (Zuständiger) und die Klassifizierungen.</li>
+        <li><strong>Speichern.</strong> Der Lieferant erscheint nun unter
+            <strong>Lieferantenmanagement → Lieferanten</strong>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>B · Eine Bewertung anfordern &amp; auswerten</h2>
+      <ul class="steps">
+        <li><strong>Lieferantenmanagement → Bewertungsaufforderungen → Neu.</strong></li>
+        <li><strong>Typ</strong> (Wesentlichkeit oder Qualität) und <strong>Turnus</strong>
+            (jährlich / halbjährlich / quartalsweise oder <strong>einmalig</strong>) wählen.</li>
+        <li><strong>Geltungsbereich</strong> festlegen: entweder <strong>bestimmte Lieferanten</strong>
+            direkt auswählen (ideal zum Testen) oder per Filter (Kategorie/Bereich).</li>
+        <li>Oben die <strong>Phase auf „Aktiv"</strong> stellen. Bei <strong>einmalig</strong> werden die
+            Bewertungen sofort erzeugt; sonst legt der tägliche Automatismus sie zur Fälligkeit an.
+            Für sofort: Button <strong>„Jetzt auslösen"</strong>.</li>
+        <li>Für jeden Lieferanten entsteht eine <strong>Bewertung</strong>, der <strong>Owner</strong>
+            bekommt eine Aufgabe.</li>
+        <li>Bewertung öffnen → je <strong>Kriterium 0–3</strong> wählen. <strong>Score &amp; Einstufung</strong>
+            rechnen automatisch.</li>
+        <li>Bei hoher Einstufung: Button <strong>„In Risikoregister überführen"</strong>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>C · Eine Selbstauskunft einholen</h2>
+      <ul class="steps">
+        <li><strong>Lieferantenmanagement → Lieferanten</strong> → Lieferant öffnen.</li>
+        <li>Button <strong>„Selbstauskunft anfordern"</strong> → im Dialog die <strong>E-Mail</strong> des
+            Lieferanten prüfen/eintragen und <strong>bestätigen</strong>. Der Fragebogen-Link wird versendet
+            und am Auftrag hinterlegt.</li>
+        <li>Der <strong>Lieferant</strong> öffnet den Link (ohne Login) und füllt den Fragebogen aus
+            (Ja / Teilweise / Nein / Nicht zutreffend, optional mit Bemerkung) und sendet ab.</li>
+        <li>In Odoo unter <strong>Lieferantenmanagement → Selbstauskünfte</strong> steht der Auftrag
+            automatisch auf <strong>Ausgewertet</strong> – mit <strong>Erfüllungsgrad</strong>, Werten je
+            Abschnitt und <strong>Gesamtbewertung</strong>.</li>
+        <li>Bei <strong>kritisch</strong>: Button <strong>„In Risikoregister überführen"</strong>;
+            nachweispflichtige Fragen über <strong>„Nachweis anfordern"</strong> beim Lieferanten einholen.</li>
+      </ul>
+      <p class="note">Auswertungslogik: Ja = 2 · Teilweise = 1 · Nein = 0 · „Nicht zutreffend" fällt aus der
+        Wertung. Schwellen: ≥ 85 % geeignet · 70–84 % mit Auflagen · &lt; 70 % oder ein KO-Kriterium mit
+        „Nein" = kritisch.</p>
     </section>
 
   </div>
@@ -449,17 +516,25 @@
         Auswertungsmodell ergänzt. Entkoppelt von den Bewertungen.
       </p>
       <ul>
-        <li><strong>Survey</strong> (<code>survey.survey</code>, <code>scoring_without_answers</code>,
-            Zugang per Token ohne Login): 5 Seiten (Abschnitte), 90 <code>simple_choice</code>-Fragen mit
-            bepunkteten Antworten (Ja 2 / Teilweise 1 / Nein 0 / Nicht zutreffend 0). Mapping-Felder
-            <code>x_studio_frage_nr/_abschnitt/_ko</code> auf <code>survey.question</code>. Fragenkatalog
-            als committete Datendatei.</li>
+        <li><strong>Survey</strong> (<code>survey.survey</code>, <code>no_scoring</code> + kein
+            Zertifikat = keine Test-/Bestanden-Anzeige, <code>page_per_section</code>, nur 1 Versuch,
+            Zurückblättern erlaubt, Zugang per Token ohne Login): 5 Seiten, 90 <code>simple_choice</code>-Fragen
+            mit statisch bepunkteten Antworten (Ja 2 / Teilweise 1 / Nein 0 / Nicht zutreffend 0), je Frage
+            optionales Bemerkungsfeld. Mapping-Felder
+            <code>x_studio_frage_nr/_abschnitt/_ko/_nachweis</code> auf <code>survey.question</code>.
+            Fragenkatalog als committete Datendatei.</li>
         <li><strong>Auswertungsmodell</strong> <code>x_selbstauskunft</code>: Compute-Felder rechnen
-            <em>live</em> aus den Antwortzeilen der Einreichung – Nicht-zutreffend fällt aus dem Maximum,
-            KO-Override (≥1 KO mit „Nein" ⇒ kritisch), Schwellen 85/70, Erfüllungsgrad je Abschnitt.</li>
-        <li><strong>Button „Selbstauskunft anfordern"</strong> (Server-Action am Lieferanten): legt den
-            Auftrag an, erzeugt eine <code>survey.user_input</code>-Einladung mit Token-Link
-            (<code>web.base.url + /survey/start/&lt;token&gt;</code>) und eine Owner-Aktivität.</li>
+            <em>live</em> aus der Einreichung über <code>survey.question_ids</code> (Excel-Nenner: alle
+            Fragen zählen im Maximum, nur „Nicht zutreffend" fällt heraus), Score aus dem statischen
+            <code>answer_score</code>, KO-Override (≥1 KO mit „Nein" ⇒ kritisch), Schwellen 85/70,
+            Erfüllungsgrad je Abschnitt.</li>
+        <li><strong>Anfordern-Dialog</strong> (Transient-Wizard <code>x_sa_anfordern_wizard</code>,
+            E-Mail-Pflicht): legt den Auftrag an, erzeugt die <code>survey.user_input</code>-Einladung mit
+            korrektem Link (<code>…/survey/start/&lt;survey.access_token&gt;?answer_token=&lt;user_input.access_token&gt;</code>),
+            versendet die E-Mail (<code>mail.mail</code>) und legt eine Owner-Aktivität an.</li>
+        <li><strong>Risiko-Überführung</strong> setzt Ursache-Erklärtext, Verantwortlichen (Lieferanten-Owner)
+            und Herkunfts-Link; <strong>„Nachweise anfordern"</strong> mailt dem Lieferanten die
+            nachweispflichtigen Fragen.</li>
         <li><strong>Abschluss-Automation</strong> (<code>base.automation</code> auf
             <code>survey.user_input</code>, <code>state=done</code>): setzt den Auftrag auf „ausgewertet".</li>
       </ul>
