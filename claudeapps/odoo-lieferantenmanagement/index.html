@@ -8,21 +8,26 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #1a1a2e;
-      --panel: #16213e;
-      --green: #4ade80;
-      --text: #d7dee8;
-      --muted: #8aa0b6;
-      --line: #ffffff14;
-      --teal: #2dd4bf;
-      --purple: #a78bfa;
-      --coral: #fb7185;
+      --bg: #1b2450;              /* iTSM-Navy (Seite) */
+      --panel: #26305f;           /* Karten-Navy */
+      --panel-2: #1f2851;         /* dunklere Fläche */
+      --green: #e11f26;           /* iTSM-Rot = Akzent */
+      --brand: #e11f26;
+      --brand-dark: #b81820;
+      --brand-light: #ff5b61;     /* Rot auf Navy lesbar (Links) */
+      --ink: #ffffff;             /* Überschriften weiß */
+      --text: #d7dcec;
+      --muted: #98a2c6;
+      --line: #ffffff22;
+      --teal: #4fd0e0;
+      --purple: #b0a4ff;
+      --coral: #ff7a6b;
     }
 
     body {
       background: var(--bg);
       min-height: 100vh;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
       color: var(--text);
       line-height: 1.7;
       padding: 56px 20px 80px;
@@ -32,65 +37,72 @@
 
     header.hero { text-align: center; margin-bottom: 28px; }
     header.hero h1 {
-      font-size: 2.4rem; letter-spacing: 3px; color: var(--green);
-      text-shadow: 0 0 30px #4ade8055; line-height: 1.2;
+      font-size: 2.4rem; letter-spacing: 1px; color: var(--ink);
+      line-height: 1.2; font-weight: 700;
     }
-    header.hero p { margin-top: 12px; color: var(--muted); letter-spacing: 2px; font-size: 0.95rem; }
+    header.hero h1::after {
+      content: ""; display: block; width: 60px; height: 4px; border-radius: 3px;
+      background: var(--brand); margin: 14px auto 0;
+    }
+    header.hero p { margin-top: 12px; color: var(--muted); letter-spacing: 2px;
+      font-size: 0.95rem; font-weight: 600; text-transform: uppercase; }
 
     /* Doc-Umschalter */
     .docnav { display: flex; justify-content: center; gap: 10px; margin: 0 auto 40px; flex-wrap: wrap; }
     .docbtn {
-      background: #0e1730; color: var(--muted); border: 1px solid var(--line);
+      background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
       border-radius: 999px; padding: 9px 22px; font-size: 0.92rem; cursor: pointer;
       letter-spacing: 0.5px; transition: all .15s;
     }
-    .docbtn:hover { color: var(--text); border-color: #4ade8055; }
-    .docbtn.active { background: #14302a; color: var(--green); border-color: var(--green); }
+    .docbtn:hover { color: var(--ink); border-color: var(--brand-light); }
+    .docbtn.active { background: var(--brand); color: #ffffff; border-color: var(--brand); }
     .docpane { display: none; }
     .docpane.active { display: block; }
 
     section {
       background: var(--panel);
-      border: 1px solid #4ade8022;
+      border: 1px solid var(--line);
       border-radius: 14px;
       padding: 32px 30px;
       margin-bottom: 28px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.18);
     }
 
     h2 {
-      color: var(--green); font-size: 1.3rem; letter-spacing: 1px;
-      margin-bottom: 16px; font-weight: 600;
+      color: var(--ink); font-size: 1.3rem; letter-spacing: 0.3px;
+      margin-bottom: 16px; font-weight: 700;
+      border-left: 4px solid var(--brand); padding-left: 12px;
     }
-    h3 { color: #cfe9d6; font-size: 1.02rem; margin: 18px 0 8px; font-weight: 600; }
+    h3 { color: var(--ink); font-size: 1.02rem; margin: 18px 0 8px; font-weight: 600; }
     p { margin-bottom: 12px; }
     p:last-child { margin-bottom: 0; }
-    a { color: var(--green); }
+    a { color: var(--brand-light); }
 
     code {
-      background: #0e1730; border: 1px solid var(--line); border-radius: 5px;
-      padding: 1px 6px; font-family: 'Consolas', monospace; font-size: 0.86em; color: #b8e3c6;
+      background: #161d40; border: 1px solid var(--line); border-radius: 5px;
+      padding: 1px 6px; font-family: 'Consolas', monospace; font-size: 0.86em; color: #ffb3b8;
     }
 
     ul, ol { margin: 6px 0 0 0; }
     ul { list-style: none; }
     ul li { position: relative; padding-left: 22px; margin-bottom: 9px; }
-    ul li::before { content: "▸"; position: absolute; left: 0; color: var(--green); font-size: 0.9em; }
+    ul li::before { content: "▸"; position: absolute; left: 0; color: var(--brand-light); font-size: 0.9em; }
     ol { padding-left: 22px; }
     ol li { margin-bottom: 9px; }
-    ol li::marker { color: var(--green); font-weight: 600; }
+    ol li::marker { color: var(--brand-light); font-weight: 600; }
 
     .steps { counter-reset: step; list-style: none; padding: 0; }
     .steps li { position: relative; padding: 0 0 16px 46px; margin: 0; }
     .steps li::before {
       counter-increment: step; content: counter(step);
       position: absolute; left: 0; top: 0; width: 30px; height: 30px;
-      background: #14302a; color: var(--green); border: 1px solid var(--green);
+      background: var(--brand); color: #ffffff; border: 1px solid var(--brand);
       border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-weight: 600; font-size: 0.9rem;
+      font-weight: 700; font-size: 0.9rem;
     }
     .steps li:not(:last-child)::after {
       content: ""; position: absolute; left: 15px; top: 32px; bottom: 4px;
-      width: 1px; background: #4ade8033;
+      width: 2px; background: #e11f2644;
     }
 
     .diagram { width: 100%; height: auto; display: block; margin: 6px 0 4px; }
@@ -98,42 +110,42 @@
     .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; font-size: 0.82rem; color: var(--muted); }
     .legend span { display: inline-flex; align-items: center; gap: 7px; }
     .dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid; }
-    .dot.t { background: #143630; border-color: var(--teal); }
-    .dot.p { background: #241b3a; border-color: var(--purple); }
-    .dot.c { background: #3a1b24; border-color: var(--coral); }
-    .dot.g { background: #1e293b; border-color: #64748b; }
+    .dot.t { background: #123246; border-color: var(--teal); }
+    .dot.p { background: #2a2456; border-color: var(--purple); }
+    .dot.c { background: #3a2440; border-color: var(--coral); }
+    .dot.g { background: #2a3360; border-color: #8a95bf; }
 
     .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 6px; }
-    .feat { background: #0e1730; border: 1px solid var(--line); border-radius: 10px; padding: 16px 16px; }
+    .feat { background: #1f2851; border: 1px solid var(--line); border-radius: 10px; padding: 16px 16px; }
     .feat .ico { font-size: 1.5rem; }
-    .feat h4 { color: #e8eef5; font-size: 0.98rem; margin: 6px 0 4px; font-weight: 600; }
+    .feat h4 { color: var(--ink); font-size: 0.98rem; margin: 6px 0 4px; font-weight: 600; }
     .feat p { color: var(--muted); font-size: 0.85rem; margin: 0; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.88rem; }
     th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-    th { color: var(--green); font-weight: 600; letter-spacing: 0.5px; }
+    th { color: #cdd5f0; font-weight: 700; letter-spacing: 0.3px; }
     td code { white-space: nowrap; }
-    td.w { text-align: right; color: #cfe9d6; white-space: nowrap; }
-    .note { color: var(--muted); font-size: 0.85rem; margin-top: 14px; border-left: 2px solid #4ade8055; padding-left: 12px; }
-    .calc { background: #0e1730; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 12px; font-size: 0.9rem; }
-    .calc b { color: #cfe9d6; }
+    td.w { text-align: right; color: var(--ink); white-space: nowrap; }
+    .note { color: var(--muted); font-size: 0.85rem; margin-top: 14px; border-left: 3px solid var(--brand); padding-left: 12px; }
+    .calc { background: #1f2851; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 12px; font-size: 0.9rem; }
+    .calc b { color: var(--ink); }
     .pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 0.8rem; border: 1px solid; margin: 2px 2px 0 0; }
-    .pill.lo { color: #86efac; border-color: #4ade8066; }
-    .pill.mid { color: #fcd34d; border-color: #f59e0b66; }
-    .pill.hi { color: #fda4af; border-color: #fb718566; }
+    .pill.lo { color: #86efac; background: #12351f; border-color: #4ade8055; }
+    .pill.mid { color: #fcd34d; background: #3a2e10; border-color: #f59e0b55; }
+    .pill.hi { color: #ff9ba0; background: #3a1620; border-color: #e11f2666; }
 
-    svg .t  { font: 500 14px 'Segoe UI', sans-serif; fill: #e8eef5; }
-    svg .ts { font: 400 12px 'Segoe UI', sans-serif; fill: #9fb3c8; }
-    svg .zl-linux { font: 500 14px 'Segoe UI', sans-serif; fill: #5eead4; }
-    svg .zl-odoo  { font: 500 14px 'Segoe UI', sans-serif; fill: #c4b5fd; }
-    svg .n-teal   { fill: #143630; stroke: var(--teal);   stroke-width: 1; }
-    svg .n-purple { fill: #241b3a; stroke: var(--purple); stroke-width: 1; }
-    svg .n-coral  { fill: #3a1b24; stroke: var(--coral);  stroke-width: 1; }
-    svg .n-gray   { fill: #1e293b; stroke: #64748b;       stroke-width: 1; }
+    svg .t  { font: 500 14px 'Segoe UI', sans-serif; fill: var(--ink); }
+    svg .ts { font: 400 12px 'Segoe UI', sans-serif; fill: var(--muted); }
+    svg .zl-linux { font: 600 14px 'Segoe UI', sans-serif; fill: var(--teal); }
+    svg .zl-odoo  { font: 600 14px 'Segoe UI', sans-serif; fill: var(--purple); }
+    svg .n-teal   { fill: #123246; stroke: var(--teal);   stroke-width: 1.2; }
+    svg .n-purple { fill: #2a2456; stroke: var(--purple); stroke-width: 1.2; }
+    svg .n-coral  { fill: #3a2440; stroke: var(--coral);  stroke-width: 1.2; }
+    svg .n-gray   { fill: #2a3360; stroke: #8a95bf;       stroke-width: 1.2; }
     svg .zone-linux { fill: none; stroke: var(--teal);   stroke-width: 1.5; opacity: 0.7; }
     svg .zone-odoo  { fill: none; stroke: var(--purple); stroke-width: 1.5; opacity: 0.7; }
 
-    footer { text-align: center; color: #44506a; font-size: 0.8rem; letter-spacing: 1px; margin-top: 50px; }
+    footer { text-align: center; color: var(--muted); font-size: 0.8rem; letter-spacing: 1px; margin-top: 50px; }
 
     @media (max-width: 560px) {
       header.hero h1 { font-size: 1.7rem; }
@@ -148,7 +160,7 @@
 
   <header class="hero">
     <h1>Lieferanten&shy;management</h1>
-    <p>Odoo 19.3 · SOLVVision</p>
+    <p>Odoo 19.3 · iTSM Group</p>
   </header>
 
   <nav class="docnav">
@@ -397,20 +409,20 @@
         <title>Architektur: Claude Code auf dem Linux-Server steuert per XML-RPC die Odoo-Instanz</title>
         <desc>Patrick gibt einen Auftrag an Claude Code auf dem Linux-Server. Claude Code führt per Bash idempotente Python-Skripte aus, die Zugangsdaten aus der .env lesen, und ruft über XML-RPC per HTTPS die Odoo-Instanz auf, in der die App Lieferantenmanagement entsteht.</desc>
         <defs>
-          <marker id="ae" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#64748b"/></marker>
-          <marker id="ab" markerWidth="10" markerHeight="10" refX="7.5" refY="4" orient="auto-start-reverse"><path d="M0,0 L9,4 L0,8 z" fill="#4ade80"/></marker>
+          <marker id="ae" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#9aa3c4"/></marker>
+          <marker id="ab" markerWidth="10" markerHeight="10" refX="7.5" refY="4" orient="auto-start-reverse"><path d="M0,0 L9,4 L0,8 z" fill="#ff5b61"/></marker>
         </defs>
         <rect class="n-gray" x="70" y="36" width="180" height="40" rx="8"/>
         <text class="t"  x="160" y="57" text-anchor="middle">Patrick (Mac)</text>
         <text class="ts" x="160" y="71" text-anchor="middle">Prompt / Auftrag</text>
-        <line x1="160" y1="76" x2="160" y2="120" stroke="#64748b" stroke-width="2" marker-end="url(#ae)"/>
+        <line x1="160" y1="76" x2="160" y2="120" stroke="#9aa3c4" stroke-width="2" marker-end="url(#ae)"/>
         <text class="ts" x="168" y="100" text-anchor="start">steuert</text>
         <rect class="zone-linux" x="40" y="96" width="300" height="180" rx="12"/>
         <text class="zl-linux" x="55" y="114" text-anchor="start">Linux-Server</text>
         <rect class="n-teal" x="55" y="122" width="270" height="40" rx="8"/>
         <text class="t"  x="190" y="140" text-anchor="middle">Claude Code</text>
         <text class="ts" x="190" y="154" text-anchor="middle">Agent (dieser Chat)</text>
-        <line x1="190" y1="162" x2="190" y2="172" stroke="#64748b" stroke-width="2" marker-end="url(#ae)"/>
+        <line x1="190" y1="162" x2="190" y2="172" stroke="#9aa3c4" stroke-width="2" marker-end="url(#ae)"/>
         <text class="ts" x="198" y="171" text-anchor="start">Bash</text>
         <rect class="n-teal" x="55" y="174" width="270" height="44" rx="8"/>
         <text class="t"  x="190" y="192" text-anchor="middle">Python-Skripte 01–10</text>
@@ -429,9 +441,9 @@
         <rect class="n-purple" x="384" y="230" width="242" height="36" rx="8"/>
         <text class="t"  x="505" y="247" text-anchor="middle">Cron + Automationen</text>
         <text class="ts" x="505" y="260" text-anchor="middle">Bewertungen · Aktivitäten</text>
-        <line x1="325" y1="196" x2="384" y2="196" stroke="#4ade80" stroke-width="2.5" marker-start="url(#ab)" marker-end="url(#ab)"/>
-        <text class="ts" x="354" y="189" text-anchor="middle" fill="#4ade80">XML-RPC</text>
-        <text class="ts" x="354" y="211" text-anchor="middle" fill="#4ade80">HTTPS</text>
+        <line x1="325" y1="196" x2="384" y2="196" stroke="#ff5b61" stroke-width="2.5" marker-start="url(#ab)" marker-end="url(#ab)"/>
+        <text class="ts" x="354" y="189" text-anchor="middle" fill="#ff5b61">XML-RPC</text>
+        <text class="ts" x="354" y="211" text-anchor="middle" fill="#ff5b61">HTTPS</text>
       </svg>
       <div class="legend">
         <span><i class="dot t"></i> Linux-Server (Backend)</span>
@@ -444,8 +456,8 @@
       <svg class="diagram" viewBox="0 0 680 300" role="img" xmlns="http://www.w3.org/2000/svg">
         <title>Datenmodell der App Lieferantenmanagement</title>
         <desc>Der Lieferant (res.partner mit neuem Tab) und ein Cron speisen die Bewertungsaufforderung, die Wesentlichkeits- und Qualitätsbewertungen erzeugt. Aus diesen entstehen Einträge im entkoppelten Risikoregister. Verträge hängen ebenfalls am Lieferanten.</desc>
-        <defs><marker id="ad" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#64748b"/></marker></defs>
-        <g stroke="#64748b" stroke-width="1.6" fill="none">
+        <defs><marker id="ad" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#9aa3c4"/></marker></defs>
+        <g stroke="#9aa3c4" stroke-width="1.6" fill="none">
           <line x1="115" y1="66" x2="120" y2="116" marker-end="url(#ad)"/>
           <path d="M252,57 C220,80 210,98 202,116" marker-end="url(#ad)"/>
           <line x1="220" y1="140" x2="250" y2="143" marker-end="url(#ad)"/>
