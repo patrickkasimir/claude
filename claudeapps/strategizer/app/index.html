@@ -8,42 +8,59 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --bg:#1a1a2e; --panel:#16213e; --panel2:#0e1730;
-      --accent:#a78bfa; --blue:#60a5fa; --teal:#2dd4bf; --green:#4ade80; --gold:#fbbf24; --coral:#fb7185;
+      --accent:#a78bfa; --accent2:#60a5fa;
+      --blue:#60a5fa; --teal:#2dd4bf; --green:#4ade80; --gold:#fbbf24; --coral:#fb7185;
       --text:#d7dee8; --muted:#8aa0b6; --line:#ffffff14;
+      --tint: color-mix(in srgb, var(--accent) 16%, transparent);
+      --tint-strong: color-mix(in srgb, var(--accent) 45%, transparent);
+      --accent-soft: color-mix(in srgb, var(--accent) 20%, #0e1730);
     }
+    body[data-theme="ozean"]    { --accent:#38bdf8; --accent2:#22d3ee; }
+    body[data-theme="smaragd"]  { --accent:#34d399; --accent2:#2dd4bf; }
+    body[data-theme="bernstein"]{ --accent:#f6a723; --accent2:#fb923c; }
+    body[data-theme="rose"]     { --accent:#fb7185; --accent2:#f472b6; }
+    body[data-theme="indigo"]   { --accent:#818cf8; --accent2:#a78bfa; }
     body { background:var(--bg); min-height:100vh; font-family:'Segoe UI',sans-serif; color:var(--text); line-height:1.55; padding:52px 16px 70px; }
     .wrap { max-width:1180px; margin:0 auto; }
     a { color:var(--accent); } button { font-family:inherit; cursor:pointer; }
 
     .topbar { text-align:center; margin-bottom:18px; }
-    .topbar h1 { font-size:1.7rem; letter-spacing:3px; color:var(--accent); text-shadow:0 0 26px #a78bfa55; }
+    .topbar h1 { font-size:1.7rem; letter-spacing:3px; color:var(--accent); text-shadow:0 0 26px var(--tint-strong); }
     .topbar p { color:var(--muted); font-size:0.82rem; letter-spacing:1px; margin-top:5px; }
     .topbar .links { margin-top:8px; font-size:0.8rem; }
     .topbar .links a { text-decoration:none; }
     .topbar .links button.linkish { background:none; border:none; color:var(--muted); font-size:0.8rem; text-decoration:underline; }
 
-    .card { background:var(--panel); border:1px solid #a78bfa22; border-radius:14px; padding:18px; }
+    .card { background:var(--panel); border:1px solid var(--tint); border-radius:14px; padding:18px; }
     .mb { margin-bottom:16px; }
 
     textarea, input[type=text], select { width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:11px 13px; font-family:inherit; font-size:0.93rem; resize:vertical; }
-    textarea:focus, input:focus, select:focus { outline:none; border-color:#a78bfa66; }
+    textarea:focus, input:focus, select:focus { outline:none; border-color:var(--tint-strong); }
     select { cursor:pointer; }
+    .themesel { width:auto; padding:6px 10px; font-size:0.82rem; }
+    .wrow { display:grid; grid-template-columns:150px 1fr 26px; gap:10px; align-items:center; margin-bottom:8px; }
+    .wrow span.lb { color:var(--muted); font-size:0.8rem; } .wrow .wv { text-align:right; color:#d8ccf7; font-size:0.82rem; }
+    .overlay .box.wide { max-width:460px; text-align:left; }
     .composer h2 { color:var(--accent); font-size:1rem; margin-bottom:10px; letter-spacing:.5px; }
     .composer .row { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center; }
     .composer input[type=text] { flex:1; min-width:200px; }
     .composer .hint { color:var(--muted); font-size:0.76rem; margin-top:7px; }
 
-    .btn { background:linear-gradient(90deg,var(--blue),var(--accent)); color:#0e1024; border:none; border-radius:10px; padding:10px 18px; font-weight:600; font-size:0.9rem; letter-spacing:.3px; }
+    .btn { background:linear-gradient(90deg,var(--accent2),var(--accent)); color:#0e1024; border:none; border-radius:10px; padding:10px 18px; font-weight:600; font-size:0.9rem; letter-spacing:.3px; }
     .btn:disabled { opacity:.5; cursor:default; }
     .btn.sm { padding:7px 13px; font-size:0.82rem; }
     .btn.ghost { background:none; color:var(--muted); border:1px solid var(--line); font-weight:500; }
-    .btn.ghost:hover { color:var(--text); border-color:#a78bfa55; }
+    .btn.ghost:hover { color:var(--text); border-color:var(--tint-strong); }
+    .btn.danger { background:linear-gradient(90deg,#fb7185,#f43f5e); color:#3a0a12; }
+    .overlay .box.confirm h3 { color:var(--coral); text-align:center; }
+    .overlay .actions { display:flex; gap:10px; justify-content:center; margin-top:12px; }
+    .overlay .box.wide input[type=range] { accent-color: var(--accent); }
 
     /* Toolbar */
     .toolbar { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
     .seg { display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; }
     .seg button { background:var(--panel2); color:var(--muted); border:none; padding:8px 16px; font-size:0.84rem; }
-    .seg button.on { background:#241b3a; color:var(--accent); }
+    .seg button.on { background:var(--accent-soft); color:var(--accent); }
     .filters { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto; }
     .flabel { color:var(--muted); font-size:0.74rem; letter-spacing:1px; text-transform:uppercase; }
     .chip { background:var(--panel2); border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:4px 11px; font-size:0.78rem; }
@@ -57,17 +74,17 @@
     .st-umgesetzt{color:#86efac;border-color:#4ade8088} .st-verworfen{color:#fda4af;border-color:#fb718588}
     .cat-produkt{color:#5eead4;border-color:#2dd4bf66} .cat-interne_effizienz{color:#93c5fd;border-color:#60a5fa66} .cat-persoenliche_effizienz{color:#fcd34d;border-color:#f59e0b66}
     .r-hoch{color:var(--green)} .r-mittel{color:var(--gold)} .r-gering{color:var(--coral)}
-    .mini-spin{width:12px;height:12px;border:2px solid #a78bfa44;border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:spin .8s linear infinite;vertical-align:-1px}
+    .mini-spin{width:12px;height:12px;border:2px solid var(--tint-strong);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:spin .8s linear infinite;vertical-align:-1px}
     @keyframes spin{to{transform:rotate(360deg)}}
 
     /* Kanban */
     .kanban { display:flex; gap:14px; overflow-x:auto; padding-bottom:8px; }
     .kcol { flex:0 0 240px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:10px; min-height:120px; }
-    .kcol.drop { outline:2px dashed #a78bfa66; background:#1c1c33; }
+    .kcol.drop { outline:2px dashed var(--tint-strong); background:#1c1c33; }
     .kcol h3 { font-size:0.76rem; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; display:flex; justify-content:space-between; }
     .kcol h3 .n { color:#5a6b85; }
-    .kcard { background:var(--panel); border:1px solid var(--line); border-left:3px solid #a78bfa66; border-radius:9px; padding:10px 11px; margin-bottom:9px; cursor:pointer; transition:border-color .12s, transform .08s; }
-    .kcard:hover { border-color:#a78bfa88; transform:translateY(-1px); }
+    .kcard { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--tint-strong); border-radius:9px; padding:10px 11px; margin-bottom:9px; cursor:pointer; transition:border-color .12s, transform .08s; }
+    .kcard:hover { border-color:var(--accent); transform:translateY(-1px); }
     .kcard.dragging { opacity:.4; }
     .kcard .t { color:#e8eef5; font-weight:600; font-size:0.88rem; margin-bottom:7px; }
     .kcard .m { display:flex; align-items:center; justify-content:space-between; gap:6px; }
@@ -98,7 +115,7 @@
     .detail .total .lab { font-size:0.74rem; color:var(--muted); }
     .statusbar { display:flex; gap:6px; flex-wrap:wrap; margin:14px 0; align-items:center; }
     .statusbar button { background:var(--panel2); border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:5px 12px; font-size:0.77rem; }
-    .statusbar button.on { border-color:var(--accent); color:var(--accent); background:#241b3a; }
+    .statusbar button.on { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
     .statusbar .del { margin-left:auto; border-color:#fb718544; color:var(--coral); }
 
     .tabs { display:flex; gap:6px; border-bottom:1px solid var(--line); margin:16px 0 4px; flex-wrap:wrap; }
@@ -106,7 +123,7 @@
     .tabs button.on { color:var(--accent); border-bottom-color:var(--accent); }
     .tabpane { display:none; } .tabpane.on { display:block; }
 
-    .banner { background:#241b3a; border:1px solid #a78bfa44; border-radius:10px; padding:11px 14px; margin:12px 0; color:#d8ccf7; font-size:0.88rem; display:flex; align-items:center; gap:10px; }
+    .banner { background:var(--accent-soft); border:1px solid var(--tint-strong); border-radius:10px; padding:11px 14px; margin:12px 0; color:#d8ccf7; font-size:0.88rem; display:flex; align-items:center; gap:10px; }
     .banner.err { background:#3a1b24; border-color:#fb718555; color:#fda4af; }
     .block { margin-top:16px; }
     .block .lbl { font-size:0.72rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent); margin-bottom:8px; }
@@ -119,8 +136,8 @@
 
     .roadmap { counter-reset:rstep; margin-top:4px; }
     .rstep { position:relative; padding:0 0 15px 42px; }
-    .rstep::before { counter-increment:rstep; content:counter(rstep); position:absolute; left:0; top:0; width:27px; height:27px; background:#241b3a; color:var(--accent); border:1px solid var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:600; }
-    .rstep:not(:last-child)::after { content:''; position:absolute; left:13px; top:29px; bottom:2px; width:1px; background:#a78bfa33; }
+    .rstep::before { counter-increment:rstep; content:counter(rstep); position:absolute; left:0; top:0; width:27px; height:27px; background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.82rem; font-weight:600; }
+    .rstep:not(:last-child)::after { content:''; position:absolute; left:13px; top:29px; bottom:2px; width:1px; background:var(--tint); }
     .rstep .rt { color:#d8ccf7; font-weight:600; font-size:0.89rem; }
     .rstep .rd { color:var(--text); font-size:0.85rem; }
 
@@ -130,7 +147,7 @@
     .srow { display:grid; grid-template-columns:190px 1fr 30px; align-items:center; gap:10px; }
     .srow .name { color:var(--muted); font-size:0.82rem; }
     .srow .track { height:8px; background:#1a2540; border-radius:999px; overflow:hidden; }
-    .srow .fill { height:100%; background:linear-gradient(90deg,var(--blue),var(--accent)); border-radius:999px; }
+    .srow .fill { height:100%; background:linear-gradient(90deg,var(--accent2),var(--accent)); border-radius:999px; }
     .srow .num { text-align:right; color:#d8ccf7; font-size:0.85rem; font-weight:600; }
     .srow .why { grid-column:1 / -1; color:var(--muted); font-size:0.77rem; margin:-3px 0 4px; }
     @media (max-width:560px){ .srow{grid-template-columns:120px 1fr 28px} .radarbox{flex-basis:100%} }
@@ -143,16 +160,16 @@
 
     .hist { font-size:0.82rem; } .hist .hrow { display:flex; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); }
     .hist .hrow .v { color:var(--accent); font-weight:600; white-space:nowrap; } .hist .hrow .x { color:var(--muted); }
-    .summary { background:#241b3a; border:1px solid #a78bfa33; border-radius:10px; padding:12px 14px; font-size:0.9rem; color:#e8eef5; }
+    .summary { background:var(--accent-soft); border:1px solid var(--tint); border-radius:10px; padding:12px 14px; font-size:0.9rem; color:#e8eef5; }
 
     .overlay { position:fixed; inset:0; background:rgba(10,12,26,.82); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; }
-    .overlay .box { background:var(--panel); border:1px solid #a78bfa44; border-radius:16px; padding:28px; max-width:380px; width:100%; text-align:center; }
+    .overlay .box { background:var(--panel); border:1px solid var(--tint-strong); border-radius:16px; padding:28px; max-width:380px; width:100%; text-align:center; }
     .overlay h3 { color:var(--accent); margin-bottom:8px; letter-spacing:1px; }
     .overlay p { color:var(--muted); font-size:0.86rem; margin-bottom:14px; }
     .overlay input { text-align:center; margin-bottom:12px; }
     .overlay .err { color:var(--coral); font-size:0.82rem; min-height:18px; }
     .hidden { display:none !important; }
-    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#241b3a; border:1px solid #a78bfa55; color:var(--text); padding:10px 18px; border-radius:10px; font-size:0.87rem; z-index:1200; }
+    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--accent-soft); border:1px solid var(--tint-strong); color:var(--text); padding:10px 18px; border-radius:10px; font-size:0.87rem; z-index:1200; }
   </style>
 </head>
 <body>
@@ -181,6 +198,15 @@
         <button id="viewKanban" class="on">⊞ Kanban</button>
         <button id="viewList">☰ Liste</button>
       </div>
+      <button class="btn ghost sm" id="weightBtn">⚖ Gewichtung</button>
+      <select id="themeSel" class="themesel" title="Farbschema">
+        <option value="violett">🎨 Violett</option>
+        <option value="ozean">🎨 Ozean</option>
+        <option value="smaragd">🎨 Smaragd</option>
+        <option value="bernstein">🎨 Bernstein</option>
+        <option value="rose">🎨 Rosé</option>
+        <option value="indigo">🎨 Indigo</option>
+      </select>
       <div class="filters">
         <span class="flabel">Phase</span><span id="phaseChips"></span>
         <span class="flabel" style="margin-left:8px">Kategorie</span><span id="catChips"></span>
@@ -198,6 +224,18 @@
     <button class="btn" id="gateSubmit" style="width:100%">Öffnen</button></div>
 </div>
 
+<div class="overlay hidden" id="confirmOverlay">
+  <div class="box confirm">
+    <h3 id="confirmTitle">Bestätigen</h3>
+    <p id="confirmMsg" style="text-align:center"></p>
+    <div class="actions"><button class="btn ghost" id="confirmCancel">Abbrechen</button><button class="btn" id="confirmOk">OK</button></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="weightOverlay">
+  <div class="box wide" id="weightBox"></div>
+</div>
+
 <script>
 const API = '/claudeapps/strategizer/api';
 const KF_LABELS = { problem:'Problem', loesung:'Lösung', zielgruppe:'Zielgruppe', nutzenversprechen:'Nutzenversprechen', geschaeftsmodell:'Geschäftsmodell' };
@@ -206,8 +244,18 @@ const STATUS_LABELS = { entwurf:'Entwurf', bewertet:'Bewertet', priorisiert:'Pri
 const CATS = ['produkt','interne_effizienz','persoenliche_effizienz'];
 const CAT_LABELS = { produkt:'Verkaufbar', interne_effizienz:'Effizienz · Team', persoenliche_effizienz:'Effizienz · persönlich' };
 const SHORT = { geschaeftliche_relevanz:'Geschäft', umsetzbarkeit:'Umsetzbar', markt_wettbewerb:'Markt', persoenlicher_effizienzgewinn:'Eff. selbst', nutzen_fuer_andere:'Nutzen', strategischer_fit:'Fit', skalierbarkeit:'Skalierung', risiko_abhaengigkeiten:'Risiko↓' };
+const DIMS = [['geschaeftliche_relevanz','Geschäftliche Relevanz'],['umsetzbarkeit','Umsetzbarkeit'],['markt_wettbewerb','Marktgröße & Wettbewerb'],['persoenlicher_effizienzgewinn','Persönlicher Effizienzgewinn'],['nutzen_fuer_andere','Nutzen für andere'],['strategischer_fit','Strategischer Fit'],['skalierbarkeit','Skalierbarkeit'],['risiko_abhaengigkeiten','Risiko & Abhängigkeiten']];
+const DIM_KEYS = DIMS.map(d=>d[0]);
+const PRESETS = {
+  ausgewogen: Object.fromEntries(DIM_KEYS.map(k=>[k,5])),
+  markt: { geschaeftliche_relevanz:10, markt_wettbewerb:9, skalierbarkeit:6, umsetzbarkeit:4, strategischer_fit:3, risiko_abhaengigkeiten:3, nutzen_fuer_andere:1, persoenlicher_effizienzgewinn:0 },
+  persoenlich: { persoenlicher_effizienzgewinn:10, umsetzbarkeit:7, strategischer_fit:4, risiko_abhaengigkeiten:4, nutzen_fuer_andere:2, skalierbarkeit:2, geschaeftliche_relevanz:0, markt_wettbewerb:0 },
+  nutzen: { nutzen_fuer_andere:10, persoenlicher_effizienzgewinn:5, umsetzbarkeit:5, strategischer_fit:4, skalierbarkeit:3, risiko_abhaengigkeiten:2, geschaeftliche_relevanz:1, markt_wettbewerb:1 },
+};
+const THEMES = ['violett','ozean','smaragd','bernstein','rose','indigo'];
 
 let code = localStorage.getItem('strategizer_code') || '';
+let weightPref = JSON.parse(localStorage.getItem('strat_weights') || 'null');
 let ideasCache = [], view = localStorage.getItem('strat_view') || 'kanban';
 let selectedId = null, activeTab = 'overview', pollTimer = null;
 let statusFilter = new Set(STATUS_ORDER), catFilter = new Set(CATS);
@@ -220,6 +268,71 @@ function toast(m){ const t=document.createElement('div'); t.className='toast'; t
 function showGate(m){ $('gate').classList.remove('hidden'); $('gateErr').textContent=m||''; $('gateCode').focus(); }
 function hideGate(){ $('gate').classList.add('hidden'); }
 function ratingClass(r){ return 'r-'+(r||'gering'); }
+
+// ── Gewichtung ──
+function activeWeights(){ return (weightPref && weightPref.mode==='custom') ? weightPref.weights : null; }
+function normalize(w){ const s=DIM_KEYS.reduce((a,k)=>a+(+w[k]||0),0); if(s<=0) return null; const o={}; DIM_KEYS.forEach(k=>o[k]=(+w[k]||0)/s); return o; }
+function effWeights(scores){ const uw=activeWeights(); if(uw){ const n=normalize(uw); if(n) return n; } const o={}; (scores||[]).forEach(s=>o[s.key]=s.weight); return o; }
+function totalFrom(scores){ if(!scores||!scores.length) return null; const w=effWeights(scores); return Math.round(scores.reduce((a,s)=>a+s.score*(w[s.key]||0),0)*10)/10; }
+function ratingFor(t){ return t==null?null:(t>=8?'hoch':t>=5?'mittel':'gering'); }
+function effTotal(item){ return (item.scores&&item.scores.length)?totalFrom(item.scores):(item.total==null?null:item.total); }
+
+// ── Theme ──
+function applyTheme(t){
+  if(!THEMES.includes(t)) t='violett';
+  if(t==='violett') document.body.removeAttribute('data-theme'); else document.body.setAttribute('data-theme',t);
+  localStorage.setItem('strat_theme',t); const sel=$('themeSel'); if(sel) sel.value=t;
+}
+
+// ── Bestätigungs-Dialog (Overlay) ──
+function confirmDialog({title='Bestätigen', message='', okLabel='OK', danger=false}={}){
+  return new Promise(resolve=>{
+    $('confirmTitle').textContent=title; $('confirmMsg').innerHTML=message;
+    const ok=$('confirmOk'), cancel=$('confirmCancel'), ov=$('confirmOverlay');
+    ok.textContent=okLabel; ok.className='btn'+(danger?' danger':'');
+    ov.classList.remove('hidden');
+    const done=v=>{ ov.classList.add('hidden'); ok.onclick=null; cancel.onclick=null; ov.onclick=null; document.removeEventListener('keydown',onKey); resolve(v); };
+    const onKey=e=>{ if(e.key==='Escape') done(false); else if(e.key==='Enter') done(true); };
+    ok.onclick=()=>done(true); cancel.onclick=()=>done(false);
+    ov.onclick=e=>{ if(e.target===ov) done(false); };
+    document.addEventListener('keydown',onKey); setTimeout(()=>ok.focus(),0);
+  });
+}
+
+// ── Gewichtungs-Overlay ──
+function openWeights(){
+  const cur = activeWeights() || Object.fromEntries(DIM_KEYS.map(k=>[k,5]));
+  let mode = activeWeights() ? 'custom' : 'auto';
+  const box=$('weightBox');
+  box.innerHTML = `
+    <h3 style="color:var(--accent);text-align:center;margin-bottom:6px">⚖ Score-Gewichtung</h3>
+    <p style="color:var(--muted);font-size:.84rem;text-align:center;margin-bottom:12px">Bestimme, was für <b>dich</b> zählt. Die Bewertungen werden sofort neu gewichtet – ganz ohne neue KI-Analyse.</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:14px">
+      <button class="btn ghost sm" data-preset="auto">Automatisch</button>
+      <button class="btn ghost sm" data-preset="ausgewogen">Ausgewogen</button>
+      <button class="btn ghost sm" data-preset="markt">Fokus Markt</button>
+      <button class="btn ghost sm" data-preset="persoenlich">Fokus pers. Effizienz</button>
+      <button class="btn ghost sm" data-preset="nutzen">Fokus Nutzen</button>
+    </div>
+    ${DIMS.map(([k,l])=>`<div class="wrow"><span class="lb">${l}</span>
+      <input type="range" min="0" max="10" step="1" value="${cur[k]??5}" data-w="${k}"><span class="wv" data-wv="${k}">${cur[k]??5}</span></div>`).join('')}
+    <div id="wmodeNote" style="color:var(--accent);font-size:.8rem;text-align:center;margin:10px 0">${mode==='auto'?'Modus: Automatisch (nach Kategorie)':'Modus: Eigene Gewichtung'}</div>
+    <div class="actions"><button class="btn ghost" id="wCancel">Schließen</button><button class="btn" id="wSave">Übernehmen</button></div>`;
+  const note=()=>box.querySelector('#wmodeNote');
+  box.querySelectorAll('input[data-w]').forEach(inp=>inp.addEventListener('input',()=>{ mode='custom'; box.querySelector(`[data-wv="${inp.dataset.w}"]`).textContent=inp.value; note().textContent='Modus: Eigene Gewichtung'; }));
+  box.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{
+    const p=b.dataset.preset;
+    if(p==='auto'){ mode='auto'; note().textContent='Modus: Automatisch (nach Kategorie)'; return; }
+    mode='custom'; const w=PRESETS[p]; DIM_KEYS.forEach(k=>{ const inp=box.querySelector(`[data-w="${k}"]`); inp.value=w[k]??0; box.querySelector(`[data-wv="${k}"]`).textContent=inp.value; }); note().textContent='Modus: Eigene Gewichtung';
+  }));
+  box.querySelector('#wCancel').addEventListener('click',()=>$('weightOverlay').classList.add('hidden'));
+  box.querySelector('#wSave').addEventListener('click',()=>{
+    if(mode==='auto'){ weightPref=null; localStorage.removeItem('strat_weights'); }
+    else { const w={}; DIM_KEYS.forEach(k=>w[k]=+box.querySelector(`[data-w="${k}"]`).value); weightPref={mode:'custom',weights:w}; localStorage.setItem('strat_weights',JSON.stringify(weightPref)); }
+    $('weightOverlay').classList.add('hidden'); if(selectedId) openDetail(selectedId); else renderBoard(); toast('Gewichtung übernommen.');
+  });
+  $('weightOverlay').classList.remove('hidden');
+}
 
 async function api(p, opts={}){
   const res = await fetch(API+p, { ...opts, headers:{ 'Content-Type':'application/json','x-access-code':code, ...(opts.headers||{}) } });
@@ -239,8 +352,8 @@ function renderRadar(scores){
     const[lx,ly]=pt(i,R+15); const a=Math.abs(lx-cx)<6?'middle':(lx<cx?'end':'start');
     labels+=`<text x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}" text-anchor="${a}" class="rl">${esc(SHORT[s.key]||s.label)}</text>`; });
   const dp=scores.map((s,i)=>pt(i,R*(s.score/10)).map(n=>n.toFixed(1)).join(',')).join(' ');
-  const dots=scores.map((s,i)=>{const[x,y]=pt(i,R*(s.score/10));return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="#a78bfa"/>`;}).join('');
-  return `<svg viewBox="0 0 300 268" class="radar">${rings}${axes}<polygon points="${dp}" fill="#a78bfa33" stroke="#a78bfa" stroke-width="1.6"/>${dots}${labels}</svg>`;
+  const dots=scores.map((s,i)=>{const[x,y]=pt(i,R*(s.score/10));return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="var(--accent)"/>`;}).join('');
+  return `<svg viewBox="0 0 300 268" class="radar">${rings}${axes}<polygon points="${dp}" fill="var(--accent)" fill-opacity="0.22" stroke="var(--accent)" stroke-width="1.6"/>${dots}${labels}</svg>`;
 }
 function markup(text){
   const lines=(text||'').split('\n'); let html='',inUl=false;
@@ -262,7 +375,8 @@ const visibleIdeas = () => ideasCache.filter(i=>statusFilter.has(i.status) && ca
 function scoreCell(i){
   if(i.analysis_state==='processing') return `<span style="color:var(--accent);font-size:.8rem"><span class="mini-spin"></span></span>`;
   if(i.analysis_state==='error') return `<span style="color:var(--coral);font-size:.8rem">⚠</span>`;
-  return `<span class="score ${ratingClass(i.rating)}">${i.total==null?'–':i.total.toFixed(1)}</span>`;
+  const t=effTotal(i);
+  return `<span class="score ${ratingClass(ratingFor(t))}">${t==null?'–':t.toFixed(1)}</span>`;
 }
 
 // ── Board ──
@@ -300,9 +414,9 @@ function renderKanban(items){
 function renderList(items){
   const cols = [['title','Titel'],['category','Kategorie'],['status','Phase'],['total','Score'],['rating','Bewertung'],['updated_at','Aktualisiert']];
   const sorted = [...items].sort((a,b)=>{
-    let x=a[sortKey], y=b[sortKey];
-    if(sortKey==='total'){ x=x==null?-1:x; y=y==null?-1:y; }
-    else { x=(x||'').toString().toLowerCase(); y=(y||'').toString().toLowerCase(); }
+    let x, y;
+    if(sortKey==='total'||sortKey==='rating'){ x=effTotal(a); y=effTotal(b); x=x==null?-1:x; y=y==null?-1:y; }
+    else { x=(a[sortKey]||'').toString().toLowerCase(); y=(b[sortKey]||'').toString().toLowerCase(); }
     return x<y?-sortDir:x>y?sortDir:0;
   });
   $('boardView').innerHTML = `<div class="card listwrap"><table class="ideas"><thead><tr>${
@@ -311,8 +425,8 @@ function renderList(items){
     <td>${esc(i.title)}</td>
     <td><span class="pill cat-${i.category}">${CAT_LABELS[i.category]||i.category}</span></td>
     <td><span class="pill st-${i.status}">${STATUS_LABELS[i.status]}</span></td>
-    <td class="num">${i.analysis_state==='processing'?'<span class="mini-spin"></span>':(i.total==null?'–':`<span class="${ratingClass(i.rating)}">${i.total.toFixed(1)}</span>`)}</td>
-    <td>${i.rating?`<span class="${ratingClass(i.rating)}">${i.rating}</span>`:'–'}</td>
+    <td class="num">${i.analysis_state==='processing'?'<span class="mini-spin"></span>':(()=>{const t=effTotal(i);return t==null?'–':`<span class="${ratingClass(ratingFor(t))}">${t.toFixed(1)}</span>`;})()}</td>
+    <td>${(()=>{const r=ratingFor(effTotal(i));return r?`<span class="${ratingClass(r)}">${r}</span>`:'–';})()}</td>
     <td style="color:var(--muted)">${(i.updated_at||'').slice(0,16).replace('T',' ')}</td>
   </tr>`).join('')}</tbody></table></div>`;
   $('boardView').querySelectorAll('th[data-k]').forEach(th=>th.addEventListener('click',()=>{ const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=(k==='total')?-1:1;} renderBoard(); }));
@@ -336,14 +450,16 @@ function backToBoard(){
 
 function renderDetail(idea){
   const e=idea.latest, processing=idea.analysis_state==='processing', errored=idea.analysis_state==='error';
-  lastDetailSig = idea.analysis_state+'|'+idea.detail_state+'|'+(e?e.version:0);
+  lastDetailSig = idea.analysis_state+'|'+idea.detail_state+'|'+(e?e.version:0)+'|'+(weightPref?'w':'a');
+  const total = e?totalFrom(e.scores):null, rating=ratingFor(total), w = e?effWeights(e.scores):{};
+  const wLabel = activeWeights()?'Eigene Gewichtung':(idea.category==='produkt'?'Produkt-Gewichtung':'Effizienz-Gewichtung');
   const catSel = `<select id="catSel">${CATS.map(c=>`<option value="${c}" ${idea.category===c?'selected':''}>${CAT_LABELS[c]}</option>`).join('')}</select>`;
 
   const head = `<div class="backbar"><button class="btn ghost sm" id="backBtn">← Zurück</button></div>
     <div class="head">
       <div class="titlewrap"><h2>${esc(idea.title)}</h2><button class="edit" id="renameBtn" title="Umbenennen">✎</button>
         <div class="metaline"><span class="pill st-${idea.status}">${STATUS_LABELS[idea.status]}</span> ${catSel}</div></div>
-      ${e?`<div class="total"><div class="num ${ratingClass(e.rating)}">${e.total.toFixed(1)}</div><div class="lab">/ 10 · ${e.rating}</div></div>`:''}
+      ${e?`<div class="total"><div class="num ${ratingClass(rating)}">${total.toFixed(1)}</div><div class="lab">/ 10 · ${rating}</div></div>`:''}
     </div>`;
 
   const procBanner = processing?`<div class="banner"><span class="mini-spin"></span> Wird im Hintergrund neu ausgearbeitet …</div>`:'';
@@ -357,7 +473,7 @@ function renderDetail(idea){
   const statusHtml = STATUS_ORDER.map(s=>`<button class="${idea.status===s?'on':''}" data-status="${s}">${STATUS_LABELS[s]}</button>`).join('');
   const scoresHtml = e.scores.map(s=>`<div class="srow"><span class="name">${esc(s.label)}</span>
       <span class="track"><span class="fill" style="width:${s.score*10}%"></span></span><span class="num">${s.score}</span>
-      <span class="why">${esc(s.begruendung)} <span style="opacity:.6">· Gewicht ${Math.round(s.weight*100)}%</span></span></div>`).join('');
+      <span class="why">${esc(s.begruendung)} <span style="opacity:.6">· Gewicht ${Math.round((w[s.key]||0)*100)}%</span></span></div>`).join('');
   const konzeptHtml = Object.keys(KF_LABELS).map(k=>e.konzept[k]?`<div class="kf"><div class="k">${KF_LABELS[k]}</div><div class="v">${esc(e.konzept[k])}</div></div>`:'').join('');
   const u=e.konzept.umsetzung||{};
   const roadmap = (u.schritte&&u.schritte.length)?`<div class="roadmap">${u.schritte.map(s=>`<div class="rstep"><div class="rt">${esc(s.titel)}</div><div class="rd">${esc(s.beschreibung)}</div></div>`).join('')}</div>`:'';
@@ -387,7 +503,7 @@ function renderDetail(idea){
     </div>
     <div class="tabpane" data-pane="overview">
       ${e.zusammenfassung?`<div class="summary">${esc(e.zusammenfassung)}</div>`:''}
-      <div class="block"><div class="lbl">Bewertung (${idea.category==='produkt'?'Produkt-Gewichtung':'Effizienz-Gewichtung'})</div>
+      <div class="block"><div class="lbl">Bewertung (${wLabel})</div>
         <div class="scorewrap"><div class="radarbox">${renderRadar(e.scores)}</div><div class="scores">${scoresHtml}</div></div></div>
       ${!processing?`<div class="block"><div class="lbl">Nachschärfen → Reevaluierung</div>
         <textarea id="refineInput" rows="2" placeholder="Weitere Anforderung oder Anpassung – Konzept & Bewertung werden neu erzeugt."></textarea>
@@ -477,7 +593,8 @@ async function rename(idea){
   catch(err){ if(err.message!=='unauthorized') toast(err.message); }
 }
 async function delIdea(id,title){
-  if(!confirm('Idee „'+title+'" wirklich löschen?')) return;
+  const ok=await confirmDialog({ title:'Idee löschen?', message:'Möchtest du „<strong>'+esc(title)+'</strong>" wirklich löschen?<br>Das kann nicht rückgängig gemacht werden.', okLabel:'Löschen', danger:true });
+  if(!ok) return;
   try { await api('/ideas/'+id,{method:'DELETE'}); backToBoard(); await loadList(); toast('Idee gelöscht.'); }
   catch(err){ if(err.message!=='unauthorized') toast(err.message); }
 }
@@ -490,6 +607,9 @@ $('submitIdea').addEventListener('click',submitIdea);
 $('gateSubmit').addEventListener('click',()=>{ const v=$('gateCode').value.trim(); if(!v) return; code=v; localStorage.setItem('strategizer_code',v); hideGate(); boot(); });
 $('gateCode').addEventListener('keydown',e=>{ if(e.key==='Enter') $('gateSubmit').click(); });
 $('logout').addEventListener('click',()=>{ localStorage.removeItem('strategizer_code'); code=''; showGate(); });
+$('weightBtn').addEventListener('click',openWeights);
+$('themeSel').addEventListener('change',e=>applyTheme(e.target.value));
+applyTheme(localStorage.getItem('strat_theme')||'violett');
 
 if(code) boot(); else showGate();
 </script>
