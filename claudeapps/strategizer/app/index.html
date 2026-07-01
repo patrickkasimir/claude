@@ -17,7 +17,6 @@
     a { color: var(--accent); }
     button { font-family: inherit; cursor: pointer; }
 
-    /* Kopf */
     .topbar { text-align: center; margin-bottom: 22px; }
     .topbar h1 { font-size: 1.8rem; letter-spacing: 3px; color: var(--accent); text-shadow: 0 0 26px #a78bfa55; }
     .topbar p { color: var(--muted); font-size: 0.86rem; letter-spacing: 1px; margin-top: 6px; }
@@ -25,33 +24,24 @@
     .topbar .links a { text-decoration: none; }
     .topbar .links button.linkish { background: none; border: none; color: var(--muted); font-size: 0.82rem; text-decoration: underline; }
 
-    /* Karten allgemein */
     .card { background: var(--panel); border: 1px solid #a78bfa22; border-radius: 14px; padding: 20px; }
 
-    /* Composer */
     .composer { margin-bottom: 22px; }
     .composer h2 { color: var(--accent); font-size: 1.05rem; margin-bottom: 12px; letter-spacing: .5px; }
-    textarea, input[type=text] {
-      width: 100%; background: var(--panel2); color: var(--text); border: 1px solid var(--line);
-      border-radius: 10px; padding: 12px 14px; font-family: inherit; font-size: 0.95rem; resize: vertical;
-    }
+    textarea, input[type=text] { width: 100%; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-family: inherit; font-size: 0.95rem; resize: vertical; }
     textarea:focus, input:focus { outline: none; border-color: #a78bfa66; }
     .composer .row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
     .composer input[type=text] { flex: 1; min-width: 200px; }
-    .btn {
-      background: linear-gradient(90deg, var(--blue), var(--accent)); color: #0e1024; border: none;
-      border-radius: 10px; padding: 11px 20px; font-weight: 600; font-size: 0.92rem; letter-spacing: .3px;
-    }
+    .composer .hint { color: var(--muted); font-size: 0.78rem; margin-top: 8px; }
+    .btn { background: linear-gradient(90deg, var(--blue), var(--accent)); color: #0e1024; border: none; border-radius: 10px; padding: 11px 20px; font-weight: 600; font-size: 0.92rem; letter-spacing: .3px; }
     .btn:disabled { opacity: .5; cursor: default; }
+    .btn.sm { padding: 7px 14px; font-size: 0.82rem; }
     .btn.ghost { background: none; color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
     .btn.ghost:hover { color: var(--text); border-color: #a78bfa55; }
-    .btn.danger { background: none; color: var(--coral); border: 1px solid #fb718555; font-weight: 500; }
 
-    /* Layout */
     .layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
-    @media (max-width: 780px) { .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
 
-    /* Ideenliste */
     .list h2 { color: var(--muted); font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
     .idea { background: var(--panel2); border: 1px solid var(--line); border-left: 3px solid #a78bfa55; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: border-color .15s, transform .1s; }
     .idea:hover { border-color: #a78bfa88; transform: translateY(-1px); }
@@ -61,28 +51,35 @@
     .idea .score { font-weight: 700; font-size: 1.05rem; }
     .idea .track { height: 6px; background: #1a2540; border-radius: 999px; overflow: hidden; margin-top: 8px; }
     .idea .fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--accent)); border-radius: 999px; }
+    .idea .proc { color: var(--accent); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; }
+    .idea .err { color: var(--coral); font-size: 0.8rem; }
     .empty { color: var(--muted); font-size: 0.9rem; padding: 16px; text-align: center; }
 
-    /* Status-Pills */
-    .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.74rem; border: 1px solid; white-space: nowrap; }
-    .st-entwurf     { color: #cbd5e1; border-color: #64748b; }
-    .st-bewertet    { color: #93c5fd; border-color: #60a5fa88; }
-    .st-priorisiert { color: #fcd34d; border-color: #f59e0b88; }
-    .st-in_umsetzung{ color: #86efac; border-color: #4ade8088; }
-    .st-verworfen   { color: #fda4af; border-color: #fb718588; }
-    .r-hoch   { color: var(--green); }
-    .r-mittel { color: var(--gold); }
-    .r-gering { color: var(--coral); }
+    .mini-spin { width: 12px; height: 12px; border: 2px solid #a78bfa44; border-top-color: var(--accent); border-radius: 50%; display: inline-block; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Detail */
+    .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.74rem; border: 1px solid; white-space: nowrap; }
+    .st-entwurf { color: #cbd5e1; border-color: #64748b; }
+    .st-bewertet { color: #93c5fd; border-color: #60a5fa88; }
+    .st-priorisiert { color: #fcd34d; border-color: #f59e0b88; }
+    .st-in_umsetzung { color: #86efac; border-color: #4ade8088; }
+    .st-verworfen { color: #fda4af; border-color: #fb718588; }
+    .r-hoch { color: var(--green); } .r-mittel { color: var(--gold); } .r-gering { color: var(--coral); }
+
     .detail .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
-    .detail h2 { color: #e8eef5; font-size: 1.25rem; }
+    .detail h2 { color: #e8eef5; font-size: 1.25rem; display: inline; }
+    .detail .titlewrap .edit { background: none; border: none; color: var(--muted); font-size: 0.9rem; margin-left: 8px; }
+    .detail .titlewrap .edit:hover { color: var(--accent); }
     .detail .total { text-align: right; }
     .detail .total .num { font-size: 1.9rem; font-weight: 800; line-height: 1; }
     .detail .total .lab { font-size: 0.75rem; color: var(--muted); }
-    .statusbar { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0; }
+    .statusbar { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
     .statusbar button { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 5px 12px; font-size: 0.78rem; }
     .statusbar button.on { border-color: var(--accent); color: var(--accent); background: #241b3a; }
+    .statusbar .del { margin-left: auto; border-color: #fb718544; color: var(--coral); }
+
+    .banner { background: #241b3a; border: 1px solid #a78bfa44; border-radius: 10px; padding: 12px 14px; margin: 10px 0; color: #d8ccf7; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; }
+    .banner.err { background: #3a1b24; border-color: #fb718555; color: #fda4af; }
 
     .block { margin-top: 18px; }
     .block .lbl { font-size: 0.72rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
@@ -91,33 +88,40 @@
     .kf .k { color: #d8ccf7; font-size: 0.8rem; font-weight: 600; margin-bottom: 3px; }
     .kf .v { color: var(--text); font-size: 0.9rem; }
     .market { background: var(--panel2); border-left: 2px solid var(--teal); border-radius: 8px; padding: 12px 14px; font-size: 0.9rem; }
+    .skizze { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 0.9rem; margin-bottom: 12px; }
 
-    .scores { display: grid; gap: 9px; }
-    .srow { display: grid; grid-template-columns: 200px 1fr 30px; align-items: center; gap: 10px; }
+    .roadmap { counter-reset: rstep; margin-top: 4px; }
+    .rstep { position: relative; padding: 0 0 15px 42px; }
+    .rstep::before { counter-increment: rstep; content: counter(rstep); position: absolute; left: 0; top: 0; width: 27px; height: 27px; background: #241b3a; color: var(--accent); border: 1px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; font-weight: 600; }
+    .rstep:not(:last-child)::after { content: ''; position: absolute; left: 13px; top: 29px; bottom: 2px; width: 1px; background: #a78bfa33; }
+    .rstep .rt { color: #d8ccf7; font-weight: 600; font-size: 0.9rem; }
+    .rstep .rd { color: var(--text); font-size: 0.85rem; }
+
+    .scorewrap { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+    .radarbox { flex: 0 0 300px; max-width: 100%; }
+    .radar { width: 100%; height: auto; }
+    .radar .rl { fill: #9fb3c8; font: 9px 'Segoe UI', sans-serif; }
+    .scores { flex: 1; min-width: 260px; display: grid; gap: 9px; align-content: start; }
+    .srow { display: grid; grid-template-columns: 190px 1fr 30px; align-items: center; gap: 10px; }
     .srow .name { color: var(--muted); font-size: 0.82rem; }
     .srow .track { height: 8px; background: #1a2540; border-radius: 999px; overflow: hidden; }
     .srow .fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--accent)); border-radius: 999px; }
     .srow .num { text-align: right; color: #d8ccf7; font-size: 0.85rem; font-weight: 600; }
-    .srow .why { grid-column: 1 / -1; color: var(--muted); font-size: 0.78rem; margin: -3px 0 4px; padding-left: 2px; }
-    @media (max-width: 560px) { .srow { grid-template-columns: 130px 1fr 28px; } }
+    .srow .why { grid-column: 1 / -1; color: var(--muted); font-size: 0.78rem; margin: -3px 0 4px; }
+    @media (max-width: 560px) { .srow { grid-template-columns: 130px 1fr 28px; } .radarbox { flex-basis: 100%; } }
 
     .hist { font-size: 0.82rem; }
     .hist .hrow { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
     .hist .hrow .v { color: var(--accent); font-weight: 600; white-space: nowrap; }
     .hist .hrow .x { color: var(--muted); }
-
     .summary { background: #241b3a; border: 1px solid #a78bfa33; border-radius: 10px; padding: 12px 14px; font-size: 0.9rem; color: #e8eef5; margin-top: 6px; }
 
-    /* Gate + Overlay */
     .overlay { position: fixed; inset: 0; background: rgba(10,12,26,.82); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
     .overlay .box { background: var(--panel); border: 1px solid #a78bfa44; border-radius: 16px; padding: 30px; max-width: 380px; width: 100%; text-align: center; }
     .overlay h3 { color: var(--accent); margin-bottom: 8px; letter-spacing: 1px; }
     .overlay p { color: var(--muted); font-size: 0.88rem; margin-bottom: 16px; }
     .overlay input { text-align: center; margin-bottom: 12px; }
     .overlay .err { color: var(--coral); font-size: 0.82rem; min-height: 18px; }
-    .spinner { width: 34px; height: 34px; border: 3px solid #a78bfa33; border-top-color: var(--accent); border-radius: 50%; margin: 0 auto 14px; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .load-msg { color: var(--text); font-size: 0.95rem; }
     .hidden { display: none !important; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #241b3a; border: 1px solid #a78bfa55; color: var(--text); padding: 10px 18px; border-radius: 10px; font-size: 0.88rem; z-index: 1200; }
   </style>
@@ -130,45 +134,32 @@
     <h1>STRATEGIZER</h1>
     <p>IDEE → KONZEPT → BEWERTUNG</p>
     <div class="links">
-      <a href="/claudeapps/strategizer/">← Zur Konzept-Seite</a>
-      &nbsp;·&nbsp;
+      <a href="/claudeapps/strategizer/">← Zur Konzept-Seite</a> &nbsp;·&nbsp;
       <button class="linkish" id="logout">Zugangscode ändern</button>
     </div>
   </div>
 
-  <!-- Neue Idee -->
   <div class="card composer">
     <h2>💡 Neue Idee einkippen</h2>
-    <textarea id="ideaInput" rows="3" placeholder="Beschreibe deine Idee – ein, zwei Sätze reichen. Der Strategizer arbeitet daraus automatisch ein Konzept aus und bewertet es."></textarea>
+    <textarea id="ideaInput" rows="3" placeholder="Beschreibe deine Idee – ein, zwei Sätze reichen. Die Ausarbeitung läuft im Hintergrund; du kannst sofort die nächste Idee eingeben."></textarea>
     <div class="row">
       <input type="text" id="ideaTitle" placeholder="Optionaler Titel (sonst automatisch)" />
       <button class="btn" id="submitIdea">Ausarbeiten &amp; bewerten</button>
     </div>
+    <div class="hint">⚡ Die Bewertung erscheint automatisch, sobald sie fertig ist – kein Warten nötig.</div>
   </div>
 
   <div class="layout">
-    <!-- Liste -->
     <div class="card list">
       <h2>Ideen · Rangliste</h2>
       <div id="ideaList"><div class="empty">Noch keine Ideen. Kippe oben deine erste Idee ein.</div></div>
     </div>
-
-    <!-- Detail -->
     <div class="card detail" id="detail">
       <div class="empty">Wähle links eine Idee – oder kippe oben eine neue ein.</div>
     </div>
   </div>
 </div>
 
-<!-- Ladeoverlay -->
-<div class="overlay hidden" id="loadOverlay">
-  <div class="box">
-    <div class="spinner"></div>
-    <div class="load-msg" id="loadMsg">Konzept wird ausgearbeitet …</div>
-  </div>
-</div>
-
-<!-- Zugangscode-Gate -->
 <div class="overlay hidden" id="gate">
   <div class="box">
     <h3>🔒 Strategizer</h3>
@@ -181,196 +172,209 @@
 
 <script>
 const API = '/claudeapps/strategizer/api';
-const KF_LABELS = { problem:'Problem', loesung:'Lösung', zielgruppe:'Zielgruppe', nutzenversprechen:'Nutzenversprechen', umsetzungsskizze:'Umsetzungsskizze', geschaeftsmodell:'Geschäftsmodell' };
+const KF_LABELS = { problem:'Problem', loesung:'Lösung', zielgruppe:'Zielgruppe', nutzenversprechen:'Nutzenversprechen', geschaeftsmodell:'Geschäftsmodell' };
 const ST_LABELS = { entwurf:'Entwurf', bewertet:'Bewertet', priorisiert:'Priorisiert', in_umsetzung:'In Umsetzung', verworfen:'Verworfen' };
 const ST_ORDER = ['bewertet','priorisiert','in_umsetzung','verworfen'];
+const SHORT = { geschaeftliche_relevanz:'Geschäft', umsetzbarkeit:'Umsetzbar', markt_wettbewerb:'Markt', persoenlicher_effizienzgewinn:'Eff. selbst', nutzen_fuer_andere:'Nutzen', strategischer_fit:'Fit', skalierbarkeit:'Skalierung', risiko_abhaengigkeiten:'Risiko↓' };
 
 let code = localStorage.getItem('strategizer_code') || '';
-let selectedId = null;
+let selectedId = null, pollTimer = null, ideasCache = [];
 
 const $ = id => document.getElementById(id);
 const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-function showGate(msg) { $('gate').classList.remove('hidden'); $('gateErr').textContent = msg || ''; $('gateCode').focus(); }
-function hideGate() { $('gate').classList.add('hidden'); }
-function showLoad(msg) { $('loadMsg').textContent = msg; $('loadOverlay').classList.remove('hidden'); }
-function hideLoad() { $('loadOverlay').classList.add('hidden'); }
-function toast(msg) { const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2600); }
+function showGate(msg){ $('gate').classList.remove('hidden'); $('gateErr').textContent = msg||''; $('gateCode').focus(); }
+function hideGate(){ $('gate').classList.add('hidden'); }
+function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
 
 async function api(pathname, opts={}) {
-  const res = await fetch(API + pathname, {
-    ...opts,
-    headers: { 'Content-Type':'application/json', 'x-access-code': code, ...(opts.headers||{}) },
-  });
-  if (res.status === 401) { localStorage.removeItem('strategizer_code'); code=''; showGate('Falscher Zugangscode.'); throw new Error('unauthorized'); }
+  const res = await fetch(API+pathname, { ...opts, headers:{ 'Content-Type':'application/json','x-access-code':code, ...(opts.headers||{}) } });
+  if (res.status===401){ localStorage.removeItem('strategizer_code'); code=''; showGate('Falscher Zugangscode.'); throw new Error('unauthorized'); }
   const data = await res.json().catch(()=>({}));
-  if (!res.ok) throw new Error(data.error || ('Fehler ' + res.status));
+  if (!res.ok) throw new Error(data.error || ('Fehler '+res.status));
   return data;
 }
+function ratingClass(r){ return 'r-'+(r||'gering'); }
 
-function ratingClass(r) { return 'r-' + (r||'gering'); }
+// ── Radar / Spider ──
+function renderRadar(scores){
+  const cx=150, cy=132, R=90, N=scores.length;
+  const ang = i => (-90 + i*(360/N)) * Math.PI/180;
+  const pt = (i,r) => [cx+Math.cos(ang(i))*r, cy+Math.sin(ang(i))*r];
+  let rings='';
+  [0.25,0.5,0.75,1].forEach(f => {
+    const p = scores.map((_,i)=>pt(i,R*f).map(n=>n.toFixed(1)).join(',')).join(' ');
+    rings += `<polygon points="${p}" fill="none" stroke="#ffffff12" />`;
+  });
+  let axes='', labels='';
+  scores.forEach((s,i)=>{
+    const [x,y]=pt(i,R);
+    axes += `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#ffffff12" />`;
+    const [lx,ly]=pt(i,R+15);
+    const anchor = Math.abs(lx-cx)<6 ? 'middle' : (lx<cx?'end':'start');
+    labels += `<text x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}" text-anchor="${anchor}" class="rl">${esc(SHORT[s.key]||s.label)}</text>`;
+  });
+  const dp = scores.map((s,i)=>pt(i,R*(s.score/10)).map(n=>n.toFixed(1)).join(',')).join(' ');
+  const dots = scores.map((s,i)=>{ const [x,y]=pt(i,R*(s.score/10)); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="#a78bfa"/>`; }).join('');
+  return `<svg viewBox="0 0 300 268" class="radar">${rings}${axes}<polygon points="${dp}" fill="#a78bfa33" stroke="#a78bfa" stroke-width="1.6"/>${dots}${labels}</svg>`;
+}
 
-async function loadList() {
-  const ideas = await api('/ideas');
+// ── Liste ──
+function renderList(){
   const el = $('ideaList');
-  if (!ideas.length) { el.innerHTML = '<div class="empty">Noch keine Ideen. Kippe oben deine erste Idee ein.</div>'; return; }
-  el.innerHTML = ideas.map(i => {
-    const total = (i.total==null) ? '–' : i.total.toFixed(1);
-    const pct = (i.total==null) ? 0 : (i.total*10);
+  if (!ideasCache.length){ el.innerHTML = '<div class="empty">Noch keine Ideen. Kippe oben deine erste Idee ein.</div>'; return; }
+  el.innerHTML = ideasCache.map(i=>{
+    let right;
+    if (i.analysis_state==='processing') right = `<span class="proc"><span class="mini-spin"></span> wird ausgearbeitet</span>`;
+    else if (i.analysis_state==='error') right = `<span class="err">⚠ Fehler</span>`;
+    else right = `<span class="score ${ratingClass(i.rating)}">${i.total==null?'–':i.total.toFixed(1)}</span>`;
+    const bar = (i.total==null||i.analysis_state!=='done') ? '' : `<div class="track"><div class="fill" style="width:${i.total*10}%"></div></div>`;
     return `<div class="idea ${i.id===selectedId?'active':''}" data-id="${i.id}">
       <div class="t">${esc(i.title)}</div>
-      <div class="meta">
-        <span class="pill st-${i.status}">${ST_LABELS[i.status]||i.status}</span>
-        <span class="score ${ratingClass(i.rating)}">${total}</span>
-      </div>
-      <div class="track"><div class="fill" style="width:${pct}%"></div></div>
-    </div>`;
+      <div class="meta"><span class="pill st-${i.status}">${ST_LABELS[i.status]||i.status}</span>${right}</div>
+      ${bar}</div>`;
   }).join('');
-  el.querySelectorAll('.idea').forEach(d => d.addEventListener('click', () => openIdea(+d.dataset.id)));
+  el.querySelectorAll('.idea').forEach(d=>d.addEventListener('click',()=>openIdea(+d.dataset.id)));
 }
 
-async function openIdea(id) {
+async function loadList(){ ideasCache = await api('/ideas'); renderList(); managePoll(); }
+
+function managePoll(){
+  const anyProc = ideasCache.some(i=>i.analysis_state==='processing');
+  if (anyProc && !pollTimer) pollTimer = setInterval(tick, 3500);
+  if (!anyProc && pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+}
+async function tick(){
+  const prev = ideasCache.find(i=>i.id===selectedId);
+  try { ideasCache = await api('/ideas'); } catch { return; }
+  renderList(); managePoll();
+  const now = ideasCache.find(i=>i.id===selectedId);
+  if (selectedId && now && (!prev || now.analysis_state!==prev.analysis_state)) openIdea(selectedId);
+}
+
+// ── Detail ──
+async function openIdea(id){
   selectedId = id;
-  const idea = await api('/ideas/' + id);
+  document.querySelectorAll('.idea').forEach(d=>d.classList.toggle('active', +d.dataset.id===id));
+  const idea = await api('/ideas/'+id);
   renderDetail(idea);
-  document.querySelectorAll('.idea').forEach(d => d.classList.toggle('active', +d.dataset.id===id));
 }
 
-function renderDetail(idea) {
-  const e = idea.latest;
-  const d = $('detail');
+function renderDetail(idea){
+  const e = idea.latest, d = $('detail');
+  const processing = idea.analysis_state==='processing';
+  const errored = idea.analysis_state==='error';
+
+  const head = `<div class="head">
+      <div class="titlewrap"><h2>${esc(idea.title)}</h2><button class="edit" id="renameBtn" title="Umbenennen">✎</button><br>
+        <span class="pill st-${idea.status}" style="margin-top:8px;display:inline-block">${ST_LABELS[idea.status]}</span></div>
+      ${e ? `<div class="total"><div class="num ${ratingClass(e.rating)}">${e.total.toFixed(1)}</div><div class="lab">/ 10 · ${e.rating}</div></div>` : ''}
+    </div>`;
+
+  const procBanner = processing ? `<div class="banner"><span class="mini-spin"></span> Wird im Hintergrund ausgearbeitet – das dauert ein paar Sekunden.</div>` : '';
+  const errBanner = errored ? `<div class="banner err">⚠ Ausarbeitung fehlgeschlagen: ${esc(idea.error_msg||'')} <button class="btn sm" id="retryBtn" style="margin-left:auto">Erneut versuchen</button></div>` : '';
+
+  const origBlock = `<div class="block"><div class="lbl">Original-Eingabe</div><div class="market" style="border-left-color:#64748b">${esc(idea.input)}</div></div>`;
+
   if (!e) {
-    d.innerHTML = `<div class="head"><h2>${esc(idea.title)}</h2></div>
-      <div class="block"><div class="lbl">Original-Eingabe</div><div class="market">${esc(idea.input)}</div></div>
-      <p class="empty">Noch nicht bewertet. <button class="btn" id="reeval">Jetzt ausarbeiten &amp; bewerten</button></p>`;
-    $('reeval').addEventListener('click', () => refine(idea.id, ''));
+    d.innerHTML = head + procBanner + errBanner + origBlock +
+      (!processing && !errored ? `<p class="empty">Noch nicht bewertet. <button class="btn" id="retryBtn">Jetzt ausarbeiten</button></p>` : '');
+    wireDetail(idea);
     return;
   }
-  const scoresHtml = e.scores.map(s => `
-    <div class="srow">
-      <span class="name">${esc(s.label)}</span>
+
+  const scoresHtml = e.scores.map(s=>`
+    <div class="srow"><span class="name">${esc(s.label)}</span>
       <span class="track"><span class="fill" style="width:${s.score*10}%"></span></span>
       <span class="num">${s.score}</span>
-      <span class="why">${esc(s.begruendung)} <span style="opacity:.6">· Gewicht ${Math.round(s.weight*100)}%</span></span>
-    </div>`).join('');
+      <span class="why">${esc(s.begruendung)} <span style="opacity:.6">· Gewicht ${Math.round(s.weight*100)}%</span></span></div>`).join('');
 
-  const konzeptHtml = Object.keys(KF_LABELS).map(k => e.konzept[k] ? `
-    <div class="kf"><div class="k">${KF_LABELS[k]}</div><div class="v">${esc(e.konzept[k])}</div></div>` : '').join('');
+  const konzeptHtml = Object.keys(KF_LABELS).map(k => e.konzept[k] ? `<div class="kf"><div class="k">${KF_LABELS[k]}</div><div class="v">${esc(e.konzept[k])}</div></div>` : '').join('');
 
-  const statusHtml = ST_ORDER.map(s => `<button class="${idea.status===s?'on':''}" data-status="${s}">${ST_LABELS[s]}</button>`).join('');
+  const u = e.konzept.umsetzung || {};
+  const umsetzungHtml = (u.skizze || (u.schritte&&u.schritte.length)) ? `
+    <div class="block"><div class="lbl">Umsetzungskonzept</div>
+      ${u.skizze ? `<div class="skizze">${esc(u.skizze)}</div>` : ''}
+      ${(u.schritte&&u.schritte.length) ? `<div class="roadmap">${u.schritte.map(s=>`<div class="rstep"><div class="rt">${esc(s.titel)}</div><div class="rd">${esc(s.beschreibung)}</div></div>`).join('')}</div>` : ''}
+    </div>` : '';
 
-  const histHtml = idea.evaluations.map(v => `
-    <div class="hrow"><span class="v">v${v.version} · ${v.total.toFixed(1)}</span>
-    <span class="x">${v.refinement ? 'Nachschärfung: '+esc(v.refinement) : 'Erstbewertung'}</span></div>`).join('');
+  const statusHtml = ST_ORDER.map(s=>`<button class="${idea.status===s?'on':''}" data-status="${s}">${ST_LABELS[s]}</button>`).join('');
+  const histHtml = idea.evaluations.map(v=>`<div class="hrow"><span class="v">v${v.version} · ${v.total.toFixed(1)}</span><span class="x">${v.refinement?'Nachschärfung: '+esc(v.refinement):'Erstbewertung'}</span></div>`).join('');
 
-  d.innerHTML = `
-    <div class="head">
-      <div>
-        <h2>${esc(idea.title)}</h2>
-        <span class="pill st-${idea.status}">${ST_LABELS[idea.status]}</span>
-      </div>
-      <div class="total">
-        <div class="num ${ratingClass(e.rating)}">${e.total.toFixed(1)}</div>
-        <div class="lab">/ 10 · ${e.rating}</div>
-      </div>
-    </div>
-
-    <div class="statusbar">${statusHtml}
-      <button class="danger-btn" id="delIdea" title="Idee löschen" style="background:none;border:1px solid #fb718544;color:var(--coral);border-radius:999px;padding:5px 12px;font-size:.78rem;margin-left:auto">Löschen</button>
-    </div>
-
-    ${e.zusammenfassung ? `<div class="summary">${esc(e.zusammenfassung)}</div>` : ''}
-
-    <div class="block"><div class="lbl">Original-Eingabe</div><div class="market" style="border-left-color:#64748b">${esc(idea.input)}</div></div>
-
-    <div class="block"><div class="lbl">Ausgearbeitetes Konzept</div><div class="konzept">${konzeptHtml}</div></div>
-
-    ${e.marktbewertung ? `<div class="block"><div class="lbl">Marktbewertung</div><div class="market">${esc(e.marktbewertung)}</div></div>` : ''}
-
-    <div class="block"><div class="lbl">Scoring (gewichtet)</div><div class="scores">${scoresHtml}</div></div>
-
-    <div class="block"><div class="lbl">Nachschärfen → Reevaluierung</div>
-      <textarea id="refineInput" rows="2" placeholder="Weitere Anforderung oder Anpassung eingeben – Konzept & Bewertung werden neu erzeugt."></textarea>
-      <div class="row" style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn" id="refineBtn">Neu bewerten</button>
-      </div>
-    </div>
-
-    <div class="block"><div class="lbl">Historie</div><div class="hist">${histHtml}</div></div>
-  `;
-
-  d.querySelectorAll('.statusbar button[data-status]').forEach(b =>
-    b.addEventListener('click', () => setStatus(idea.id, b.dataset.status)));
-  $('delIdea').addEventListener('click', () => delIdea(idea.id, idea.title));
-  $('refineBtn').addEventListener('click', () => {
-    const val = $('refineInput').value.trim();
-    if (!val) { toast('Bitte eine Ergänzung eingeben.'); return; }
-    refine(idea.id, val);
-  });
+  d.innerHTML = head + procBanner + errBanner +
+    `<div class="statusbar">${statusHtml}<button class="del" id="delIdea" style="border-radius:999px;padding:5px 12px;font-size:.78rem">Löschen</button></div>
+     ${e.zusammenfassung?`<div class="summary">${esc(e.zusammenfassung)}</div>`:''}
+     ${origBlock}
+     <div class="block"><div class="lbl">Ausgearbeitetes Konzept</div><div class="konzept">${konzeptHtml}</div></div>
+     ${umsetzungHtml}
+     ${e.marktbewertung?`<div class="block"><div class="lbl">Marktbewertung</div><div class="market">${esc(e.marktbewertung)}</div></div>`:''}
+     <div class="block"><div class="lbl">Bewertung</div>
+       <div class="scorewrap"><div class="radarbox">${renderRadar(e.scores)}</div><div class="scores">${scoresHtml}</div></div>
+     </div>
+     ${!processing ? `<div class="block"><div class="lbl">Nachschärfen → Reevaluierung</div>
+       <textarea id="refineInput" rows="2" placeholder="Weitere Anforderung oder Anpassung – Konzept & Bewertung werden neu erzeugt."></textarea>
+       <div style="margin-top:10px"><button class="btn" id="refineBtn">Neu bewerten</button></div></div>` : ''}
+     <div class="block"><div class="lbl">Historie</div><div class="hist">${histHtml}</div></div>`;
+  wireDetail(idea);
 }
 
-async function submitIdea() {
+function wireDetail(idea){
+  const rn = $('renameBtn'); if (rn) rn.addEventListener('click', ()=>rename(idea));
+  const rt = $('retryBtn'); if (rt) rt.addEventListener('click', ()=>refine(idea.id, ''));
+  const del = $('delIdea'); if (del) del.addEventListener('click', ()=>delIdea(idea.id, idea.title));
+  idea && document.querySelectorAll('.statusbar button[data-status]').forEach(b=>b.addEventListener('click', ()=>setStatus(idea.id, b.dataset.status)));
+  const rb = $('refineBtn'); if (rb) rb.addEventListener('click', ()=>{ const v=$('refineInput').value.trim(); if(!v){toast('Bitte eine Ergänzung eingeben.');return;} refine(idea.id, v); });
+}
+
+async function rename(idea){
+  const t = prompt('Neuer Titel für die Idee:', idea.title);
+  if (t==null) return;
+  const title = t.trim(); if (!title) return;
+  try { const updated = await api('/ideas/'+idea.id, { method:'PUT', body: JSON.stringify({ title }) }); await loadList(); renderDetail(updated); toast('Umbenannt.'); }
+  catch(err){ if(err.message!=='unauthorized') toast(err.message); }
+}
+
+async function submitIdea(){
   const input = $('ideaInput').value.trim();
   const title = $('ideaTitle').value.trim();
-  if (!input) { toast('Bitte eine Idee eingeben.'); return; }
+  if (!input){ toast('Bitte eine Idee eingeben.'); return; }
   $('submitIdea').disabled = true;
-  showLoad('Konzept wird ausgearbeitet und bewertet …');
   try {
     const idea = await api('/ideas', { method:'POST', body: JSON.stringify({ input, title }) });
-    $('ideaInput').value = ''; $('ideaTitle').value = '';
-    selectedId = idea.id;
+    $('ideaInput').value=''; $('ideaTitle').value=''; $('ideaInput').focus();
     await loadList();
-    renderDetail(idea);
-    document.querySelectorAll('.idea').forEach(x => x.classList.toggle('active', +x.dataset.id===idea.id));
-    toast('Idee ausgearbeitet und bewertet.');
-  } catch (err) { if (err.message!=='unauthorized') toast(err.message); }
-  finally { hideLoad(); $('submitIdea').disabled = false; }
+    toast('Idee aufgenommen – Ausarbeitung läuft im Hintergrund.');
+  } catch(err){ if(err.message!=='unauthorized') toast(err.message); }
+  finally { $('submitIdea').disabled = false; }
 }
 
-async function refine(id, refinement) {
-  showLoad(refinement ? 'Reevaluierung läuft …' : 'Konzept wird ausgearbeitet …');
+async function refine(id, refinement){
   try {
-    const idea = await api('/ideas/'+id+'/refine', { method:'POST', body: JSON.stringify({ refinement }) });
+    await api('/ideas/'+id+'/refine', { method:'POST', body: JSON.stringify({ refinement }) });
     await loadList();
-    renderDetail(idea);
-    toast('Neu bewertet.');
-  } catch (err) { if (err.message!=='unauthorized') toast(err.message); }
-  finally { hideLoad(); }
+    if (selectedId===id) await openIdea(id);
+    toast(refinement ? 'Reevaluierung läuft …' : 'Ausarbeitung läuft …');
+  } catch(err){ if(err.message!=='unauthorized') toast(err.message); }
 }
 
-async function setStatus(id, status) {
-  try {
-    const idea = await api('/ideas/'+id+'/status', { method:'PUT', body: JSON.stringify({ status }) });
-    await loadList();
-    renderDetail(idea);
-  } catch (err) { if (err.message!=='unauthorized') toast(err.message); }
+async function setStatus(id, status){
+  try { const idea = await api('/ideas/'+id+'/status', { method:'PUT', body: JSON.stringify({ status }) }); await loadList(); renderDetail(idea); }
+  catch(err){ if(err.message!=='unauthorized') toast(err.message); }
 }
 
-async function delIdea(id, title) {
+async function delIdea(id, title){
   if (!confirm('Idee „'+title+'" wirklich löschen?')) return;
-  try {
-    await api('/ideas/'+id, { method:'DELETE' });
-    selectedId = null;
+  try { await api('/ideas/'+id, { method:'DELETE' }); selectedId=null;
     $('detail').innerHTML = '<div class="empty">Wähle links eine Idee – oder kippe oben eine neue ein.</div>';
-    await loadList();
-    toast('Idee gelöscht.');
-  } catch (err) { if (err.message!=='unauthorized') toast(err.message); }
+    await loadList(); toast('Idee gelöscht.'); }
+  catch(err){ if(err.message!=='unauthorized') toast(err.message); }
 }
 
-// ── Init / Gate ──
-async function boot() {
-  try { await loadList(); hideGate(); }
-  catch (err) { if (err.message==='unauthorized') showGate(); else { toast(err.message); } }
-}
+async function boot(){ try { await loadList(); hideGate(); } catch(err){ if(err.message==='unauthorized') showGate(); else toast(err.message); } }
 
-$('gateSubmit').addEventListener('click', () => {
-  const v = $('gateCode').value.trim();
-  if (!v) return;
-  code = v; localStorage.setItem('strategizer_code', v);
-  hideGate(); boot();
-});
-$('gateCode').addEventListener('keydown', e => { if (e.key==='Enter') $('gateSubmit').click(); });
-$('logout').addEventListener('click', () => { localStorage.removeItem('strategizer_code'); code=''; showGate(); });
+$('gateSubmit').addEventListener('click', ()=>{ const v=$('gateCode').value.trim(); if(!v) return; code=v; localStorage.setItem('strategizer_code',v); hideGate(); boot(); });
+$('gateCode').addEventListener('keydown', e=>{ if(e.key==='Enter') $('gateSubmit').click(); });
+$('logout').addEventListener('click', ()=>{ localStorage.removeItem('strategizer_code'); code=''; showGate(); });
 $('submitIdea').addEventListener('click', submitIdea);
 
 if (code) boot(); else showGate();
