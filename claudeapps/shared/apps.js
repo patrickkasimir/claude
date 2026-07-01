@@ -103,4 +103,12 @@ export const APPS = [
     description: "Ideen einkippen, automatisch Konzept + Marktbewertung + transparentes Scoring erhalten, nachschärfen und die Umsetzung strukturieren – Mehrbenutzer-Portal (Konzeptphase)",
     category: "Tools",
   },
+  {
+    id: "odoodelizer",
+    title: "ODOODELIZER",
+    icon: "🧭",
+    path: "/claudeapps/odoodelizer/",
+    description: "Beratungs-Checkliste für die Ersteinrichtung neuer Firmen – plattformweit und App für App, mit Abhängigkeiten, Status und Zeitplan (öffentliche Übersicht)",
+    category: "Tools",
+  },
 ];

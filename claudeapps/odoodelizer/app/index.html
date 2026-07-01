@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Odoodelizer – Portal</title>
+  <style>
+    :root {
+      --bg:#f4f3f7; --surface:#fff; --surface2:#faf9fc; --text:#2b2733; --muted:#8b8794;
+      --accent:#714B67; --accent2:#9b6a8c; --accent-soft:#f0e9ef; --border:#e7e3ec;
+      --ok:#4a9d6e; --warn:#c98a2b; --blue:#4a83c9; --shadow:0 1px 3px #2b273310, 0 8px 24px #2b273308;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; line-height:1.5; font-size:15px; }
+    a { color:var(--accent); text-decoration:none; } button { font-family:inherit; cursor:pointer; }
+    .wrap { max-width:1240px; margin:0 auto; padding:0 22px; }
+
+    header.top { background:linear-gradient(120deg,var(--accent),var(--accent2)); color:#fff; padding:16px 0; }
+    header.top .wrap { display:flex; align-items:center; gap:14px; }
+    header.top h1 { font-size:1.25rem; font-weight:600; letter-spacing:.3px; display:flex; gap:8px; align-items:center; }
+    header.top .sp { flex:1; }
+    header.top .who { font-size:0.85rem; opacity:.92; }
+    .lnk { background:#ffffff22; border:1px solid #ffffff55; color:#fff; padding:6px 12px; border-radius:8px; font-size:0.82rem; }
+    .lnk:hover { background:#ffffff33; }
+
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+    .btn { background:linear-gradient(120deg,var(--accent),var(--accent2)); color:#fff; border:none; border-radius:9px; padding:10px 18px; font-weight:600; font-size:0.9rem; }
+    .btn:disabled { opacity:.5; cursor:default; }
+    .btn.sm { padding:7px 13px; font-size:0.83rem; }
+    .btn.ghost { background:none; color:var(--accent); border:1px solid var(--border); }
+    .btn.ghost:hover { background:var(--accent-soft); }
+    .btn.danger { background:none; color:#c0392b; border:1px solid #e6c9c4; }
+    input, select { font-family:inherit; font-size:0.9rem; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:9px 11px; width:100%; }
+    input:focus, select:focus { outline:none; border-color:var(--accent); }
+    label.fld { display:block; font-size:0.8rem; color:var(--muted); margin:10px 0 4px; }
+    .err { color:#c0392b; font-size:0.84rem; margin-top:8px; min-height:1.1em; }
+    .muted { color:var(--muted); }
+
+    /* Auth */
+    .authwrap { max-width:400px; margin:8vh auto 0; padding:0 18px; }
+    .authwrap h2 { text-align:center; color:var(--accent); margin-bottom:4px; }
+    .authwrap .sub { text-align:center; color:var(--muted); font-size:0.86rem; margin-bottom:18px; }
+    .tabs { display:flex; gap:6px; margin-bottom:14px; }
+    .tabs button { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px; color:var(--muted); }
+    .tabs button.on { background:var(--accent-soft); color:var(--accent); font-weight:600; border-color:var(--accent-soft); }
+    .authcard { padding:22px; }
+    .authcard .btn { width:100%; margin-top:16px; }
+    .authlink { text-align:center; margin-top:12px; font-size:0.84rem; }
+
+    /* Projektliste */
+    .page { padding:26px 0 60px; }
+    .row-h { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .row-h h2 { font-size:1.2rem; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+    .pcard { padding:16px 18px; cursor:pointer; transition:box-shadow .15s; }
+    .pcard:hover { box-shadow:0 2px 6px #2b273318, 0 10px 30px #2b273312; }
+    .pcard h3 { font-size:1.05rem; margin-bottom:4px; }
+    .pcard .meta { font-size:0.8rem; color:var(--muted); margin-bottom:10px; }
+    .prog { height:8px; background:var(--accent-soft); border-radius:6px; overflow:hidden; }
+    .prog > div { height:100%; background:linear-gradient(90deg,var(--ok),#7bc79b); }
+    .pcard .pct { font-size:0.76rem; color:var(--muted); margin-top:5px; }
+
+    /* Overlay */
+    .overlay { position:fixed; inset:0; background:#2b273366; display:flex; align-items:center; justify-content:center; padding:20px; z-index:50; }
+    .modal { background:var(--surface); border-radius:14px; box-shadow:0 20px 60px #2b273340; width:100%; max-width:560px; max-height:88vh; overflow:auto; padding:22px; }
+    .modal h3 { color:var(--accent); margin-bottom:12px; }
+    .appsel { border:1px solid var(--border); border-radius:10px; padding:6px; max-height:320px; overflow:auto; margin-top:6px; }
+    .catrow { font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; color:var(--accent); font-weight:700; padding:8px 6px 4px; }
+    .appchk { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:7px; font-size:0.88rem; }
+    .appchk:hover { background:var(--surface2); }
+    .appchk input { width:auto; }
+    .modal .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+
+    /* Detail */
+    .dhead { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:18px 0 8px; }
+    .dhead .pname { font-size:1.3rem; font-weight:600; }
+    .dhead input.pname-e { font-size:1.1rem; max-width:280px; }
+    .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:12px 0 18px; }
+    .seg { display:inline-flex; background:var(--surface); border:1px solid var(--border); border-radius:9px; overflow:hidden; box-shadow:var(--shadow); }
+    .seg button { background:none; border:none; color:var(--muted); padding:8px 15px; font-size:0.85rem; border-right:1px solid var(--border); }
+    .seg button:last-child { border-right:none; }
+    .seg button.on { background:var(--accent-soft); color:var(--accent); font-weight:600; }
+    .toolbar select { width:auto; min-width:130px; }
+    .toolbar .datein { width:auto; }
+    .toolbar .prog2 { display:flex; align-items:center; gap:8px; margin-left:auto; font-size:0.82rem; color:var(--muted); }
+    .toolbar .prog2 .bar { width:120px; height:7px; background:var(--accent-soft); border-radius:5px; overflow:hidden; } .toolbar .prog2 .bar>div{height:100%;background:var(--ok);}
+
+    /* Kanban */
+    .kb { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; align-items:start; }
+    .kcol { background:var(--surface2); border:1px solid var(--border); border-radius:11px; padding:8px; min-height:120px; }
+    .kcol.drop { outline:2px dashed var(--accent); }
+    .kcol h4 { font-size:0.8rem; text-transform:uppercase; letter-spacing:.6px; padding:6px 6px 8px; display:flex; justify-content:space-between; }
+    .kcard { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--muted); border-radius:9px; padding:9px 10px; margin-bottom:8px; cursor:grab; box-shadow:var(--shadow); }
+    .kcard:active { cursor:grabbing; }
+    .kcard .kt { font-size:0.86rem; font-weight:500; }
+    .kcard .kb2 { display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap; }
+    .chip { font-size:0.64rem; padding:2px 7px; border-radius:999px; background:var(--accent-soft); color:var(--accent); }
+    .chip.dur { background:#efeef1; color:var(--muted); }
+    .chip.lock { background:#fbeecb; color:var(--warn); }
+    .kcard .box { font-size:0.72rem; color:var(--muted); }
+
+    /* Liste */
+    table.lst { width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:var(--shadow); }
+    table.lst th { text-align:left; font-size:0.72rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); padding:10px 12px; border-bottom:1px solid var(--border); background:var(--surface2); }
+    table.lst td { padding:9px 12px; border-bottom:1px solid var(--border); font-size:0.86rem; vertical-align:middle; }
+    table.lst tr:last-child td { border-bottom:none; }
+    table.lst select { width:auto; padding:5px 8px; font-size:0.8rem; }
+
+    /* Gantt */
+    .gantt { display:flex; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--surface); box-shadow:var(--shadow); }
+    .g-left { flex:0 0 250px; border-right:1px solid var(--border); }
+    .g-left .g-head, .g-right .g-head { height:38px; display:flex; align-items:center; padding:0 12px; font-size:0.72rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); background:var(--surface2); border-bottom:1px solid var(--border); }
+    .g-lrow { height:30px; display:flex; align-items:center; gap:7px; padding:0 12px; font-size:0.82rem; border-bottom:1px solid #f0eef2; white-space:nowrap; overflow:hidden; }
+    .g-lrow .st { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+    .g-lrow .tt { overflow:hidden; text-overflow:ellipsis; }
+    .g-right { overflow-x:auto; flex:1; }
+    .statusdot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+    .hidden { display:none !important; }
+    .loading { padding:60px; text-align:center; color:var(--muted); }
+    .empty-b { text-align:center; padding:40px; color:var(--muted); }
+    .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:0.78rem; color:var(--muted); margin-top:10px; }
+    .legend span { display:inline-flex; align-items:center; gap:5px; }
+  </style>
+</head>
+<body>
+  <script src="/claudeapps/shared/back-button.js"></script>
+  <div id="root"><div class="loading">Lädt …</div></div>
+
+  <script>
+    const API = new URL('../api/', location.href).href;   // → /claudeapps/odoodelizer/api/
+    const $ = s => document.querySelector(s);
+    const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const STATUS = { todo:{l:'To-Do',c:'#8b8794'}, in_progress:{l:'In Arbeit',c:'#4a83c9'}, done:{l:'Erledigt',c:'#4a9d6e'}, na:{l:'n. a.',c:'#b9b2bd'} };
+    const STORDER = ['todo','in_progress','done','na'];
+
+    let state = { user:null, view:'projects', projects:[], project:null, catalog:null, gview:'kanban', filter:{box:'',cat:'',status:''} };
+
+    async function api(path, opts={}) {
+      const r = await fetch(API + path, { credentials:'include', headers:{'Content-Type':'application/json'}, ...opts });
+      if (opts.raw) return r;
+      return r.json().catch(() => ({}));
+    }
+
+    // ─────────── AUTH ───────────
+    function renderAuth(mode) {
+      mode = mode || 'login';
+      const hash = location.hash;
+      if (hash.startsWith('#reset=')) return renderReset(hash.slice(7));
+      $('#root').innerHTML = `
+        <div class="authwrap">
+          <h2>🧭 Odoodelizer</h2>
+          <div class="sub">Onboarding-Durchläufe planen & abarbeiten</div>
+          <div class="tabs">
+            <button data-m="login" class="${mode==='login'?'on':''}">Anmelden</button>
+            <button data-m="register" class="${mode==='register'?'on':''}">Registrieren</button>
+          </div>
+          <div class="card authcard">
+            ${mode==='register' ? '<label class="fld">Name</label><input id="a-name" autocomplete="name">' : ''}
+            <label class="fld">E-Mail</label><input id="a-email" type="email" autocomplete="email">
+            <label class="fld">Passwort</label><input id="a-pw" type="password" autocomplete="${mode==='register'?'new-password':'current-password'}">
+            <div class="err" id="a-err"></div>
+            <button class="btn" id="a-go">${mode==='register'?'Konto erstellen':'Anmelden'}</button>
+            <div class="authlink">${mode==='login' ? '<a href="#" id="a-forgot">Passwort vergessen?</a>' : '<span class="muted">Der erste Nutzer wird Administrator.</span>'}</div>
+          </div>
+        </div>`;
+      document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => renderAuth(b.dataset.m));
+      $('#a-go').onclick = async () => {
+        const body = { email: $('#a-email').value.trim(), password: $('#a-pw').value };
+        if (mode==='register') body.name = ($('#a-name')||{}).value || '';
+        $('#a-err').textContent = '';
+        const r = await api('auth/'+(mode==='register'?'register':'login'), { method:'POST', body: JSON.stringify(body) });
+        if (r.user) { state.user = r.user; boot(); } else $('#a-err').textContent = r.error || 'Fehler';
+      };
+      const f = $('#a-forgot'); if (f) f.onclick = (e) => { e.preventDefault(); renderForgot(); };
+    }
+    function renderForgot() {
+      $('#root').innerHTML = `<div class="authwrap"><h2>Passwort zurücksetzen</h2>
+        <div class="sub">Wir senden dir einen Link.</div>
+        <div class="card authcard"><label class="fld">E-Mail</label><input id="f-email" type="email">
+        <div class="err" id="f-err"></div><button class="btn" id="f-go">Link senden</button>
+        <div class="authlink"><a href="#" id="f-back">Zurück</a></div></div></div>`;
+      $('#f-go').onclick = async () => {
+        await api('auth/request-reset', { method:'POST', body: JSON.stringify({ email:$('#f-email').value.trim() }) });
+        $('#f-err').style.color='var(--ok)'; $('#f-err').textContent = 'Falls die E-Mail existiert, ist ein Link unterwegs.';
+      };
+      $('#f-back').onclick = (e)=>{ e.preventDefault(); renderAuth('login'); };
+    }
+    function renderReset(token) {
+      $('#root').innerHTML = `<div class="authwrap"><h2>Neues Passwort</h2>
+        <div class="card authcard"><label class="fld">Neues Passwort (min. 8)</label><input id="r-pw" type="password">
+        <div class="err" id="r-err"></div><button class="btn" id="r-go">Passwort setzen</button></div></div>`;
+      $('#r-go').onclick = async () => {
+        const r = await api('auth/reset', { method:'POST', body: JSON.stringify({ token, password:$('#r-pw').value }) });
+        if (r.ok) { location.hash=''; renderAuth('login'); } else $('#r-err').textContent = r.error || 'Fehler';
+      };
+    }
+
+    // ─────────── SHELL ───────────
+    function shell(inner) {
+      return `<header class="top"><div class="wrap"><h1>🧭 Odoodelizer</h1><span class="sp"></span>
+        <span class="who">${esc(state.user.email)}${state.user.role==='admin'?' · Admin':''}</span>
+        <button class="lnk" id="logout">Abmelden</button></div></header>
+        <div class="wrap page">${inner}</div>`;
+    }
+    function bindShell() { const l=$('#logout'); if(l) l.onclick = async () => { await api('auth/logout',{method:'POST'}); state.user=null; renderAuth('login'); }; }
+
+    // ─────────── PROJEKTLISTE ───────────
+    async function loadProjects() { const r = await api('projects'); state.projects = r.projects || []; }
+    function renderProjects() {
+      const cards = state.projects.map(p => {
+        const pct = p.total ? Math.round(p.done/p.total*100) : 0;
+        return `<div class="card pcard" data-id="${p.id}"><h3>${esc(p.name)}</h3>
+          <div class="meta">Start: ${p.start_date||'—'} · ${p.total} Aufgaben</div>
+          <div class="prog"><div style="width:${pct}%"></div></div>
+          <div class="pct">${p.done}/${p.total} erledigt · ${pct}%</div></div>`;
+      }).join('');
+      $('#root').innerHTML = shell(`<div class="row-h"><h2>Meine Durchläufe</h2><span class="sp" style="flex:1"></span>
+        <button class="btn" id="newp">+ Neuer Durchlauf</button></div>
+        ${state.projects.length ? `<div class="grid">${cards}</div>` : '<div class="empty-b">Noch kein Durchlauf. Leg deinen ersten an!</div>'}`);
+      bindShell();
+      $('#newp').onclick = openNewProject;
+      document.querySelectorAll('.pcard').forEach(c => c.onclick = () => openProject(c.dataset.id));
+    }
+
+    async function openNewProject() {
+      if (!state.catalog) state.catalog = await api('catalog');
+      const apps = state.catalog.boxes.filter(b => b.kind==='app');
+      const pre = new Set(JSON.parse(localStorage.getItem('odoodelizer_selected_apps')||'[]'));
+      const cats = []; apps.forEach(a => { const c=a.category||'Sonstige'; if(!cats.includes(c)) cats.push(c); });
+      const selHtml = cats.map(c => `<div class="catrow">${esc(c)}</div>` +
+        apps.filter(a => (a.category||'Sonstige')===c).map(a =>
+          `<label class="appchk"><input type="checkbox" value="${a.key}" ${pre.has(a.key)?'checked':''}> ${a.icon||''} ${esc(a.name)}</label>`).join('')).join('');
+      const ov = document.createElement('div'); ov.className='overlay';
+      ov.innerHTML = `<div class="modal"><h3>Neuer Durchlauf</h3>
+        <label class="fld">Name</label><input id="np-name" placeholder="z. B. Kunde Muster GmbH">
+        <label class="fld">Starttermin</label><input id="np-start" type="date" value="${new Date().toISOString().slice(0,10)}">
+        <label class="fld">Apps (Plattform-Themen sind immer dabei)</label>
+        <div class="appsel">${selHtml}</div>
+        <div class="err" id="np-err"></div>
+        <div class="actions"><button class="btn ghost" id="np-cancel">Abbrechen</button><button class="btn" id="np-go">Anlegen</button></div></div>`;
+      document.body.appendChild(ov);
+      ov.querySelector('#np-cancel').onclick = () => ov.remove();
+      ov.onclick = e => { if(e.target===ov) ov.remove(); };
+      ov.querySelector('#np-go').onclick = async () => {
+        const name = ov.querySelector('#np-name').value.trim();
+        if (!name) { ov.querySelector('#np-err').textContent='Bitte einen Namen angeben.'; return; }
+        const app_keys = [...ov.querySelectorAll('.appsel input:checked')].map(i => i.value);
+        const start_date = ov.querySelector('#np-start').value;
+        const r = await api('projects', { method:'POST', body: JSON.stringify({ name, start_date, app_keys }) });
+        ov.remove();
+        if (r.id) openProject(r.id);
+      };
+    }
+
+    // ─────────── PROJEKT-DETAIL ───────────
+    async function openProject(id) {
+      const r = await api('projects/'+id);
+      if (!r.project) return renderProjects();
+      state.project = r; state.filter = { box:'', cat:'', status:'' }; state.gview='kanban';
+      renderDetail();
+    }
+    function predMap() {
+      const m = {}; (state.project.deps||[]).forEach(d => { (m[d.task]=m[d.task]||[]).push(d.dep); }); return m;
+    }
+    function isBlocked(t, statusById, preds) {
+      return (preds[t.id]||[]).some(pid => (statusById[pid]||'todo') !== 'done');
+    }
+    function filtered() {
+      const f = state.filter;
+      return state.project.tasks.filter(t =>
+        (!f.box || t.box_key===f.box) && (!f.cat || (t.category||'')===f.cat) && (!f.status || t.status===f.status));
+    }
+    function renderDetail() {
+      const p = state.project;
+      const boxes = [...new Map(p.tasks.map(t => [t.box_key, {key:t.box_key, name:t.box_name, icon:t.box_icon}])).values()];
+      const catsPresent = [...new Set(p.tasks.map(t => t.category).filter(Boolean))];
+      const total = p.tasks.length, done = p.tasks.filter(t=>t.status==='done').length, pct = total?Math.round(done/total*100):0;
+      $('#root').innerHTML = shell(`
+        <div class="dhead"><a href="#" id="back">← Durchläufe</a>
+          <span class="pname" id="pname">${esc(p.project.name)}</span>
+          <span class="sp" style="flex:1"></span>
+          <button class="btn danger sm" id="delp">Löschen</button></div>
+        <div class="toolbar">
+          <div class="seg" id="gv">
+            <button data-v="kanban" class="${state.gview==='kanban'?'on':''}">Kanban</button>
+            <button data-v="list" class="${state.gview==='list'?'on':''}">Liste</button>
+            <button data-v="gantt" class="${state.gview==='gantt'?'on':''}">Gantt</button>
+          </div>
+          <label class="muted" style="font-size:.8rem">Start</label>
+          <input class="datein" type="date" id="startd" value="${p.project.start_date||''}">
+          <select id="f-box"><option value="">Alle Bereiche</option>${boxes.map(b=>`<option value="${b.key}" ${state.filter.box===b.key?'selected':''}>${b.icon||''} ${esc(b.name)}</option>`).join('')}</select>
+          <select id="f-cat"><option value="">Alle Kategorien</option>${catsPresent.map(c=>`<option value="${esc(c)}" ${state.filter.cat===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
+          <select id="f-status"><option value="">Alle Status</option>${STORDER.map(s=>`<option value="${s}" ${state.filter.status===s?'selected':''}>${STATUS[s].l}</option>`).join('')}</select>
+          <div class="prog2"><div class="bar"><div style="width:${pct}%"></div></div>${done}/${total}</div>
+        </div>
+        <div id="viewport"></div>`);
+      bindShell();
+      $('#back').onclick = e => { e.preventDefault(); state.project=null; renderProjects(); };
+      $('#delp').onclick = async () => { if(confirm('Diesen Durchlauf wirklich löschen?')){ await api('projects/'+p.project.id,{method:'DELETE'}); state.project=null; await loadProjects(); renderProjects(); } };
+      $('#pname').onclick = () => { const nn=prompt('Name des Durchlaufs:', p.project.name); if(nn && nn.trim()){ api('projects/'+p.project.id,{method:'PUT',body:JSON.stringify({name:nn.trim()})}).then(()=>{ p.project.name=nn.trim(); renderDetail(); }); } };
+      $('#startd').onchange = async e => { await api('projects/'+p.project.id,{method:'PUT',body:JSON.stringify({start_date:e.target.value})}); await openProject(p.project.id); };
+      document.querySelectorAll('#gv button').forEach(b => b.onclick = () => { state.gview=b.dataset.v; renderView(); });
+      $('#f-box').onchange = e => { state.filter.box=e.target.value; renderView(); };
+      $('#f-cat').onchange = e => { state.filter.cat=e.target.value; renderView(); };
+      $('#f-status').onchange = e => { state.filter.status=e.target.value; renderView(); };
+      renderView();
+    }
+    function renderView() {
+      if (state.gview==='kanban') renderKanban();
+      else if (state.gview==='list') renderList();
+      else renderGantt();
+    }
+
+    async function setStatus(tid, status) {
+      await api('projects/'+state.project.project.id+'/tasks/'+tid, { method:'PUT', body: JSON.stringify({ status }) });
+      const t = state.project.tasks.find(x=>x.id==tid); if(t) t.status=status;
+    }
+
+    // ── Kanban ──
+    function renderKanban() {
+      const statusById = {}; state.project.tasks.forEach(t => statusById[t.id]=t.status);
+      const preds = predMap();
+      const ts = filtered();
+      const col = s => {
+        const items = ts.filter(t=>t.status===s).map(t => {
+          const blk = s!=='done' && isBlocked(t, statusById, preds);
+          return `<div class="kcard" draggable="true" data-id="${t.id}" style="border-left-color:${STATUS[s].c}">
+            <div class="kt">${esc(t.title)}</div>
+            <div class="box">${t.box_icon||''} ${esc(t.box_name||'')}</div>
+            <div class="kb2"><span class="chip dur">${t.duration_days} Tg</span>${t.category?`<span class="chip">${esc(t.category)}</span>`:''}${blk?'<span class="chip lock" title="Vorgänger noch offen">🔒 blockiert</span>':''}</div>
+          </div>`;
+        }).join('');
+        return `<div class="kcol" data-s="${s}"><h4><span>${STATUS[s].l}</span><span>${ts.filter(t=>t.status===s).length}</span></h4>${items||'<div class="muted" style="font-size:.78rem;padding:8px">—</div>'}</div>`;
+      };
+      $('#viewport').innerHTML = `<div class="kb">${STORDER.map(col).join('')}</div>`;
+      // Drag & Drop
+      let dragId = null;
+      document.querySelectorAll('.kcard').forEach(c => {
+        c.ondragstart = () => { dragId = c.dataset.id; };
+      });
+      document.querySelectorAll('.kcol').forEach(colEl => {
+        colEl.ondragover = e => { e.preventDefault(); colEl.classList.add('drop'); };
+        colEl.ondragleave = () => colEl.classList.remove('drop');
+        colEl.ondrop = async e => { e.preventDefault(); colEl.classList.remove('drop'); if(dragId){ await setStatus(dragId, colEl.dataset.s); renderKanban(); refreshProgress(); } };
+      });
+    }
+    function refreshProgress() {
+      const total=state.project.tasks.length, done=state.project.tasks.filter(t=>t.status==='done').length, pct=total?Math.round(done/total*100):0;
+      const bar=document.querySelector('.prog2 .bar>div'); if(bar) bar.style.width=pct+'%';
+      const lbl=document.querySelector('.prog2'); if(lbl) lbl.lastChild.textContent = `${done}/${total}`;
+    }
+
+    // ── Liste ──
+    function renderList() {
+      const rows = filtered().map(t => `<tr>
+        <td>${esc(t.title)}</td>
+        <td>${t.box_icon||''} ${esc(t.box_name||'')}</td>
+        <td>${t.category?`<span class="chip">${esc(t.category)}</span>`:'<span class="muted">—</span>'}</td>
+        <td>${t.duration_days} Tg</td>
+        <td class="muted">${t.scheduled_start||''} – ${t.scheduled_end||''}</td>
+        <td><select data-id="${t.id}">${STORDER.map(s=>`<option value="${s}" ${t.status===s?'selected':''}>${STATUS[s].l}</option>`).join('')}</select></td>
+      </tr>`).join('');
+      $('#viewport').innerHTML = `<table class="lst"><thead><tr><th>Aufgabe</th><th>Bereich</th><th>Kategorie</th><th>Dauer</th><th>Zeitraum</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+      document.querySelectorAll('table.lst select').forEach(sel => sel.onchange = async () => { await setStatus(sel.dataset.id, sel.value); renderList(); refreshProgress(); });
+    }
+
+    // ── Gantt (SVG) ──
+    function dparse(s){ return new Date(s+'T00:00:00Z'); }
+    function ddiff(a,b){ return Math.round((dparse(a)-dparse(b))/86400000); }
+    function renderGantt() {
+      const ts = filtered().filter(t=>t.scheduled_start && t.scheduled_end);
+      if (!ts.length) { $('#viewport').innerHTML = '<div class="empty-b">Keine Aufgaben im Filter.</div>'; return; }
+      let minS = ts[0].scheduled_start, maxE = ts[0].scheduled_end;
+      ts.forEach(t => { if(t.scheduled_start<minS)minS=t.scheduled_start; if(t.scheduled_end>maxE)maxE=t.scheduled_end; });
+      const start = dparse(minS); start.setUTCDate(start.getUTCDate()-2);
+      const startISO = start.toISOString().slice(0,10);
+      const totalDays = ddiff(maxE, startISO) + 4;
+      const dayW=24, rowH=30, headH=38;
+      const W = totalDays*dayW, H = ts.length*rowH;
+      const rowIndex = {}; ts.forEach((t,i)=>rowIndex[t.id]=i);
+      const x = iso => ddiff(iso, startISO)*dayW;
+      // Raster + Monatslabels
+      let grid=''; const months={};
+      for (let d=0; d<totalDays; d++){ const dt=new Date(start); dt.setUTCDate(dt.getUTCDate()+d);
+        const dow=dt.getUTCDay(); const gx=d*dayW;
+        if (dow===1) grid += `<line x1="${gx}" y1="${headH}" x2="${gx}" y2="${headH+H}" stroke="#efeef2"/>`;
+        if (dow===0||dow===6) grid += `<rect x="${gx}" y="${headH}" width="${dayW}" height="${H}" fill="#faf7fb"/>`;
+        const mk=dt.getUTCFullYear()+'-'+dt.getUTCMonth(); if(!(mk in months)) months[mk]={x:gx,label:dt.toLocaleDateString('de-DE',{month:'short',year:'numeric',timeZone:'UTC'})};
+      }
+      let monthLabels = Object.values(months).map(m=>`<text x="${m.x+4}" y="16" font-size="11" fill="#8b8794">${m.label}</text><line x1="${m.x}" y1="0" x2="${m.x}" y2="${headH+H}" stroke="#e7e3ec"/>`).join('');
+      // heute
+      const todayISO = new Date().toISOString().slice(0,10);
+      let todayLine=''; if (ddiff(todayISO,startISO)>=0 && ddiff(todayISO,startISO)<=totalDays){ const tx=x(todayISO); todayLine=`<line x1="${tx}" y1="0" x2="${tx}" y2="${headH+H}" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${tx+3}" y="30" font-size="10" fill="#c0392b">heute</text>`; }
+      // Deps-Linien
+      let deplines=''; (state.project.deps||[]).forEach(d=>{ if(rowIndex[d.task]!=null && rowIndex[d.dep]!=null){ const tt=ts[rowIndex[d.task]], dd=ts[rowIndex[d.dep]];
+        const x1=x(dd.scheduled_end)+dayW, y1=headH+rowIndex[d.dep]*rowH+rowH/2, x2=x(tt.scheduled_start), y2=headH+rowIndex[d.task]*rowH+rowH/2;
+        deplines += `<path d="M${x1},${y1} C${x1+10},${y1} ${x2-10},${y2} ${x2},${y2}" fill="none" stroke="#b9a2b3" stroke-width="1"/><circle cx="${x2}" cy="${y2}" r="2" fill="#b9a2b3"/>`; } });
+      // Balken
+      let bars=''; ts.forEach((t,i)=>{ const bx=x(t.scheduled_start), bw=Math.max(dayW,(ddiff(t.scheduled_end,t.scheduled_start)+1)*dayW), by=headH+i*rowH+6; const c=STATUS[t.status].c;
+        bars += `<rect x="${bx}" y="${by}" width="${bw}" height="${rowH-12}" rx="4" fill="${c}" opacity="${t.status==='na'?0.35:0.9}"><title>${esc(t.title)} (${t.scheduled_start}–${t.scheduled_end})</title></rect>`; });
+      const labels = ts.map(t=>`<div class="g-lrow"><span class="st" style="background:${STATUS[t.status].c}"></span><span class="tt" title="${esc(t.title)}">${t.box_icon||''} ${esc(t.title)}</span></div>`).join('');
+      $('#viewport').innerHTML = `<div class="gantt">
+        <div class="g-left"><div class="g-head">Aufgabe</div>${labels}</div>
+        <div class="g-right"><svg width="${W}" height="${headH+H}" style="display:block">
+          ${grid}${monthLabels}<line x1="0" y1="${headH}" x2="${W}" y2="${headH}" stroke="#e7e3ec"/>${deplines}${bars}${todayLine}
+        </svg></div></div>
+        <div class="legend">${STORDER.map(s=>`<span><span class="statusdot" style="background:${STATUS[s].c}"></span>${STATUS[s].l}</span>`).join('')}<span>🔗 Linien = Abhängigkeiten</span></div>`;
+    }
+
+    // ─────────── BOOT ───────────
+    async function boot() {
+      await loadProjects();
+      renderProjects();
+    }
+    async function init() {
+      if (location.hash.startsWith('#reset=')) return renderAuth();
+      const me = await api('auth/me');
+      if (me.user) { state.user = me.user; boot(); }
+      else renderAuth('login');
+    }
+    init();
+  </script>
+</body>
+</html>
