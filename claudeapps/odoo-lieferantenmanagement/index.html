@@ -214,6 +214,30 @@
     </section>
 
     <section>
+      <h2>Lieferantenselbstauskunft (ISO 9001/27001)</h2>
+      <p>
+        Lieferanten können sich per <strong>Fragebogen selbst auskunften</strong> – 90 Fragen in
+        5 Abschnitten (Governance, Qualitätsmanagement, Informationssicherheit, Compliance/Datenschutz,
+        Leistung). Das läuft über einen <strong>Online-Fragebogen</strong> (Survey) und ist
+        <strong>unabhängig von den Bewertungen</strong>.
+      </p>
+      <ul class="steps">
+        <li>Am Lieferanten den Button <strong>„Selbstauskunft anfordern"</strong> klicken → es entsteht
+            ein <strong>Selbstauskunftsauftrag</strong> und ein <strong>persönlicher Link</strong> zum
+            Fragebogen (am Auftrag hinterlegt; eine Aufgabe erinnert den Owner, den Link zu versenden).</li>
+        <li>Der Lieferant füllt den Fragebogen <strong>ohne Login</strong> aus
+            (Antwort je Frage: Ja / Teilweise / Nein / Nicht zutreffend).</li>
+        <li>Nach dem Absenden wird der Auftrag automatisch <strong>ausgewertet</strong>: Erfüllungsgrad
+            gesamt und je Abschnitt, Anzahl „KO mit Nein", <strong>Gesamtbewertung</strong>
+            (<span class="pill lo">≥85 % geeignet</span> <span class="pill mid">70–84 % mit Auflagen</span>
+            <span class="pill hi">&lt;70 % oder KO-Nein = kritisch</span>) und empfohlene Maßnahme.</li>
+        <li>Bei kritischem Ergebnis kann der Auftrag per Button <strong>ins Risikoregister überführt</strong> werden.</li>
+      </ul>
+      <p class="note">Punkte: Ja = 2 · Teilweise = 1 · Nein = 0 · „Nicht zutreffend" fällt aus der
+        Wertung (zählt nicht zum Maximum). KO-Kriterien sind im Fragebogen gekennzeichnet.</p>
+    </section>
+
+    <section>
       <h2>Wie wird gerechnet?</h2>
       <p>
         Jedes Kriterium bekommt <strong>0–3 Punkte</strong>. Jeder Punkt wird mit einem
@@ -269,6 +293,7 @@
         <div class="feat"><div class="ico">🛡️</div><h4>Wesentlichkeitsbeurteilungen</h4><p>ISO-27001-Bewertungen mit Score &amp; Einstufung</p></div>
         <div class="feat"><div class="ico">⭐</div><h4>Qualitätsbewertungen</h4><p>Lieferantenbeurteilungen je Kriterium</p></div>
         <div class="feat"><div class="ico">⚠️</div><h4>Risikoregister</h4><p>Ursache, Maßnahmen, Überwachung</p></div>
+        <div class="feat"><div class="ico">📝</div><h4>Selbstauskünfte</h4><p>ISO-Fragebogen anfordern, automatische Auswertung &amp; Einstufung</p></div>
       </div>
       <p class="note">Am Kontakt selbst gibt es den Tab „Lieferantenmanagement" (Klassifizierung,
         Verträge, Bewertungen) und den Smart-Button „Verträge".</p>
@@ -417,6 +442,30 @@
     </section>
 
     <section>
+      <h2>Lieferantenselbstauskunft (Hybrid Survey + Auswertung)</h2>
+      <p>
+        Da auf Odoo Online kein eigenes Portal-Formular installierbar ist, wird das
+        <strong>Standard-Survey-Modul</strong> als Self-Service-Kanal genutzt und um ein eigenes
+        Auswertungsmodell ergänzt. Entkoppelt von den Bewertungen.
+      </p>
+      <ul>
+        <li><strong>Survey</strong> (<code>survey.survey</code>, <code>scoring_without_answers</code>,
+            Zugang per Token ohne Login): 5 Seiten (Abschnitte), 90 <code>simple_choice</code>-Fragen mit
+            bepunkteten Antworten (Ja 2 / Teilweise 1 / Nein 0 / Nicht zutreffend 0). Mapping-Felder
+            <code>x_studio_frage_nr/_abschnitt/_ko</code> auf <code>survey.question</code>. Fragenkatalog
+            als committete Datendatei.</li>
+        <li><strong>Auswertungsmodell</strong> <code>x_selbstauskunft</code>: Compute-Felder rechnen
+            <em>live</em> aus den Antwortzeilen der Einreichung – Nicht-zutreffend fällt aus dem Maximum,
+            KO-Override (≥1 KO mit „Nein" ⇒ kritisch), Schwellen 85/70, Erfüllungsgrad je Abschnitt.</li>
+        <li><strong>Button „Selbstauskunft anfordern"</strong> (Server-Action am Lieferanten): legt den
+            Auftrag an, erzeugt eine <code>survey.user_input</code>-Einladung mit Token-Link
+            (<code>web.base.url + /survey/start/&lt;token&gt;</code>) und eine Owner-Aktivität.</li>
+        <li><strong>Abschluss-Automation</strong> (<code>base.automation</code> auf
+            <code>survey.user_input</code>, <code>state=done</code>): setzt den Auftrag auf „ausgewertet".</li>
+      </ul>
+    </section>
+
+    <section>
       <h2>Besonderheiten in Odoo 19.3 (verifiziert)</h2>
       <ul>
         <li>Eigene Felder müssen mit <code>x_</code> beginnen; Auswahlwerte als Selection mit Sequenz.</li>
@@ -443,6 +492,9 @@
         <tr><td><code>05_views_menu</code></td><td>Views, App-Menü, „Lieferanten"-Sicht, Vertragsmenü</td></tr>
         <tr><td><code>06_automation_cron</code></td><td>Cron, „Jetzt auslösen", Risiko-Überführung</td></tr>
         <tr><td><code>07_validate</code> / <code>08_cleanup</code></td><td>End-to-End-Test &amp; Aufräumen</td></tr>
+        <tr><td><code>11_selbstauskunft_survey</code></td><td>Survey (90 Fragen, 5 Abschnitte, bepunktet)</td></tr>
+        <tr><td><code>12_selbstauskunft_model</code></td><td>Auswertungsmodell + Live-Score + Risiko-Button</td></tr>
+        <tr><td><code>13_selbstauskunft_request</code></td><td>Anfordern-Button, Einladung, Abschluss-Automation, Menü</td></tr>
         <tr><td><code>09_seed_demo</code> / <code>10_cleanup_demo</code></td><td>Fiktive Demo-Daten an/aus</td></tr>
       </table>
       <p class="note">Aufbau in einem Rutsch über <code>run_all.sh</code>. Die Verträge stammen aus dem
