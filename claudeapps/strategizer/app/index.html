@@ -106,8 +106,11 @@
     .backbar { margin-bottom:14px; }
     .detail .head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
     .detail .titlewrap h2 { color:#e8eef5; font-size:1.3rem; display:inline; }
-    .detail .titlewrap .edit { background:none; border:none; color:var(--muted); font-size:0.9rem; margin-left:6px; }
-    .detail .titlewrap .edit:hover { color:var(--accent); }
+    .detail .edit { background:none; border:none; color:var(--muted); font-size:0.9rem; margin-left:6px; cursor:pointer; }
+    .detail .edit:hover { color:var(--accent); }
+    .refitem { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; background:var(--panel2); border:1px solid var(--line); border-left:2px solid var(--accent); border-radius:9px; padding:9px 12px; margin-bottom:7px; font-size:0.87rem; }
+    .refitem .refdel { background:none; border:none; color:var(--coral); font-size:0.95rem; flex-shrink:0; cursor:pointer; }
+    .refitem .refdel:hover { color:#ff6a84; }
     .detail .metaline { margin-top:9px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     .detail .metaline select { width:auto; padding:5px 10px; font-size:0.8rem; }
     .detail .total { text-align:right; }
@@ -234,6 +237,15 @@
 
 <div class="overlay hidden" id="weightOverlay">
   <div class="box wide" id="weightBox"></div>
+</div>
+
+<div class="overlay hidden" id="promptOverlay">
+  <div class="box" style="max-width:440px;text-align:left">
+    <h3 id="promptTitle" style="text-align:center;color:var(--accent)"></h3>
+    <p id="promptDesc" style="color:var(--muted);font-size:.85rem;margin-bottom:12px"></p>
+    <textarea id="promptInput" rows="3"></textarea>
+    <div class="actions"><button class="btn ghost" id="promptCancel">Abbrechen</button><button class="btn" id="promptOk">OK</button></div>
+  </div>
 </div>
 
 <script>
@@ -457,7 +469,7 @@ function renderDetail(idea){
 
   const head = `<div class="backbar"><button class="btn ghost sm" id="backBtn">← Zurück</button></div>
     <div class="head">
-      <div class="titlewrap"><h2>${esc(idea.title)}</h2><button class="edit" id="renameBtn" title="Umbenennen">✎</button>
+      <div class="titlewrap"><span class="titlerow"><h2>${esc(idea.title)}</h2><button class="edit" id="renameBtn" title="Umbenennen">✎</button></span>
         <div class="metaline"><span class="pill st-${idea.status}">${STATUS_LABELS[idea.status]}</span> ${catSel}</div></div>
       ${e?`<div class="total"><div class="num ${ratingClass(rating)}">${total.toFixed(1)}</div><div class="lab">/ 10 · ${rating}</div></div>`:''}
     </div>`;
@@ -475,6 +487,8 @@ function renderDetail(idea){
       <span class="track"><span class="fill" style="width:${s.score*10}%"></span></span><span class="num">${s.score}</span>
       <span class="why">${esc(s.begruendung)} <span style="opacity:.6">· Gewicht ${Math.round((w[s.key]||0)*100)}%</span></span></div>`).join('');
   const konzeptHtml = Object.keys(KF_LABELS).map(k=>e.konzept[k]?`<div class="kf"><div class="k">${KF_LABELS[k]}</div><div class="v">${esc(e.konzept[k])}</div></div>`:'').join('');
+  const refs = idea.refinements||[];
+  const refsHtml = refs.length ? refs.map(r=>`<div class="refitem"><span>${esc(r.text)}</span><button class="refdel" data-rid="${r.id}" title="Entfernen">✕</button></div>`).join('') : '<div style="color:var(--muted);font-size:.85rem">Noch keine Ergänzungen. Füge welche hinzu, um Konzept &amp; Bewertung nachzuschärfen.</div>';
   const u=e.konzept.umsetzung||{};
   const roadmap = (u.schritte&&u.schritte.length)?`<div class="roadmap">${u.schritte.map(s=>`<div class="rstep"><div class="rt">${esc(s.titel)}</div><div class="rd">${esc(s.beschreibung)}</div></div>`).join('')}</div>`:'';
   const analyseLabel = e.analyseTyp==='effizienz'?'Effizienzanalyse':'Marktbewertung';
@@ -492,7 +506,7 @@ function renderDetail(idea){
       <button class="btn" id="detailBtn">📑 Detailkonzept erstellen</button>`;
   }
 
-  const histHtml = idea.evaluations.map(v=>`<div class="hrow"><span class="v">v${v.version} · ${v.total.toFixed(1)}</span><span class="x">${v.refinement?'Nachschärfung: '+esc(v.refinement):'Erstbewertung'}</span></div>`).join('');
+  const histHtml = idea.evaluations.map(v=>`<div class="hrow"><span class="v">v${v.version} · ${v.total.toFixed(1)}</span><span class="x">${v.refinement?esc(v.refinement):'Erstbewertung'}</span></div>`).join('');
 
   $('detailView').innerHTML = `<div class="card detail">${head}${procBanner}${errBanner}
     <div class="statusbar">${statusHtml}<button class="del" id="delIdea" style="border-radius:999px;padding:5px 12px;font-size:.77rem">Löschen</button></div>
@@ -505,13 +519,14 @@ function renderDetail(idea){
       ${e.zusammenfassung?`<div class="summary">${esc(e.zusammenfassung)}</div>`:''}
       <div class="block"><div class="lbl">Bewertung (${wLabel})</div>
         <div class="scorewrap"><div class="radarbox">${renderRadar(e.scores)}</div><div class="scores">${scoresHtml}</div></div></div>
-      ${!processing?`<div class="block"><div class="lbl">Nachschärfen → Reevaluierung</div>
-        <textarea id="refineInput" rows="2" placeholder="Weitere Anforderung oder Anpassung – Konzept & Bewertung werden neu erzeugt."></textarea>
-        <div style="margin-top:10px"><button class="btn" id="refineBtn">Neu bewerten</button></div></div>`:''}
       <div class="block"><div class="lbl">Historie</div><div class="hist">${histHtml}</div></div>
     </div>
     <div class="tabpane" data-pane="analyse">
-      <div class="block"><div class="lbl">Original-Eingabe</div><div class="market" style="border-left-color:#64748b">${esc(idea.input)}</div></div>
+      <div class="block"><div class="lbl">Grundidee <button class="edit" id="editInputBtn" title="Bearbeiten">✎</button></div>
+        <div class="market" id="inputBox" style="border-left-color:#64748b">${esc(idea.input)}</div></div>
+      <div class="block"><div class="lbl">Ergänzende Informationen</div>
+        <div id="refList">${refsHtml}</div>
+        ${!processing?`<button class="btn ghost sm" id="addRefBtn" style="margin-top:8px">+ Ergänzung hinzufügen</button>`:`<div style="color:var(--muted);font-size:.82rem;margin-top:8px"><span class="mini-spin"></span> Neubewertung läuft …</div>`}</div>
       <div class="block"><div class="lbl">Ausgearbeitetes Konzept</div><div class="konzept">${konzeptHtml}</div></div>
       ${e.analyse?`<div class="block"><div class="lbl">${analyseLabel}</div><div class="market">${esc(e.analyse)}</div></div>`:''}
     </div>
@@ -530,14 +545,16 @@ function setTab(t){ activeTab=t;
 function wireDetail(idea){
   const g=id=>$(id);
   g('backBtn')&&g('backBtn').addEventListener('click',backToBoard);
-  g('renameBtn')&&g('renameBtn').addEventListener('click',()=>rename(idea));
+  g('renameBtn')&&g('renameBtn').addEventListener('click',()=>inlineRename(idea));
+  g('editInputBtn')&&g('editInputBtn').addEventListener('click',()=>inlineEditInput(idea));
+  g('addRefBtn')&&g('addRefBtn').addEventListener('click',()=>addRefinement(idea.id));
   g('retryBtn')&&g('retryBtn').addEventListener('click',()=>refine(idea.id,''));
   g('delIdea')&&g('delIdea').addEventListener('click',()=>delIdea(idea.id,idea.title));
   g('catSel')&&g('catSel').addEventListener('change',e=>changeCategory(idea.id,e.target.value));
   g('detailBtn')&&g('detailBtn').addEventListener('click',()=>genDetail(idea.id));
+  document.querySelectorAll('.refdel').forEach(b=>b.addEventListener('click',()=>delRefinement(idea.id,+b.dataset.rid)));
   document.querySelectorAll('.statusbar button[data-status]').forEach(b=>b.addEventListener('click',()=>moveStatus(idea.id,b.dataset.status)));
   document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
-  const rb=g('refineBtn'); rb&&rb.addEventListener('click',()=>{ const v=g('refineInput').value.trim(); if(!v){toast('Bitte eine Ergänzung eingeben.');return;} refine(idea.id,v); });
 }
 
 // ── Aktionen ──
@@ -587,10 +604,54 @@ async function moveStatus(id,status){
   try { const idea=await api('/ideas/'+id+'/status',{method:'PUT',body:JSON.stringify({status})}); await loadList(); if(selectedId===id) renderDetail(idea); }
   catch(err){ if(err.message!=='unauthorized') toast(err.message); }
 }
-async function rename(idea){
-  const t=prompt('Neuer Titel für die Idee:',idea.title); if(t==null) return; const title=t.trim(); if(!title) return;
-  try { const up=await api('/ideas/'+idea.id,{method:'PUT',body:JSON.stringify({title})}); await loadList(); if(selectedId===idea.id) renderDetail(up); toast('Umbenannt.'); }
+function inlineRename(idea){
+  const row=document.querySelector('.titlerow'); if(!row) return;
+  row.innerHTML = `<input type="text" id="renameInput" value="${esc(idea.title)}" style="width:auto;max-width:340px;display:inline-block;font-size:1.05rem;padding:6px 10px">
+    <button class="btn sm" id="renameSave">✓</button> <button class="btn ghost sm" id="renameCancel">✕</button>`;
+  const inp=$('renameInput'); inp.focus(); inp.select();
+  const save=async()=>{ const t=inp.value.trim(); if(!t){ renderDetail(idea); return; }
+    try{ const up=await api('/ideas/'+idea.id,{method:'PUT',body:JSON.stringify({title:t})}); await loadList(); if(selectedId===idea.id) renderDetail(up); toast('Umbenannt.'); }
+    catch(err){ if(err.message!=='unauthorized') toast(err.message); } };
+  $('renameSave').onclick=save; $('renameCancel').onclick=()=>renderDetail(idea);
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') save(); else if(e.key==='Escape') renderDetail(idea); });
+}
+function inlineEditInput(idea){
+  const box=$('inputBox'); if(!box) return;
+  box.outerHTML = `<div id="inputBox"><textarea id="inputEdit" rows="3" style="width:100%">${esc(idea.input)}</textarea>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="inputSave">Speichern &amp; neu bewerten</button><button class="btn ghost sm" id="inputCancel">Abbrechen</button></div></div>`;
+  const ta=$('inputEdit'); ta.focus();
+  $('inputCancel').onclick=()=>renderDetail(idea);
+  $('inputSave').onclick=async()=>{ const v=ta.value.trim(); if(!v){ toast('Die Grundidee darf nicht leer sein.'); return; }
+    try{ await api('/ideas/'+idea.id+'/input',{method:'PUT',body:JSON.stringify({input:v})}); detailIsProcessing=true;
+      const up=await api('/ideas/'+idea.id); renderDetail(up); await loadList(); managePoll(); toast('Grundidee aktualisiert – Neubewertung läuft …'); }
+    catch(err){ if(err.message!=='unauthorized') toast(err.message); } };
+}
+async function addRefinement(id){
+  const text=await promptOverlay({ title:'Ergänzende Information', desc:'Weitere Anforderung oder Anpassung. Konzept & Bewertung werden anschließend automatisch neu erzeugt.', placeholder:'z. B. Anbindung an bestehende Rechnungssoftware …', okLabel:'Hinzufügen & neu bewerten' });
+  if(!text) return;
+  try{ await api('/ideas/'+id+'/refinements',{method:'POST',body:JSON.stringify({text})}); detailIsProcessing=true;
+    if(selectedId===id){ const idea=await api('/ideas/'+id); renderDetail(idea); } await loadList(); managePoll(); toast('Ergänzung hinzugefügt – Neubewertung läuft …'); }
   catch(err){ if(err.message!=='unauthorized') toast(err.message); }
+}
+async function delRefinement(ideaId, rid){
+  const ok=await confirmDialog({ title:'Ergänzung entfernen?', message:'Die Idee wird anschließend neu bewertet.', okLabel:'Entfernen', danger:true });
+  if(!ok) return;
+  try{ await api('/ideas/'+ideaId+'/refinements/'+rid,{method:'DELETE'}); detailIsProcessing=true;
+    if(selectedId===ideaId){ const idea=await api('/ideas/'+ideaId); renderDetail(idea); } await loadList(); managePoll(); toast('Ergänzung entfernt – Neubewertung läuft …'); }
+  catch(err){ if(err.message!=='unauthorized') toast(err.message); }
+}
+function promptOverlay({title='Eingabe', desc='', placeholder='', okLabel='OK', value=''}={}){
+  return new Promise(resolve=>{
+    $('promptTitle').textContent=title; $('promptDesc').textContent=desc;
+    const inp=$('promptInput'), ok=$('promptOk'), cancel=$('promptCancel'), ov=$('promptOverlay');
+    inp.placeholder=placeholder; inp.value=value; ok.textContent=okLabel;
+    ov.classList.remove('hidden'); setTimeout(()=>inp.focus(),0);
+    const submit=()=>{ const v=inp.value.trim(); done(v||null); };
+    const done=v=>{ ov.classList.add('hidden'); ok.onclick=null; cancel.onclick=null; ov.onclick=null; document.removeEventListener('keydown',onKey); resolve(v); };
+    const onKey=e=>{ if(e.key==='Escape') done(null); else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) submit(); };
+    ok.onclick=submit; cancel.onclick=()=>done(null); ov.onclick=e=>{ if(e.target===ov) done(null); };
+    document.addEventListener('keydown',onKey);
+  });
 }
 async function delIdea(id,title){
   const ok=await confirmDialog({ title:'Idee löschen?', message:'Möchtest du „<strong>'+esc(title)+'</strong>" wirklich löschen?<br>Das kann nicht rückgängig gemacht werden.', okLabel:'Löschen', danger:true });
