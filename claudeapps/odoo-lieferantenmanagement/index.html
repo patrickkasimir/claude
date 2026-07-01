@@ -235,10 +235,13 @@
             gesamt und je Abschnitt, Anzahl „KO mit Nein", <strong>Gesamtbewertung</strong>
             (<span class="pill lo">≥85 % geeignet</span> <span class="pill mid">70–84 % mit Auflagen</span>
             <span class="pill hi">&lt;70 % oder KO-Nein = kritisch</span>) und empfohlene Maßnahme.</li>
-        <li>Bei kritischem Ergebnis: Button <strong>„In Risikoregister überführen"</strong>. Für Fragen mit
-            erforderlichem Nachweis: Button <strong>„Nachweise anfordern"</strong> – am Auftrag entsteht eine
-            <strong>Nachweis-Liste</strong> (Status <em>offen/erhalten</em>, Datei-Upload), der Lieferant wird
-            angeschrieben (Vermerk im Chatter).</li>
+        <li>Bei kritischem Ergebnis: Button <strong>„In Risikoregister überführen"</strong>. Zur Auswertung
+            werden für <strong>mit „Ja" beantwortete</strong> nachweispflichtige Fragen automatisch
+            <strong>Nachweis-Einträge</strong> vorgeschlagen (mit Fragetext, Status <em>offen</em>). Der Manager
+            kann diese Liste kürzen/ergänzen und dann <strong>„Nachweise anfordern"</strong> klicken – die
+            formatierte Anforderungs-E-Mail geht an den Lieferanten und hängt vollständig im
+            <strong>Chatter</strong>. Lädt der Lieferant später die Datei hoch, springt der Status automatisch
+            auf <em>erbracht</em> und „Erhalten am" wird gesetzt.</li>
       </ul>
       <p class="note">Punkte: Ja = 2 · Teilweise = 1 · Nein = 0 · „Nicht zutreffend" fällt aus der
         Wertung (zählt nicht zum Maximum). KO-Kriterien sind im Fragebogen gekennzeichnet.</p>
@@ -360,8 +363,12 @@
         <li>In Odoo unter <strong>Lieferantenmanagement → Selbstauskünfte</strong> steht der Auftrag
             automatisch auf <strong>Ausgewertet</strong> – mit <strong>Erfüllungsgrad</strong>, Werten je
             Abschnitt und <strong>Gesamtbewertung</strong>.</li>
-        <li>Bei <strong>kritisch</strong>: Button <strong>„In Risikoregister überführen"</strong>;
-            nachweispflichtige Fragen über <strong>„Nachweis anfordern"</strong> beim Lieferanten einholen.</li>
+        <li>Bei <strong>kritisch</strong>: Button <strong>„In Risikoregister überführen"</strong>.</li>
+        <li><strong>Nachweise:</strong> Zur Auswertung schlägt das System für die mit „Ja" beantworteten
+            nachweispflichtigen Fragen automatisch Einträge vor (Liste am Auftrag, Status <em>offen</em>).
+            Liste bei Bedarf anpassen, dann <strong>„Nachweise anfordern"</strong> → E-Mail an den Lieferanten
+            (im Chatter sichtbar). Nach Datei-Upload steht der Nachweis automatisch auf <em>erbracht</em>.
+            Gesamtübersicht aller Nachweise unter <strong>Lieferantenmanagement → Nachweise</strong>.</li>
       </ul>
       <p class="note">Auswertungslogik: Ja = 2 · Teilweise = 1 · Nein = 0 · „Nicht zutreffend" fällt aus der
         Wertung. Schwellen: ≥ 85 % geeignet · 70–84 % mit Auflagen · &lt; 70 % oder ein KO-Kriterium mit
@@ -532,14 +539,23 @@
             Erfüllungsgrad je Abschnitt.</li>
         <li><strong>Anfordern-Dialog</strong> (Transient-Wizard <code>x_sa_anfordern_wizard</code>,
             E-Mail-Pflicht): legt den Auftrag an, erzeugt die <code>survey.user_input</code>-Einladung mit
-            korrektem Link (<code>…/survey/start/&lt;survey.access_token&gt;?answer_token=&lt;user_input.access_token&gt;</code>),
-            versendet die E-Mail (<code>mail.mail</code>) und legt eine Owner-Aktivität an.</li>
+            korrektem Link (<code>…/survey/start/&lt;survey.access_token&gt;?answer_token=&lt;user_input.access_token&gt;</code>)
+            und postet die vollständige, formatierte Anforderungs-Mail als HTML in den Chatter (direkter
+            <code>mail.message</code>-Create + <code>mail.mail</code>-Versand, da <code>Markup</code> im
+            Server-Action-<code>safe_eval</code> fehlt und <code>message_post(&lt;str&gt;)</code> HTML escaped).</li>
         <li><strong>Risiko-Überführung</strong> setzt Ursache-Erklärtext, Verantwortlichen (Lieferanten-Owner)
-            und Herkunfts-Link; <strong>„Nachweise anfordern"</strong> legt je nachweispflichtiger Frage einen
-            Eintrag im <strong>Nachweis-Register</strong> (<code>x_nachweis</code>, Status + Datei-Upload) an
-            und postet die Anforderung in den Chatter (<code>message_post</code>).</li>
+            und Herkunfts-Link. <strong>Nachweis-Register</strong> (<code>x_nachweis</code>): Einträge werden
+            <em>zur Auswertung automatisch</em> für mit „Ja" beantwortete nachweispflichtige Fragen angelegt
+            (idempotent, Status <em>offen</em>, mit Fragetext). <strong>„Nachweise anfordern"</strong> legt
+            keine neuen Einträge an, sondern versendet die formatierte Mail für die vorhandenen und postet sie
+            in den Chatter. Eigene <code>base.automation</code> auf <code>x_nachweis</code> setzt bei
+            Datei-Upload Status auf <em>erbracht</em> + „Erhalten am". Gesamtübersicht als Menü „Nachweise".</li>
         <li><strong>Abschluss-Automation</strong> (<code>base.automation</code> auf
-            <code>survey.user_input</code>, <code>state=done</code>): setzt den Auftrag auf „ausgewertet".</li>
+            <code>survey.user_input</code>, <code>state=done</code>): setzt den Auftrag auf „ausgewertet" und
+            erzeugt die Nachweis-Vorschläge.</li>
+        <li><strong>Alle App-Modelle</strong> bieten neben Liste/Formular eine <strong>Kanban-Ansicht</strong>
+            (19.3: <code>&lt;t t-name="card"&gt;</code>, gruppiert nach gespeichertem Feld – nicht der live
+            berechneten Gesamtbewertung) und ein-/ausblendbare Listenspalten (<code>optional</code>).</li>
       </ul>
     </section>
 
