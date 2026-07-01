@@ -235,8 +235,10 @@
             gesamt und je Abschnitt, Anzahl „KO mit Nein", <strong>Gesamtbewertung</strong>
             (<span class="pill lo">≥85 % geeignet</span> <span class="pill mid">70–84 % mit Auflagen</span>
             <span class="pill hi">&lt;70 % oder KO-Nein = kritisch</span>) und empfohlene Maßnahme.</li>
-        <li>Bei kritischem Ergebnis: Button <strong>„In Risikoregister überführen"</strong>. Für Fragen
-            mit erforderlichem Nachweis: Button <strong>„Nachweise anfordern"</strong> beim Lieferanten.</li>
+        <li>Bei kritischem Ergebnis: Button <strong>„In Risikoregister überführen"</strong>. Für Fragen mit
+            erforderlichem Nachweis: Button <strong>„Nachweise anfordern"</strong> – am Auftrag entsteht eine
+            <strong>Nachweis-Liste</strong> (Status <em>offen/erhalten</em>, Datei-Upload), der Lieferant wird
+            angeschrieben (Vermerk im Chatter).</li>
       </ul>
       <p class="note">Punkte: Ja = 2 · Teilweise = 1 · Nein = 0 · „Nicht zutreffend" fällt aus der
         Wertung (zählt nicht zum Maximum). KO-Kriterien sind im Fragebogen gekennzeichnet.</p>
@@ -533,8 +535,9 @@
             korrektem Link (<code>…/survey/start/&lt;survey.access_token&gt;?answer_token=&lt;user_input.access_token&gt;</code>),
             versendet die E-Mail (<code>mail.mail</code>) und legt eine Owner-Aktivität an.</li>
         <li><strong>Risiko-Überführung</strong> setzt Ursache-Erklärtext, Verantwortlichen (Lieferanten-Owner)
-            und Herkunfts-Link; <strong>„Nachweise anfordern"</strong> mailt dem Lieferanten die
-            nachweispflichtigen Fragen.</li>
+            und Herkunfts-Link; <strong>„Nachweise anfordern"</strong> legt je nachweispflichtiger Frage einen
+            Eintrag im <strong>Nachweis-Register</strong> (<code>x_nachweis</code>, Status + Datei-Upload) an
+            und postet die Anforderung in den Chatter (<code>message_post</code>).</li>
         <li><strong>Abschluss-Automation</strong> (<code>base.automation</code> auf
             <code>survey.user_input</code>, <code>state=done</code>): setzt den Auftrag auf „ausgewertet".</li>
       </ul>
